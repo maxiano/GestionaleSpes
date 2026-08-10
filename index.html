@@ -85,7 +85,7 @@
             </form>
         </div>
 
-        <!-- DASHBOARD GENERICA (CONTENITORE PER ALLENATORE O RT) -->
+        <!-- DASHBOARD GENERICA -->
         <div id="app-dashboard" class="hidden space-y-6">
 
             <!-- HEADER DASHBOARD -->
@@ -99,7 +99,7 @@
                 </div>
             </div>
 
-            <!-- FILTRO SQUADRE (SOLO PER RESPONSABILE TECNICO/ADMIN) -->
+            <!-- FILTRO SQUADRE (SOLO PER ADMIN/RT) -->
             <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex items-center space-x-3 print:hidden hidden">
                 <label class="text-sm font-bold text-gray-600">Seleziona Categoria/Gruppo:</label>
                 <select id="admin-team-filter" onchange="handleTeamChange()" class="border p-2 rounded text-sm flex-1">
@@ -159,13 +159,22 @@
                         <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
                         <div class="flex items-center space-x-2">
                             <label class="text-xs font-bold text-gray-600">Data:</label>
-                            <input type="date" id="attendance-date" class="border p-1 rounded text-sm">
+                            <input type="date" id="attendance-date" class="border p-1 rounded text-sm font-semibold">
                         </div>
+                    </div>
+
+                    <!-- BADGE STATO GIORNATA + PULSANTE ELIMINA -->
+                    <div id="attendance-status-container" class="hidden flex justify-between items-center bg-gray-50 border p-3 rounded-lg mb-4">
+                        <div id="attendance-status-badge" class="text-xs font-bold"></div>
+                        
+                        <button id="btn-delete-session" type="button" onclick="deleteCurrentSession()" class="hidden bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-bold transition">
+                            🗑️ Elimina Giornata
+                        </button>
                     </div>
 
                     <form id="form-attendance" onsubmit="saveAttendance(event)" class="space-y-4">
                         <p class="text-xs font-bold text-gray-600">Seleziona Stato Presenza:</p>
-                        <div id="attendance-players-inputs" class="divide-y space-y-2 mb-4 border rounded p-3">
+                        <div id="attendance-players-inputs" class="divide-y space-y-2 mb-4 border rounded p-3 bg-white">
                             <!-- Caricato da JS -->
                         </div>
 
@@ -302,6 +311,7 @@
         let currentUserProfile = null;
         let activeTeamId = null;
         let activeTeamPlayers = [];
+        let currentSessionDocId = null; // Traccia il documento caricato per la data attiva
 
         // Impostazione date e filtri iniziali
         const now = new Date();
@@ -309,6 +319,9 @@
         document.getElementById('attendance-date').value = todayStr;
         document.getElementById('filter-month').value = now.getMonth();
         document.getElementById('filter-year').value = now.getFullYear();
+
+        // Event listener cambio data
+        document.getElementById('attendance-date').addEventListener('change', checkAndLoadExistingAttendance);
 
         // AUTENTICAZIONE E INIZIALIZZAZIONE RUOLI
         auth.onAuthStateChanged(async (user) => {
@@ -385,6 +398,7 @@
             renderPlayersList();
             renderAttendanceInputs();
             renderCallupCheckboxes();
+            checkAndLoadExistingAttendance();
             loadMonthlyAttendances();
         }
 
@@ -456,41 +470,152 @@
             });
         }
 
-        // SALVATAGGIO ALLENAMENTO E PRESENZE
+        // VERIFICA E CARICAMENTO AUTOMATICO PRESENZE SELEZIONANDO UNA DATA
+        async function checkAndLoadExistingAttendance() {
+            const dateInput = document.getElementById('attendance-date');
+            const container = document.getElementById('attendance-status-container');
+            const badge = document.getElementById('attendance-status-badge');
+            const deleteBtn = document.getElementById('btn-delete-session');
+            
+            if (!dateInput || !dateInput.value || !activeTeamId) {
+                if (container) container.classList.add('hidden');
+                currentSessionDocId = null;
+                return;
+            }
+
+            const date = dateInput.value;
+
+            try {
+                const snapshot = await db.collection('attendances')
+                    .where('teamId', '==', activeTeamId)
+                    .where('date', '==', date)
+                    .get();
+
+                if (!snapshot.empty) {
+                    const doc = snapshot.docs[0];
+                    currentSessionDocId = doc.id;
+                    const records = doc.data().records || [];
+
+                    // Pre-seleziona i radio button esistenti
+                    records.forEach(rec => {
+                        const radio = document.querySelector(`input[name="att_${rec.playerId}"][value="${rec.status}"]`);
+                        if (radio) radio.checked = true;
+                    });
+
+                    // Mostra Badge "Già Salvato" e Pulsante Elimina
+                    if (container) container.classList.remove('hidden');
+                    if (badge) {
+                        badge.className = "text-xs font-bold text-amber-800";
+                        badge.innerHTML = `⚠️ Presenze per il <strong>${formatDateIT(date)}</strong> già salvate. Salvando ora sovrascriverai i dati.`;
+                    }
+                    if (deleteBtn) deleteBtn.classList.remove('hidden');
+
+                } else {
+                    // Nuova giornata
+                    currentSessionDocId = null;
+                    resetAttendanceRadios();
+
+                    // Mostra Badge "Nuova Giornata" e nascondi Elimina
+                    if (container) container.classList.remove('hidden');
+                    if (badge) {
+                        badge.className = "text-xs font-bold text-green-800";
+                        badge.innerHTML = `✨ Nuova giornata del <strong>${formatDateIT(date)}</strong> (nessun dato salvato).`;
+                    }
+                    if (deleteBtn) deleteBtn.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error("Errore durante il controllo presenze:", err);
+            }
+        }
+
+        // SALVATAGGIO CON GESTIONE DUPLICATI / SOVRASCRITTURA
         async function saveAttendance(e) {
             e.preventDefault();
             if (!activeTeamId || activeTeamPlayers.length === 0) return alert('Nessuna squadra o giocatore presente!');
 
             const date = document.getElementById('attendance-date').value;
-            const records = [];
 
-            activeTeamPlayers.forEach(player => {
-                const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
-                if (radio) {
-                    const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
-                    records.push({ playerId: player.id, name: displayName, status: radio.value });
-                }
-            });
+            if (!date) return alert('Seleziona una data valida!');
 
             try {
-                await db.collection('attendances').add({
-                    teamId: activeTeamId,
-                    date: date,
-                    records: records,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                const existingCheck = await db.collection('attendances')
+                    .where('teamId', '==', activeTeamId)
+                    .where('date', '==', date)
+                    .get();
+
+                let docToUpdateId = null;
+
+                if (!existingCheck.empty) {
+                    const confirmUpdate = confirm(
+                        `⚠️ Hai già salvato l'allenamento e le presenze per il ${formatDateIT(date)}.\n\nVuoi aggiornare e sovrascrivere i dati inseriti?`
+                    );
+
+                    if (!confirmUpdate) return; // Annullato dall'utente
+
+                    docToUpdateId = existingCheck.docs[0].id;
+                }
+
+                // Prepara i record delle presenze
+                const records = [];
+                activeTeamPlayers.forEach(player => {
+                    const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
+                    if (radio) {
+                        const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                        records.push({ playerId: player.id, name: displayName, status: radio.value });
+                    }
                 });
 
-                alert('Allenamento e presenze salvati con successo!');
+                if (docToUpdateId) {
+                    // Aggiorna giornata esistente
+                    await db.collection('attendances').doc(docToUpdateId).update({
+                        records: records,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    alert('Presenze aggiornate con successo!');
+                } else {
+                    // Salva nuova giornata
+                    await db.collection('attendances').add({
+                        teamId: activeTeamId,
+                        date: date,
+                        records: records,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    alert('Allenamento e presenze salvati con successo!');
+                }
                 
-                // Imposta i selettori del mese ed anno in base alla data dell'allenamento appena salvato
+                // Aggiorna filtri mese/anno
                 const savedDateObj = new Date(date + 'T00:00:00');
                 document.getElementById('filter-month').value = savedDateObj.getMonth();
                 document.getElementById('filter-year').value = savedDateObj.getFullYear();
 
-                // Ricarica subito lo storico
+                checkAndLoadExistingAttendance();
+                loadMonthlyAttendances();
+
+            } catch (err) {
+                console.error("Errore salvataggio presenze:", err);
+                alert("Errore durante il salvataggio: " + err.message);
+            }
+        }
+
+        // ELIMINAZIONE GIORNATA DAL MODULO DI REGISTRAZIONE
+        async function deleteCurrentSession() {
+            if (!currentSessionDocId) return;
+
+            const dateStr = document.getElementById('attendance-date').value;
+            const confirmDelete = confirm(`Sei sicuro di voler eliminare definitivamente l'allenamento e le presenze del ${formatDateIT(dateStr)}?`);
+
+            if (!confirmDelete) return;
+
+            try {
+                await db.collection('attendances').doc(currentSessionDocId).delete();
+                alert('Giornata ed allenamento eliminati con successo!');
+
+                currentSessionDocId = null;
+                checkAndLoadExistingAttendance();
                 loadMonthlyAttendances();
             } catch (err) {
-                alert("Errore durante il salvataggio: " + err.message);
+                console.error("Errore eliminazione giornata:", err);
+                alert("Errore durante l'eliminazione: " + err.message);
             }
         }
 
@@ -507,7 +632,7 @@
 
             container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
 
-            // Calcolo dinamico dell'ultimo giorno del mese (28, 29, 30, 31)
+            // Calcolo dinamico esatto ultimo giorno del mese
             const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
             
             const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
@@ -522,7 +647,7 @@
 
                 const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                // Ordina per data decrescente (dal più recente)
+                // Ordina per data decrescente
                 sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 if (sessions.length === 0) {
@@ -533,7 +658,7 @@
                     return;
                 }
 
-                // Calcolo Statistiche Mensili
+                // Statistiche Mensili
                 let totalPresentsCount = 0;
                 sessions.forEach(s => {
                     if (s.records) {
@@ -545,7 +670,7 @@
                 document.getElementById('stat-total-presents').innerText = totalPresentsCount;
                 document.getElementById('stat-avg-presents').innerText = (totalPresentsCount / sessions.length).toFixed(1);
 
-                // Generazione Dettaglio Giornate
+                // Rendering Lista Sedute
                 container.innerHTML = '';
                 sessions.forEach(session => {
                     const formattedDate = new Date(session.date + 'T00:00:00').toLocaleDateString('it-IT', {
@@ -588,18 +713,19 @@
                 });
             } catch (err) {
                 console.error("Errore caricamento allenamenti:", err);
-                container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore nel caricamento dei dati. Controlla la console del browser per verificare se occorre attivare l'indice Firestore.</p>`;
+                container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore nel caricamento dei dati. Assicurati che l'indice Firestore sia stato attivato se richiesto in console.</p>`;
             }
         }
 
         async function deleteSession(sessionId) {
             if (confirm("Sei sicuro di voler eliminare questo allenamento dal registro?")) {
                 await db.collection('attendances').doc(sessionId).delete();
+                checkAndLoadExistingAttendance();
                 loadMonthlyAttendances();
             }
         }
 
-        // GESTIONE AGGIUNTA GIOCATORE
+        // AGGIUNTA E GESTIONE GIOCATORI
         function openAddPlayerModal() {
             if (!activeTeamId) return alert('Seleziona prima una squadra!');
             document.getElementById('player-first-name').value = '';
@@ -658,6 +784,21 @@
             });
 
             alert(`Convocazione creata con ${selectedPlayers.length} giocatori!`);
+        }
+
+        // UTILITIES
+        function formatDateIT(dateStr) {
+            if (!dateStr) return '';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        function resetAttendanceRadios() {
+            if (!activeTeamPlayers) return;
+            activeTeamPlayers.forEach(player => {
+                const defaultRadio = document.querySelector(`input[name="att_${player.id}"][value="present"]`);
+                if (defaultRadio) defaultRadio.checked = true;
+            });
         }
     </script>
 </body>
