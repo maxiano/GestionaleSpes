@@ -56,15 +56,26 @@
 </head>
 <body class="bg-gray-100 font-sans text-gray-800">
 
-    <!-- BARRA DI NAVIGAZIONE SUPERIORE -->
-    <nav class="bg-blue-800 text-white p-4 flex justify-between items-center shadow-md print:hidden">
-        <div>
-            <h1 class="text-xl font-bold">Scuola Calcio Hub</h1>
-            <p id="user-info" class="text-xs text-blue-200">Caricamento utente...</p>
+    <!-- BARRA DI NAVIGAZIONE SUPERIORE (TEMA BIANCO E NERO) -->
+    <nav class="bg-black text-white p-4 flex justify-between items-center shadow-md border-b-2 border-gray-800 print:hidden">
+        <div class="flex items-center space-x-3">
+            <!-- LOGO SPES MONTESACRO -->
+            <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center p-1 shadow">
+                <svg class="w-full h-full text-black" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M50 5 L90 20 V50 C90 75 50 95 50 95 C50 95 10 75 10 50 V20 L50 5 Z" fill="black" stroke="white" stroke-width="2"/>
+                    <circle cx="50" cy="45" r="18" fill="white" stroke="black" stroke-width="2"/>
+                    <path d="M50 30 L55 40 L65 40 L57 46 L60 56 L50 50 L40 56 L43 46 L35 40 L45 40 Z" fill="black"/>
+                    <text x="50" y="78" fill="white" font-size="12" font-weight="bold" text-anchor="middle" font-family="sans-serif">SPES</text>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-wide uppercase">Spes Montesacro</h1>
+                <p id="user-info" class="text-xs text-gray-300">Caricamento utente...</p>
+            </div>
         </div>
         <div class="flex items-center space-x-3">
-            <!-- VOCE MENU STAFF NELLA BARRA SUPERIORE (NASCOSTA DI DEFAULT, VISIBILE SOLO PER ADMIN) -->
-            <button id="nav-btn-staff" class="hidden bg-purple-700 hover:bg-purple-800 text-white text-xs px-3 py-2 rounded font-semibold transition border border-purple-400">
+            <!-- VOCE MENU STAFF NELLA BARRA SUPERIORE -->
+            <button id="nav-btn-staff" class="hidden bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded font-semibold transition border border-gray-600">
                 ⚙️ Gestione Staff/Coach
             </button>
             <button id="btn-logout" class="hidden bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-2 rounded font-semibold transition">
@@ -76,10 +87,20 @@
     <!-- INTESTAZIONE UNICA REPORT DI STAMPA -->
     <div id="generic-print-header" class="hidden print:block p-2 border-b-2 border-black mb-4">
         <div class="flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-bold uppercase tracking-wide">Scuola Calcio Spes Montesacro</h1>
-                <p id="print-report-team" class="text-xs font-semibold mt-0.5">Squadra / Categoria: --</p>
-                <p id="print-report-period" class="text-xs">Documento Generato dal Sistema</p>
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 border-2 border-black rounded-full flex items-center justify-center p-0.5">
+                    <svg class="w-full h-full text-black" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M50 5 L90 20 V50 C90 75 50 95 50 95 C50 95 10 75 10 50 V20 L50 5 Z" fill="black"/>
+                        <circle cx="50" cy="45" r="18" fill="white" stroke="black" stroke-width="2"/>
+                        <path d="M50 30 L55 40 L65 40 L57 46 L60 56 L50 50 L40 56 L43 46 L35 40 L45 40 Z" fill="black"/>
+                        <text x="50" y="78" fill="white" font-size="12" font-weight="bold" text-anchor="middle" font-family="sans-serif">SPES</text>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold uppercase tracking-wide">Scuola Calcio Spes Montesacro</h1>
+                    <p id="print-report-team" class="text-xs font-semibold mt-0.5">Squadra / Categoria: --</p>
+                    <p id="print-report-period" class="text-xs">Documento Generato dal Sistema</p>
+                </div>
             </div>
             <div class="text-right text-[10px]">
                 <p class="font-bold">Spes Montesacro</p>
@@ -91,18 +112,29 @@
     <div class="max-w-6xl mx-auto p-4 print:p-0">
 
         <!-- SECTION: LOGIN -->
-        <div id="section-login" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mt-10 print:hidden">
-            <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">Accedi alla Piattaforma</h2>
+        <div id="section-login" class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-black max-w-md mx-auto mt-10 print:hidden">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 mx-auto mb-2 bg-black rounded-full flex items-center justify-center p-2 shadow">
+                    <svg class="w-full h-full text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M50 5 L90 20 V50 C90 75 50 95 50 95 C50 95 10 75 10 50 V20 L50 5 Z" fill="black" stroke="white" stroke-width="2"/>
+                        <circle cx="50" cy="45" r="18" fill="white" stroke="black" stroke-width="2"/>
+                        <path d="M50 30 L55 40 L65 40 L57 46 L60 56 L50 50 L40 56 L43 46 L35 40 L45 40 Z" fill="black"/>
+                        <text x="50" y="78" fill="white" font-size="12" font-weight="bold" text-anchor="middle" font-family="sans-serif">SPES</text>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900">Accedi alla Piattaforma</h2>
+                <p class="text-xs text-gray-500">Spes Montesacro - Gestionale Tecnico</p>
+            </div>
             <form id="form-login" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-600">Email</label>
-                    <input type="email" id="login-email" required class="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="login-email" required class="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-black outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-600">Password</label>
-                    <input type="password" id="login-password" required class="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="login-password" required class="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-black outline-none">
                 </div>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-bold transition">
+                <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white p-2.5 rounded font-bold transition shadow">
                     Accedi
                 </button>
             </form>
@@ -112,18 +144,18 @@
         <div id="app-dashboard" class="hidden space-y-4">
 
             <!-- HEADER DASHBOARD -->
-            <div id="dashboard-header" class="bg-white p-4 rounded-lg shadow flex justify-between items-center border-l-4 border-blue-600 print:hidden">
+            <div id="dashboard-header" class="bg-white p-4 rounded-lg shadow flex justify-between items-center border-l-4 border-black print:hidden">
                 <div>
-                    <h2 id="dashboard-role-title" class="text-lg font-bold text-gray-800">Pannello Tecnico</h2>
+                    <h2 id="dashboard-role-title" class="text-lg font-bold text-gray-900">Pannello Tecnico</h2>
                     <p id="dashboard-subtitle" class="text-sm text-gray-500">Squadra: --</p>
                 </div>
             </div>
 
             <!-- FILTRO SQUADRE + BOTTONE AGGIUNGI GIOCATORE -->
-            <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex flex-col md:flex-row md:items-center justify-between gap-3 print:hidden hidden">
+            <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex flex-col md:flex-row md:items-center justify-between gap-3 print:hidden hidden border border-gray-200">
                 <div class="flex items-center space-x-3 flex-1">
-                    <label class="text-sm font-bold text-gray-600 whitespace-nowrap">Seleziona Categoria/Gruppo:</label>
-                    <select id="admin-team-filter" class="border p-2 rounded text-sm flex-1 bg-white">
+                    <label class="text-sm font-bold text-gray-700 whitespace-nowrap">Seleziona Categoria/Gruppo:</label>
+                    <select id="admin-team-filter" class="border p-2 rounded text-sm flex-1 bg-white focus:ring-2 focus:ring-black">
                         <option value="ALL">Seleziona un gruppo...</option>
                         <optgroup label="2014 (Esordienti)">
                             <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
@@ -159,14 +191,14 @@
                         </optgroup>
                     </select>
                 </div>
-                <button id="btn-open-add-player" class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded font-bold transition whitespace-nowrap">
+                <button id="btn-open-add-player" class="bg-black hover:bg-gray-800 text-white text-xs px-4 py-2 rounded font-bold transition whitespace-nowrap shadow">
                     + Aggiungi Giocatore
                 </button>
             </div>
 
-            <!-- BARRA MENU A TAB (ROSA GIOCATORI ORA AL PRIMO POSTO) -->
-            <div id="navigation-tabs" class="bg-white rounded-lg shadow p-1 flex flex-wrap space-x-1 border-b print:hidden hidden">
-                <button id="btn-tab-roster" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100">
+            <!-- BARRA MENU A TAB -->
+            <div id="navigation-tabs" class="bg-white rounded-lg shadow p-1 flex flex-wrap space-x-1 border border-gray-200 print:hidden hidden">
+                <button id="btn-tab-roster" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black">
                     👥 Rosa Giocatori
                 </button>
                 <button id="btn-tab-attendance" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
@@ -178,8 +210,8 @@
                 <button id="btn-tab-callup" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
                     📩 Convocazioni
                 </button>
-                <!-- TAB ESCLUSIVA ADMIN (NASCOSTA DI DEFAULT) -->
-                <button id="btn-tab-staff" class="tab-btn hidden flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 transition border border-purple-200">
+                <!-- TAB ESCLUSIVA ADMIN -->
+                <button id="btn-tab-staff" class="tab-btn hidden flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300">
                     ⚙️ Gestione Staff/Coach
                 </button>
             </div>
@@ -187,26 +219,25 @@
             <!-- CONTENUTI OPERATIVI SEPARATI PER TAB -->
             <div id="main-content-area" class="hidden">
 
-                <!-- TAB 1: ROSA GIOCATORI COMPLETA DI ANAGRAFICA (ORA PRIMA SCHERMATA) -->
+                <!-- TAB 1: ROSA GIOCATORI -->
                 <div id="tab-roster" class="tab-content bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
                     <div class="flex justify-between items-center mb-4 border-b pb-3 print:hidden">
                         <div>
-                            <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
+                            <h3 class="text-lg font-bold text-gray-800">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
                             <p class="text-xs text-gray-500">Gestione Anagrafica e Certificati Medici</p>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <!-- INPUT E PULSANTE PER IMPORTAZIONE CSV -->
                             <input type="file" id="input-import-roster-csv" accept=".csv" class="hidden">
-                            <button id="btn-import-roster-csv" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-2 rounded font-bold transition">
+                            <button id="btn-import-roster-csv" class="bg-gray-800 hover:bg-gray-900 text-white text-xs px-3 py-2 rounded font-bold transition">
                                 📥 Importa CSV
                             </button>
-                            <button id="btn-export-roster-csv" class="bg-teal-600 hover:bg-teal-700 text-white text-xs px-3 py-2 rounded font-bold transition">
+                            <button id="btn-export-roster-csv" class="bg-gray-700 hover:bg-gray-800 text-white text-xs px-3 py-2 rounded font-bold transition">
                                 📄 Esporta CSV
                             </button>
-                            <button id="btn-share-roster-wa" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold transition">
+                            <button id="btn-share-roster-wa" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded font-bold transition">
                                 📲 Condividi WhatsApp
                             </button>
-                            <button id="btn-print-roster" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold transition">
+                            <button id="btn-print-roster" class="bg-black hover:bg-gray-800 text-white text-xs px-3 py-2 rounded font-bold transition">
                                 🖨️ Stampa Rosa
                             </button>
                         </div>
@@ -224,7 +255,7 @@
                 <!-- TAB 2: REGISTRA NUOVO ALLENAMENTO E PRESENZE -->
                 <div id="tab-attendance" class="tab-content hidden print:hidden bg-white p-6 rounded-lg shadow">
                     <div class="flex justify-between items-center mb-4 border-b pb-3">
-                        <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
+                        <h3 class="text-lg font-bold text-gray-800">⚽ Registra Allenamento e Presenze</h3>
                         <div class="flex items-center space-x-2">
                             <label class="text-xs font-bold text-gray-600">Data:</label>
                             <input type="date" id="attendance-date" class="border p-1 rounded text-sm font-semibold">
@@ -251,7 +282,7 @@
                         </div>
 
                         <div class="flex justify-between items-center pt-2">
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-bold text-xs px-4 transition">
+                            <button type="submit" class="bg-black hover:bg-gray-800 text-white p-2 rounded font-bold text-xs px-4 transition">
                                 Salva Allenamento e Presenze
                             </button>
                         </div>
@@ -272,7 +303,7 @@
                                 <option value="1">Febbraio</option>
                                 <option value="2">Marzo</option>
                                 <option value="3">Aprile</option>
-                                <option value="5">Maggio</option>
+                                <option value="4">Maggio</option>
                                 <option value="5">Giugno</option>
                                 <option value="6">Luglio</option>
                                 <option value="7">Agosto</option>
@@ -285,30 +316,30 @@
                             <select id="filter-year" class="border p-1.5 rounded text-sm font-semibold bg-gray-50">
                             </select>
 
-                            <button id="btn-export-monthly-csv" class="bg-teal-600 hover:bg-teal-700 text-white text-xs px-3 py-2 rounded font-bold transition">
+                            <button id="btn-export-monthly-csv" class="bg-gray-700 hover:bg-gray-800 text-white text-xs px-3 py-2 rounded font-bold transition">
                                 📄 Esporta Excel/CSV
                             </button>
-                            <button id="btn-share-monthly-wa" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold transition">
+                            <button id="btn-share-monthly-wa" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded font-bold transition">
                                 📲 Condividi WhatsApp
                             </button>
-                            <button id="btn-print-monthly" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold transition">
+                            <button id="btn-print-monthly" class="bg-black hover:bg-gray-800 text-white text-xs px-3 py-2 rounded font-bold transition">
                                 🖨️ Stampa Report
                             </button>
                         </div>
                     </div>
 
                     <div id="monthly-stats-bar" class="grid grid-cols-3 gap-3 mb-6 text-center text-xs print:hidden">
-                        <div class="bg-blue-50 border border-blue-200 p-3 rounded">
+                        <div class="bg-gray-100 border border-gray-300 p-3 rounded">
                             <p class="text-gray-500 font-semibold">Sedute Mese</p>
-                            <p id="stat-total-sessions" class="text-lg font-bold text-blue-800">0</p>
+                            <p id="stat-total-sessions" class="text-lg font-bold text-gray-900">0</p>
                         </div>
-                        <div class="bg-green-50 border border-green-200 p-3 rounded">
+                        <div class="bg-gray-100 border border-gray-300 p-3 rounded">
                             <p class="text-gray-500 font-semibold">Presenze Totali</p>
-                            <p id="stat-total-presents" class="text-lg font-bold text-green-800">0</p>
+                            <p id="stat-total-presents" class="text-lg font-bold text-gray-900">0</p>
                         </div>
-                        <div class="bg-purple-50 border border-purple-200 p-3 rounded">
+                        <div class="bg-gray-100 border border-gray-300 p-3 rounded">
                             <p class="text-gray-500 font-semibold">Media Presenze/Seduta</p>
-                            <p id="stat-avg-presents" class="text-lg font-bold text-purple-800">0</p>
+                            <p id="stat-avg-presents" class="text-lg font-bold text-gray-900">0</p>
                         </div>
                     </div>
 
@@ -320,7 +351,7 @@
                 <!-- TAB 4: MODULO E STORICO CONVOCAZIONI -->
                 <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0 space-y-6">
                     <div class="print:hidden">
-                        <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">📩 Nuova Convocazione Partita</h3>
                         <form id="form-callup" class="space-y-3">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <div>
@@ -353,7 +384,7 @@
                                 <!-- Checkbox caricati dinamicamente -->
                             </div>
 
-                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded font-bold text-sm transition">
+                            <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white p-2 rounded font-bold text-sm transition shadow">
                                 Genera Convocazione
                             </button>
                         </form>
@@ -361,7 +392,7 @@
 
                     <!-- SEZIONE STORICO CONVOCAZIONI -->
                     <div class="border-t pt-4 print:hidden">
-                        <h4 class="text-md font-bold text-gray-700 mb-3">📋 Convocazioni Inserite</h4>
+                        <h4 class="text-md font-bold text-gray-800 mb-3">📋 Convocazioni Inserite</h4>
                         <div id="callups-list-container" class="space-y-3">
                             <!-- Schede caricate da JS -->
                         </div>
@@ -376,13 +407,13 @@
                 <!-- TAB 5: ESCLUSIVA ADMIN - GESTIONE STAFF/COACH -->
                 <div id="tab-staff" class="tab-content hidden print:hidden bg-white p-6 rounded-lg shadow space-y-6">
                     <div class="border-b pb-3">
-                        <h3 class="text-lg font-bold text-purple-900">⚙️ Pannello Amministrazione: Gestione Staff & Coach</h3>
+                        <h3 class="text-lg font-bold text-gray-900">⚙️ Pannello Amministrazione: Gestione Staff & Coach</h3>
                         <p class="text-xs text-gray-500">Crea o rimuovi le credenziali di accesso per gli allenatori e la direzione della Scuola Calcio Spes Montesacro.</p>
                     </div>
 
                     <!-- FORM CREAZIONE NUOVO COACH/UTENTE -->
-                    <form id="form-create-staff" class="bg-purple-50 p-4 border border-purple-200 rounded-lg space-y-3">
-                        <h4 class="text-sm font-bold text-purple-800">➕ Registra Nuovo Utente / Coach</h4>
+                    <form id="form-create-staff" class="bg-gray-50 p-4 border border-gray-300 rounded-lg space-y-3">
+                        <h4 class="text-sm font-bold text-gray-800">➕ Registra Nuovo Utente / Coach</h4>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
@@ -447,14 +478,14 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-4 py-2 rounded transition">
+                        <button type="submit" class="bg-black hover:bg-gray-800 text-white font-bold text-xs px-4 py-2 rounded transition shadow">
                             🚀 Crea Account Coach
                         </button>
                     </form>
 
                     <!-- LISTA UTENTI STAFF ATTUALI -->
                     <div>
-                        <h4 class="text-sm font-bold text-gray-700 mb-3">📋 Staff Tecnico Registrato</h4>
+                        <h4 class="text-sm font-bold text-gray-800 mb-3">📋 Staff Tecnico Registrato</h4>
                         <div id="staff-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <!-- Caricato via JS -->
                         </div>
@@ -468,7 +499,7 @@
 
     <!-- MODALE AGGIUNTA / MODIFICA GIOCATORE -->
     <div id="modal-add-player" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 print:hidden">
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border-t-4 border-black">
             <h3 id="modal-player-title" class="text-lg font-bold text-gray-800 mb-4">Aggiungi Nuovo Giocatore</h3>
             <form id="form-add-player" class="space-y-3">
                 <div class="grid grid-cols-2 gap-2">
@@ -516,7 +547,7 @@
 
                 <div class="flex justify-end space-x-2 pt-4">
                     <button type="button" id="btn-close-modal-player" class="bg-gray-300 hover:bg-gray-400 text-gray-800 text-xs px-4 py-2 rounded font-bold transition">Annulla</button>
-                    <button type="submit" id="btn-submit-player" class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded font-bold transition">Salva Giocatore</button>
+                    <button type="submit" id="btn-submit-player" class="bg-black hover:bg-gray-800 text-white text-xs px-4 py-2 rounded font-bold transition shadow">Salva Giocatore</button>
                 </div>
             </form>
         </div>
@@ -642,7 +673,7 @@
         }
         initYearFilter();
 
-        // NORMALIZZAZIONE DATI PROFILO UTENTE (ANTI-UNDEFINED CORAZZATA)
+        // NORMALIZZAZIONE DATI PROFILO UTENTE
         function normalizeUserProfile(rawData) {
             if (!rawData) return { role: 'coach', teams: [], name: 'Utente' };
 
@@ -716,7 +747,7 @@
             
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 if (btn.id === 'btn-tab-staff') {
-                    btn.className = `tab-btn ${isAdmin ? '' : 'hidden'} flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 transition border border-purple-200`;
+                    btn.className = `tab-btn ${isAdmin ? '' : 'hidden'} flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300`;
                 } else {
                     btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
                 }
@@ -726,11 +757,7 @@
             
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
-                if (tabId === 'tab-staff') {
-                    activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-purple-700 shadow";
-                } else {
-                    activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100";
-                }
+                activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
             }
 
             if (tabId === 'tab-callup') loadCallups();
@@ -948,7 +975,7 @@
                                 <p class="font-bold text-sm text-gray-800">${user.name} ${isSelf ? '<span class="text-xs text-blue-600">(Tu)</span>' : ''}</p>
                                 <p class="text-gray-600">📧 <strong>Email:</strong> ${user.email}</p>
                                 <p class="text-gray-600">
-                                    🛡️ <strong>Ruolo:</strong> <span class="uppercase font-bold ${user.role === 'admin' ? 'text-purple-700' : 'text-blue-700'}">${user.role}</span> | 
+                                    🛡️ <strong>Ruolo:</strong> <span class="uppercase font-bold ${user.role === 'admin' ? 'text-black' : 'text-gray-700'}">${user.role}</span> | 
                                     🏆 <strong>Squadre:</strong> ${teamsDisplay}
                                 </p>
                             </div>
@@ -1048,7 +1075,7 @@
                     if (player.medicalExp < today) {
                         medStatusBadge = `<span class="bg-red-100 text-red-800 text-[10px] px-1.5 py-0.5 rounded font-bold">Cert. Scaduto (${formatDateIT(player.medicalExp)})</span>`;
                     } else {
-                        medStatusBadge = `<span class="bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5 rounded font-semibold">Cert. OK (${formatDateIT(player.medicalExp)})</span>`;
+                        medStatusBadge = `<span class="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded font-semibold">Cert. OK (${formatDateIT(player.medicalExp)})</span>`;
                     }
                 } else {
                     medStatusBadge = `<span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded">Cert. Mancante</span>`;
@@ -1057,13 +1084,13 @@
                 container.innerHTML += `
                     <div class="p-3 border rounded bg-gray-50 flex justify-between items-start text-xs shadow-sm">
                         <div class="space-y-1">
-                            <p class="font-bold text-sm text-gray-800">⚽ ${displayName} ${player.jersey ? `<span class="text-blue-600">(#${player.jersey})</span>` : ''}</p>
+                            <p class="font-bold text-sm text-gray-900">⚽ ${displayName} ${player.jersey ? `<span class="text-gray-600">(#${player.jersey})</span>` : ''}</p>
                             <p class="text-gray-600"><strong>Ruolo:</strong> ${player.role || 'N/D'} | <strong>Nato il:</strong> ${formatDateIT(player.dob)}</p>
                             <p class="text-gray-600"><strong>Tel. Genitore:</strong> ${player.parentPhone || 'N/D'}</p>
                             <div class="pt-1">${medStatusBadge}</div>
                         </div>
                         <div class="flex items-center space-x-1">
-                            <button data-id="${player.id}" class="btn-edit-player text-xs text-amber-600 font-bold hover:text-amber-800 bg-amber-50 px-2 py-1 rounded border border-amber-200 transition">✏️ Modifica</button>
+                            <button data-id="${player.id}" class="btn-edit-player text-xs text-black font-bold hover:bg-gray-200 bg-gray-100 px-2 py-1 rounded border border-gray-300 transition">✏️ Modifica</button>
                             ${canDelete}
                         </div>
                     </div>
@@ -1122,26 +1149,26 @@
                 const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
                 container.innerHTML += `
                     <div class="flex flex-col md:flex-row md:justify-between md:items-center py-2 gap-1">
-                        <span class="font-medium text-sm text-gray-700">${displayName}</span>
+                        <span class="font-medium text-sm text-gray-800">${displayName}</span>
                         <div class="flex flex-wrap items-center gap-3">
                             <label class="inline-flex items-center text-xs cursor-pointer">
-                                <input type="radio" name="att_${player.id}" value="present" checked class="text-green-600">
-                                <span class="ml-1 text-green-700 font-bold">Presente (P)</span>
+                                <input type="radio" name="att_${player.id}" value="present" checked class="text-black focus:ring-black">
+                                <span class="ml-1 text-emerald-700 font-bold">Presente (P)</span>
                             </label>
                             <label class="inline-flex items-center text-xs cursor-pointer">
-                                <input type="radio" name="att_${player.id}" value="absent" class="text-red-600">
+                                <input type="radio" name="att_${player.id}" value="absent" class="text-red-600 focus:ring-black">
                                 <span class="ml-1 text-red-700 font-bold">Assente (A)</span>
                             </label>
                             <label class="inline-flex items-center text-xs cursor-pointer">
-                                <input type="radio" name="att_${player.id}" value="justified" class="text-amber-600">
+                                <input type="radio" name="att_${player.id}" value="justified" class="text-amber-600 focus:ring-black">
                                 <span class="ml-1 text-amber-700 font-bold">Giustificato (AG)</span>
                             </label>
                             <label class="inline-flex items-center text-xs cursor-pointer">
-                                <input type="radio" name="att_${player.id}" value="injured" class="text-purple-600">
+                                <input type="radio" name="att_${player.id}" value="injured" class="text-purple-600 focus:ring-black">
                                 <span class="ml-1 text-purple-700 font-bold">Infortunato (INF)</span>
                             </label>
                             <label class="inline-flex items-center text-xs cursor-pointer">
-                                <input type="radio" name="att_${player.id}" value="late" class="text-blue-600">
+                                <input type="radio" name="att_${player.id}" value="late" class="text-blue-600 focus:ring-black">
                                 <span class="ml-1 text-blue-700 font-bold">Ritardo (R)</span>
                             </label>
                         </div>
@@ -1163,8 +1190,8 @@
             activeTeamPlayers.forEach(player => {
                 const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
                 container.innerHTML += `
-                    <label class="flex items-center space-x-2 text-xs p-1 border rounded bg-gray-50">
-                        <input type="checkbox" name="callup_player" value="${displayName}" checked class="rounded text-indigo-600">
+                    <label class="flex items-center space-x-2 text-xs p-1 border rounded bg-gray-50 cursor-pointer">
+                        <input type="checkbox" name="callup_player" value="${displayName}" checked class="rounded text-black focus:ring-black">
                         <span>${displayName}</span>
                     </label>
                 `;
@@ -1216,7 +1243,7 @@
 
                     if (container) container.classList.remove('hidden');
                     if (badge) {
-                        badge.className = "text-xs font-bold text-green-800";
+                        badge.className = "text-xs font-bold text-emerald-800";
                         badge.innerHTML = `✨ Nuova giornata del <strong>${formatDateIT(date)}</strong> (nessun dato salvato).`;
                     }
                     if (deleteBtn) deleteBtn.classList.add('hidden');
@@ -1361,7 +1388,7 @@
                     const dateObj = new Date(selectedYear, selectedMonth, d);
                     const dayName = daysOfWeekIT[dateObj.getDay()];
                     const isSession = !!sessionsByDay[d];
-                    const bgClass = isSession ? 'bg-blue-100 text-blue-900 font-bold' : '';
+                    const bgClass = isSession ? 'bg-gray-200 text-black font-bold' : '';
                     tableHtml += `<th class="border border-gray-400 p-1 text-center capitalize ${bgClass}">${dayName}</th>`;
                 }
 
@@ -1369,7 +1396,7 @@
 
                 for (let d = 1; d <= totalDaysInMonth; d++) {
                     const isSession = !!sessionsByDay[d];
-                    const bgClass = isSession ? 'bg-blue-200 text-blue-950 font-bold' : '';
+                    const bgClass = isSession ? 'bg-gray-300 text-black font-bold' : '';
                     tableHtml += `<th class="border border-gray-400 p-1 text-center ${bgClass}">${d}</th>`;
                 }
 
@@ -1391,7 +1418,7 @@
                                 const rec = session.records.find(r => r.playerId === player.id);
                                 if (rec) {
                                     switch(rec.status) {
-                                        case 'present': statusSymbol = 'P'; statusColor = 'text-green-700 font-bold bg-green-50'; break;
+                                        case 'present': statusSymbol = 'P'; statusColor = 'text-emerald-700 font-bold bg-emerald-50'; break;
                                         case 'absent': statusSymbol = 'A'; statusColor = 'text-red-600 font-bold bg-red-50'; break;
                                         case 'justified': statusSymbol = 'AG'; statusColor = 'text-amber-600 font-bold bg-amber-50'; break;
                                         case 'injured': statusSymbol = 'INF'; statusColor = 'text-purple-600 font-bold bg-purple-50'; break;
@@ -1491,7 +1518,6 @@
                     try {
                         let count = 0;
                         for (const row of rows) {
-                            // Lettura dei campi supportando sia il nome esatto delle colonne esportate che varianti
                             const lastName = (row['Cognome'] || row['cognome'] || '').trim();
                             const firstName = (row['Nome'] || row['nome'] || '').trim();
 
@@ -1610,7 +1636,7 @@
                     container.innerHTML += `
                         <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs mb-2 shadow-sm">
                             <div class="space-y-1">
-                                <p class="font-bold text-sm text-indigo-900">⚽ Spes Montesacro vs ${data.opponent}</p>
+                                <p class="font-bold text-sm text-black">⚽ Spes Montesacro vs ${data.opponent}</p>
                                 <p class="text-gray-700">
                                     📅 <strong>Giorno:</strong> ${formatDateIT(data.date)} | 
                                     🕒 <strong>Inizio:</strong> ${data.matchTime} | 
@@ -1620,9 +1646,9 @@
                                 <p class="text-gray-500 pt-1">👥 <strong>Convocati (${data.players ? data.players.length : 0}):</strong> ${playersList}</p>
                             </div>
                             <div class="flex flex-col space-y-1">
-                                <button data-id="${data.id}" class="btn-share-callup-wa bg-green-600 hover:bg-green-700 text-white font-bold px-2 py-1 rounded text-[10px] transition">📲 WhatsApp</button>
-                                <button data-id="${data.id}" class="btn-print-callup bg-gray-800 hover:bg-black text-white font-bold px-2 py-1 rounded text-[10px] transition">🖨️ Stampa</button>
-                                <button data-id="${data.id}" class="btn-delete-callup bg-red-500 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] transition">🗑️ Elimina</button>
+                                <button data-id="${data.id}" class="btn-share-callup-wa bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-[10px] transition">📲 WhatsApp</button>
+                                <button data-id="${data.id}" class="btn-print-callup bg-black hover:bg-gray-800 text-white font-bold px-2 py-1 rounded text-[10px] transition">🖨️ Stampa</button>
+                                <button data-id="${data.id}" class="btn-delete-callup bg-red-600 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] transition">🗑️ Elimina</button>
                             </div>
                         </div>
                     `;
@@ -1727,7 +1753,7 @@
             window.print();
         });
 
-        // MODALE E GESTIONE GIOCATORE (CREAZIONE E MODIFICA)
+        // MODALE E GESTIONE GIOCATORE
         document.getElementById('btn-open-add-player').addEventListener('click', () => {
             if (!activeTeamId) return alert('Seleziona prima una squadra!');
             editingPlayerId = null;
