@@ -19,7 +19,6 @@
                 margin: 8mm;
             }
 
-            /* Se la stampa viene avviata dalla griglia mensile, imposta orizzontale */
             body.print-landscape @page {
                 size: A4 landscape;
                 margin: 5mm;
@@ -46,13 +45,11 @@
                 padding: 0 !important;
             }
 
-            /* ESCLUSIONE SCHEDE OPERATIVE IN STAMPA */
             #tab-attendance,
             #tab-callup {
                 display: none !important;
             }
 
-            /* NASCONDI SCHEDE IN BASE A QUALE SI STA STAMPANDO */
             body:not(.print-roster) #tab-roster {
                 display: none !important;
             }
@@ -66,13 +63,11 @@
                 width: 100% !important;
             }
 
-            /* INTESTAZIONE REPORT COMPATTA */
             .print\:block {
                 margin-bottom: 8px !important;
                 padding-bottom: 4px !important;
             }
 
-            /* STRUTTURA TABELLE IN STAMPA */
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
@@ -85,7 +80,6 @@
                 font-size: 8.5pt !important;
             }
 
-            /* OTTIMIZZAZIONE TABELLA REGISTRO MENSILE */
             body.print-monthly table {
                 table-layout: fixed !important;
             }
@@ -262,7 +256,6 @@
                             <p class="text-xs text-gray-500">Griglia presenze del mese con giocatori in ordine alfabetico per cognome</p>
                         </div>
                         
-                        <!-- FILTRI MESE ED ANNO -->
                         <div class="flex items-center space-x-2">
                             <select id="filter-month" onchange="loadMonthlyAttendances()" class="border p-1.5 rounded text-sm font-semibold bg-gray-50">
                                 <option value="0">Gennaio</option>
@@ -290,7 +283,6 @@
                         </div>
                     </div>
 
-                    <!-- STATISTICHE RAPIDE MESE -->
                     <div id="monthly-stats-bar" class="grid grid-cols-3 gap-3 mb-6 text-center text-xs print:hidden">
                         <div class="bg-blue-50 border border-blue-200 p-3 rounded">
                             <p class="text-gray-500 font-semibold">Sedute Mese</p>
@@ -306,7 +298,6 @@
                         </div>
                     </div>
 
-                    <!-- TABELLA GRIGLIA PRESENZE MENSILE -->
                     <div id="monthly-sessions-container" class="overflow-x-auto">
                         <!-- Caricato dinamicamente -->
                     </div>
@@ -324,44 +315,63 @@
                         </button>
                     </div>
 
-                    <!-- VISTA SCHEDE (SCHERMO) -->
                     <div id="players-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-2 print:hidden">
                         <!-- Caricato da JS -->
                     </div>
 
-                    <!-- VISTA TABELLARE A 3 COLONNE (SOLO PER STAMPA) -->
                     <div id="roster-print-table-container" class="hidden print:block">
                         <!-- Caricato da JS -->
                     </div>
                 </div>
 
-                <!-- TAB 4: MODULO E STORICO CONVOCAZIONI -->
+                <!-- TAB 4: MODULO E STORICO CONVOCAZIONI (CAMPI SEPARATI) -->
                 <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow print:hidden space-y-6">
                     <div>
                         <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
                         <form id="form-callup" onsubmit="saveCallup(event)" class="space-y-3">
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="text" id="match-opponent" placeholder="Avversario" required class="border p-2 rounded text-sm w-full">
-                                <input type="datetime-local" id="match-datetime" required class="border p-2 rounded text-sm w-full">
-                            </div>
-                            <input type="text" id="match-location" placeholder="Luogo / Campo" required class="border p-2 rounded text-sm w-full">
                             
-                            <p class="text-xs font-bold text-gray-500 mt-2">Seleziona Convocati:</p>
-                            <div id="players-list-callup" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded">
-                                <!-- Checkbox giocatori -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-600 mb-1">Squadra Avversaria</label>
+                                    <input type="text" id="match-opponent" placeholder="es. Tor di Quinto" required class="border p-2 rounded text-sm w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-600 mb-1">Campo / Luogo</label>
+                                    <input type="text" id="match-location" placeholder="es. Campo Spes / Via Nomentana" required class="border p-2 rounded text-sm w-full">
+                                </div>
                             </div>
 
-                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded font-bold">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-600 mb-1">📅 Giorno Partita</label>
+                                    <input type="date" id="match-date" required class="border p-2 rounded text-sm w-full font-semibold">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-600 mb-1">🕒 Ora Inizio Partita</label>
+                                    <input type="time" id="match-time" required class="border p-2 rounded text-sm w-full font-semibold">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-600 mb-1">⏰ Ora Convocazione Campo</label>
+                                    <input type="time" id="gathering-time" required class="border p-2 rounded text-sm w-full font-semibold">
+                                </div>
+                            </div>
+                            
+                            <p class="text-xs font-bold text-gray-500 pt-2">Seleziona Convocati:</p>
+                            <div id="players-list-callup" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50">
+                                <!-- Checkbox giocatori caricati dinamicamente -->
+                            </div>
+
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded font-bold text-sm">
                                 Genera Convocazione
                             </button>
                         </form>
                     </div>
 
-                    <!-- SEZIONE STORICO CONVOCAZIONI CON ELIMINAZIONE -->
+                    <!-- SEZIONE STORICO CONVOCAZIONI -->
                     <div class="border-t pt-4">
                         <h4 class="text-md font-bold text-gray-700 mb-3">📋 Convocazioni Inserite</h4>
                         <div id="callups-list-container" class="space-y-3">
-                            <!-- Caricato da JS -->
+                            <!-- Schede caricate da JS -->
                         </div>
                     </div>
                 </div>
@@ -414,7 +424,7 @@
         let activeTeamPlayers = [];
         let currentSessionDocId = null;
 
-        // --- SISTEMA DI CACHING (IN-MEMORY & SESSIONSTORAGE) ---
+        // --- SISTEMA DI CACHING ---
         const AppCache = {
             players: {},
             attendances: {},
@@ -453,7 +463,6 @@
 
         const daysOfWeekIT = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 
-        // Impostazione date e filtri iniziali
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
         document.getElementById('attendance-date').value = todayStr;
@@ -461,6 +470,13 @@
         document.getElementById('filter-year').value = now.getFullYear();
 
         document.getElementById('attendance-date').addEventListener('change', checkAndLoadExistingAttendance);
+
+        function formatDateIT(dateStr) {
+            if (!dateStr) return '--/--/----';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -949,7 +965,80 @@
             }
         }
 
-        // GESTIONE CONVOCAZIONI (CON CONTROLLO DUPLICATI E INTESTAZIONE FISSA)
+        // --- GESTIONE CONVOCAZIONI CON CONTROLLO DATA + ORA PARTITA ---
+        async function saveCallup(e) {
+            e.preventDefault();
+            if (!activeTeamId) return alert("Seleziona prima una squadra!");
+
+            const opponent = document.getElementById('match-opponent').value.trim();
+            const location = document.getElementById('match-location').value.trim();
+            const matchDate = document.getElementById('match-date').value; // YYYY-MM-DD
+            const matchTime = document.getElementById('match-time').value; // HH:MM
+            const gatheringTime = document.getElementById('gathering-time').value; // HH:MM
+
+            if (!matchDate || !matchTime || !gatheringTime) {
+                return alert("Compila il giorno, l'orario della partita e l'orario di convocazione al campo!");
+            }
+
+            const selectedPlayers = [];
+            document.querySelectorAll('input[name="callup_player"]:checked').forEach(cb => {
+                selectedPlayers.push(cb.value);
+            });
+
+            if (selectedPlayers.length === 0) {
+                return alert("Seleziona almeno un giocatore da convocare!");
+            }
+
+            try {
+                // Controllo duplicati: stessa squadra, stesso giorno E stesso orario d'inizio
+                const snapshot = await db.collection('callups')
+                    .where('teamId', '==', activeTeamId)
+                    .where('date', '==', matchDate)
+                    .where('matchTime', '==', matchTime)
+                    .get();
+
+                let docToUpdateId = null;
+
+                if (!snapshot.empty) {
+                    const formattedDate = formatDateIT(matchDate);
+                    const confirmUpdate = confirm(
+                        `⚠️ Esiste già una convocazione per il giorno ${formattedDate} alle ore ${matchTime}.\n\nVuoi aggiornarla e sovrascrivere la convocazione esistente?`
+                    );
+
+                    if (!confirmUpdate) return;
+                    docToUpdateId = snapshot.docs[0].id;
+                }
+
+                const callupData = {
+                    teamId: activeTeamId,
+                    opponent: opponent,
+                    location: location,
+                    date: matchDate,
+                    matchTime: matchTime,
+                    gatheringTime: gatheringTime,
+                    players: selectedPlayers,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (docToUpdateId) {
+                    await db.collection('callups').doc(docToUpdateId).update(callupData);
+                    alert(`Convocazione del ${formatDateIT(matchDate)} ore ${matchTime} aggiornata con successo!`);
+                } else {
+                    callupData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('callups').add(callupData);
+                    alert(`Nuova convocazione creata con successo!`);
+                }
+
+                document.getElementById('form-callup').reset();
+                renderCallupCheckboxes();
+                loadCallups();
+
+            } catch (err) {
+                console.error("Errore salvataggio convocazione:", err);
+                alert("Errore durante il salvataggio: " + err.message);
+            }
+        }
+
         async function loadCallups() {
             const container = document.getElementById('callups-list-container');
             if (!container || !activeTeamId) return;
@@ -960,31 +1049,47 @@
                     .get();
 
                 if (snapshot.empty) {
-                    container.innerHTML = '<p class="text-xs text-gray-400">Nessuna convocazione presente.</p>';
+                    container.innerHTML = '<p class="text-xs text-gray-400">Nessuna convocazione presente per questo gruppo.</p>';
                     return;
                 }
 
                 const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                docs.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+                
+                // Ordinamento decrescente per data e orario partita
+                docs.sort((a, b) => {
+                    const dateA = new Date(`${a.date || '1970-01-01'}T${a.matchTime || '00:00'}`);
+                    const dateB = new Date(`${b.date || '1970-01-01'}T${b.matchTime || '00:00'}`);
+                    return dateB - dateA;
+                });
 
                 container.innerHTML = '';
                 docs.forEach(data => {
                     let formattedDate = '--/--/----';
-                    if (data.datetime) {
+                    let matchTimeStr = data.matchTime || '--:--';
+                    let gatheringTimeStr = data.gatheringTime || '--:--';
+
+                    if (data.date) {
+                        formattedDate = formatDateIT(data.date);
+                    } else if (data.datetime) {
+                        // Retrocompatibilità per vecchi dati
                         const dateObj = new Date(data.datetime);
-                        formattedDate = dateObj.toLocaleDateString('it-IT', {
-                            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                        });
+                        formattedDate = dateObj.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        matchTimeStr = dateObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
                     }
 
                     const playersList = (data.players || []).join(', ');
 
                     container.innerHTML += `
-                        <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs mb-2">
+                        <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs mb-2 shadow-sm">
                             <div class="space-y-1">
                                 <p class="font-bold text-sm text-indigo-900">⚽ Spes Montesacro vs ${data.opponent}</p>
-                                <p class="text-gray-600">📅 <strong>Data:</strong> ${formattedDate} | 📍 <strong>Campo:</strong> ${data.location}</p>
-                                <p class="text-gray-500">👥 <strong>Convocati (${data.players ? data.players.length : 0}):</strong> ${playersList}</p>
+                                <p class="text-gray-700">
+                                    📅 <strong>Giorno:</strong> ${formattedDate} | 
+                                    🕒 <strong>Inizio Partita:</strong> ${matchTimeStr} | 
+                                    ⏰ <strong>Convocazione:</strong> ${gatheringTimeStr}
+                                </p>
+                                <p class="text-gray-600">📍 <strong>Campo:</strong> ${data.location}</p>
+                                <p class="text-gray-500 pt-1">👥 <strong>Convocati (${data.players ? data.players.length : 0}):</strong> ${playersList}</p>
                             </div>
                             <button onclick="deleteCallup('${data.id}')" class="bg-red-500 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] ml-2">
                                 🗑️ Elimina
@@ -998,83 +1103,16 @@
             }
         }
 
-        async function saveCallup(e) {
-            e.preventDefault();
-            if (!activeTeamId) return alert("Seleziona prima una squadra!");
-
-            const opponent = document.getElementById('match-opponent').value.trim();
-            const datetime = document.getElementById('match-datetime').value;
-            const location = document.getElementById('match-location').value.trim();
-            
-            const selectedPlayers = [];
-            document.querySelectorAll('input[name="callup_player"]:checked').forEach(cb => {
-                selectedPlayers.push(cb.value);
-            });
-
-            if (selectedPlayers.length === 0) {
-                return alert("Seleziona almeno un giocatore da convocare!");
-            }
+        async function deleteCallup(callupId) {
+            if (!confirm("Sei sicuro di voler eliminare questa convocazione?")) return;
 
             try {
-                const existingCallup = await db.collection('callups')
-                    .where('teamId', '==', activeTeamId)
-                    .where('datetime', '==', datetime)
-                    .get();
-
-                let docToUpdateId = null;
-
-                if (!existingCallup.empty) {
-                    const dateObj = new Date(datetime);
-                    const formattedDate = dateObj.toLocaleDateString('it-IT', {
-                        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                    });
-
-                    const confirmUpdate = confirm(
-                        `⚠️ Esiste già una convocazione per il ${formattedDate}.\n\nVuoi aggiornare e sovrascrivere la convocazione esistente?`
-                    );
-
-                    if (!confirmUpdate) return;
-                    docToUpdateId = existingCallup.docs[0].id;
-                }
-
-                const callupData = {
-                    teamId: activeTeamId,
-                    opponent: opponent,
-                    datetime: datetime,
-                    location: location,
-                    players: selectedPlayers,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                if (docToUpdateId) {
-                    await db.collection('callups').doc(docToUpdateId).update(callupData);
-                    alert(`Convocazione aggiornata con successo (${selectedPlayers.length} convocati)!`);
-                } else {
-                    callupData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    await db.collection('callups').add(callupData);
-                    alert(`Convocazione creata con successo (${selectedPlayers.length} convocati)!`);
-                }
-
-                document.getElementById('form-callup').reset();
-                renderCallupCheckboxes();
+                await db.collection('callups').doc(callupId).delete();
+                alert("Convocazione eliminata con successo!");
                 loadCallups();
-
             } catch (err) {
-                console.error("Errore salvataggio convocazione:", err);
-                alert("Errore durante il salvataggio: " + err.message);
-            }
-        }
-
-        async function deleteCallup(callupId) {
-            if (confirm("Sei sicuro di voler eliminare questa convocazione?")) {
-                try {
-                    await db.collection('callups').doc(callupId).delete();
-                    alert("Convocazione eliminata con successo!");
-                    loadCallups();
-                } catch (err) {
-                    console.error("Errore eliminazione convocazione:", err);
-                    alert("Errore durante l'eliminazione: " + err.message);
-                }
+                console.error("Errore eliminazione convocazione:", err);
+                alert("Errore durante l'eliminazione: " + err.message);
             }
         }
 
@@ -1132,12 +1170,6 @@
                 AppCache.clearPlayers(activeTeamId);
                 loadTeamData(true);
             }
-        }
-
-        function formatDateIT(dateStr) {
-            if (!dateStr) return '';
-            const [year, month, day] = dateStr.split('-');
-            return `${day}/${month}/${year}`;
         }
 
         function resetAttendanceRadios() {
