@@ -11,7 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    <!-- STILI PER LA STAMPA OTTIMIZZATI PER PAGINA SINGOLA -->
+    <!-- STILI PER LA STAMPA OTTIMIZZATI -->
     <style>
         @media print {
             @page {
@@ -335,25 +335,35 @@
                     </div>
                 </div>
 
-                <!-- TAB 4: MODULO CONVOCAZIONI -->
-                <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow print:hidden">
-                    <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
-                    <form id="form-callup" onsubmit="saveCallup(event)" class="space-y-3">
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" id="match-opponent" placeholder="Avversario" required class="border p-2 rounded text-sm w-full">
-                            <input type="datetime-local" id="match-datetime" required class="border p-2 rounded text-sm w-full">
-                        </div>
-                        <input type="text" id="match-location" placeholder="Luogo / Campo" required class="border p-2 rounded text-sm w-full">
-                        
-                        <p class="text-xs font-bold text-gray-500 mt-2">Seleziona Convocati:</p>
-                        <div id="players-list-callup" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded">
-                            <!-- Checkbox giocatori -->
-                        </div>
+                <!-- TAB 4: MODULO E STORICO CONVOCAZIONI -->
+                <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow print:hidden space-y-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
+                        <form id="form-callup" onsubmit="saveCallup(event)" class="space-y-3">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="match-opponent" placeholder="Avversario" required class="border p-2 rounded text-sm w-full">
+                                <input type="datetime-local" id="match-datetime" required class="border p-2 rounded text-sm w-full">
+                            </div>
+                            <input type="text" id="match-location" placeholder="Luogo / Campo" required class="border p-2 rounded text-sm w-full">
+                            
+                            <p class="text-xs font-bold text-gray-500 mt-2">Seleziona Convocati:</p>
+                            <div id="players-list-callup" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded">
+                                <!-- Checkbox giocatori -->
+                            </div>
 
-                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded font-bold">
-                            Genera Convocazione
-                        </button>
-                    </form>
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded font-bold">
+                                Genera Convocazione
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- SEZIONE STORICO CONVOCAZIONI CON ELIMINAZIONE -->
+                    <div class="border-t pt-4">
+                        <h4 class="text-md font-bold text-gray-700 mb-3">📋 Convocazioni Inserite</h4>
+                        <div id="callups-list-container" class="space-y-3">
+                            <!-- Caricato da JS -->
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -464,6 +474,10 @@
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
                 activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100";
+            }
+
+            if (tabId === 'tab-callup') {
+                loadCallups();
             }
         }
 
@@ -775,7 +789,6 @@
                     alert('Allenamento e presenze salvati con successo!');
                 }
                 
-                // Pulisce cache del mese modificato per forzare l'aggiornamento
                 AppCache.clearAttendances(activeTeamId);
 
                 const savedDateObj = new Date(date + 'T00:00:00');
@@ -843,7 +856,6 @@
                     AppCache.setAttendances(activeTeamId, selectedYear, selectedMonth, sessions);
                 }
 
-                // Mappa giornate
                 const sessionsByDay = {};
                 let totalPresentsCount = 0;
 
@@ -859,7 +871,6 @@
                 document.getElementById('stat-total-presents').innerText = totalPresentsCount;
                 document.getElementById('stat-avg-presents').innerText = sessions.length > 0 ? (totalPresentsCount / sessions.length).toFixed(1) : '0';
 
-                // COSTRUZIONE TABELLA GRIGLIA
                 let tableHtml = `
                     <table class="w-full text-xs border-collapse border border-gray-400 bg-white">
                         <thead>
@@ -943,6 +954,97 @@
             }
         }
 
+        // GESTIONE CONVOCAZIONI
+        async function loadCallups() {
+            const container = document.getElementById('callups-list-container');
+            if (!container || !activeTeamId) return;
+
+            try {
+                const snapshot = await db.collection('callups')
+                    .where('teamId', '==', activeTeamId)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                if (snapshot.empty) {
+                    container.innerHTML = '<p class="text-xs text-gray-400">Nessuna convocazione presente.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                snapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    let formattedDate = '--/--/----';
+                    if (data.datetime) {
+                        const dateObj = new Date(data.datetime);
+                        formattedDate = dateObj.toLocaleDateString('it-IT', {
+                            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                        });
+                    }
+
+                    const playersList = (data.players || []).join(', ');
+
+                    container.innerHTML += `
+                        <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs">
+                            <div class="space-y-1">
+                                <p class="font-bold text-sm text-indigo-900">🆚 vs ${data.opponent}</p>
+                                <p class="text-gray-600">📅 <strong>Data:</strong> ${formattedDate} | 📍 <strong>Campo:</strong> ${data.location}</p>
+                                <p class="text-gray-500">👥 <strong>Convocati (${data.players ? data.players.length : 0}):</strong> ${playersList}</p>
+                            </div>
+                            <button onclick="deleteCallup('${doc.id}')" class="bg-red-500 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] ml-2">
+                                🗑️ Elimina
+                            </button>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                console.error("Errore caricamento convocazioni:", err);
+            }
+        }
+
+        async function saveCallup(e) {
+            e.preventDefault();
+            const opponent = document.getElementById('match-opponent').value;
+            const datetime = document.getElementById('match-datetime').value;
+            const location = document.getElementById('match-location').value;
+            
+            const selectedPlayers = [];
+            document.querySelectorAll('input[name="callup_player"]:checked').forEach(cb => {
+                selectedPlayers.push(cb.value);
+            });
+
+            try {
+                await db.collection('callups').add({
+                    teamId: activeTeamId,
+                    opponent: opponent,
+                    datetime: datetime,
+                    location: location,
+                    players: selectedPlayers,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert(`Convocazione creata con ${selectedPlayers.length} giocatori!`);
+                document.getElementById('form-callup').reset();
+                renderCallupCheckboxes();
+                loadCallups();
+            } catch (err) {
+                console.error("Errore salvataggio convocazione:", err);
+                alert("Errore durante la creazione: " + err.message);
+            }
+        }
+
+        async function deleteCallup(callupId) {
+            if (confirm("Sei sicuro di voler eliminare questa convocazione?")) {
+                try {
+                    await db.collection('callups').doc(callupId).delete();
+                    alert("Convocazione eliminata con successo!");
+                    loadCallups();
+                } catch (err) {
+                    console.error("Errore eliminazione convocazione:", err);
+                    alert("Errore durante l'eliminazione: " + err.message);
+                }
+            }
+        }
+
         // GESTIONE STAMPE DEDICATE
         function printRosterReport() {
             document.body.classList.remove('print-landscape', 'print-monthly');
@@ -998,29 +1100,6 @@
                 AppCache.clearPlayers(activeTeamId);
                 loadTeamData(true);
             }
-        }
-
-        async function saveCallup(e) {
-            e.preventDefault();
-            const opponent = document.getElementById('match-opponent').value;
-            const datetime = document.getElementById('match-datetime').value;
-            const location = document.getElementById('match-location').value;
-            
-            const selectedPlayers = [];
-            document.querySelectorAll('input[name="callup_player"]:checked').forEach(cb => {
-                selectedPlayers.push(cb.value);
-            });
-
-            await db.collection('callups').add({
-                teamId: activeTeamId,
-                opponent: opponent,
-                datetime: datetime,
-                location: location,
-                players: selectedPlayers,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            alert(`Convocazione creata con ${selectedPlayers.length} giocatori!`);
         }
 
         function formatDateIT(dateStr) {
