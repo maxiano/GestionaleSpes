@@ -14,8 +14,13 @@
     <!-- STILI PER LA STAMPA OTTIMIZZATI PER PAGINA SINGOLA -->
     <style>
         @media print {
-            /* FORZA ORIENTAMENTO ORIZZONTALE E MARGINI MINIMI PER FAR RIENTRARE IN 1 PAGINA */
             @page {
+                size: A4 portrait;
+                margin: 8mm;
+            }
+
+            /* Se la stampa viene avviata dalla griglia mensile, imposta orizzontale */
+            body.print-landscape @page {
                 size: A4 landscape;
                 margin: 5mm;
             }
@@ -23,7 +28,7 @@
             body {
                 background-color: white !important;
                 color: black !important;
-                font-size: 8pt !important;
+                font-size: 9pt !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -37,22 +42,26 @@
             .print\:border-b {
                 border-bottom: 1.5px solid #000 !important;
             }
-            .print\:shadow-none {
-                box-shadow: none !important;
-            }
             .print\:p-0 {
                 padding: 0 !important;
             }
 
             /* ESCLUSIONE SCHEDE OPERATIVE IN STAMPA */
             #tab-attendance,
-            #tab-roster,
             #tab-callup {
                 display: none !important;
             }
 
-            /* MOSTRA ESCLUSIVAMENTE IL REGISTRO MENSILE */
-            #tab-monthly {
+            /* NASCONDI SCHEDE IN BASE A QUALE SI STA STAMPANDO */
+            body:not(.print-roster) #tab-roster {
+                display: none !important;
+            }
+            body:not(.print-monthly) #tab-monthly {
+                display: none !important;
+            }
+
+            body.print-roster #tab-roster,
+            body.print-monthly #tab-monthly {
                 display: block !important;
                 width: 100% !important;
             }
@@ -63,28 +72,32 @@
                 padding-bottom: 4px !important;
             }
 
-            /* STRUTTURA TABELLA ADATTABILE */
+            /* STRUTTURA TABELLE IN STAMPA */
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
-                table-layout: fixed !important; /* Mantiene proporzioni fisse per far rientrare le 31 colonne */
             }
 
             th, td {
                 border: 1px solid #000 !important;
+                padding: 4px 6px !important;
+                text-align: left !important;
+                font-size: 8.5pt !important;
+            }
+
+            /* OTTIMIZZAZIONE TABELLA REGISTRO MENSILE */
+            body.print-monthly table {
+                table-layout: fixed !important;
+            }
+            body.print-monthly th, body.print-monthly td {
                 padding: 2px 1px !important;
                 text-align: center !important;
                 font-size: 7.5pt !important;
-                overflow: hidden;
             }
-
-            /* PRIMA COLONNA COGNOME E NOME GIOCATORI */
-            th:first-child, td:first-child {
+            body.print-monthly th:first-child, body.print-monthly td:first-child {
                 text-align: left !important;
                 padding-left: 4px !important;
                 width: 170px !important;
-                white-space: nowrap !important;
-                text-overflow: ellipsis;
             }
         }
     </style>
@@ -108,7 +121,7 @@
             <div>
                 <h1 class="text-xl font-bold uppercase tracking-wide">Scuola Calcio Spes Montesacro</h1>
                 <p id="print-report-team" class="text-xs font-semibold mt-0.5">Squadra / Categoria: --</p>
-                <p id="print-report-period" class="text-xs">Periodo: --</p>
+                <p id="print-report-period" class="text-xs">Documento Generato dal Sistema</p>
             </div>
             <div class="text-right text-[10px]">
                 <p class="font-bold">Spes Montesacro</p>
@@ -271,7 +284,7 @@
                                 <option value="2027">2027</option>
                             </select>
 
-                            <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold">
+                            <button onclick="printMonthlyReport()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold">
                                 🖨️ Stampa Report Mensile
                             </button>
                         </div>
@@ -300,11 +313,24 @@
                 </div>
 
                 <!-- TAB 3: ROSA GIOCATORI -->
-                <div id="tab-roster" class="tab-content hidden bg-white p-6 rounded-lg shadow print:hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
+                <div id="tab-roster" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
+                    <div class="flex justify-between items-center mb-4 border-b pb-3 print:hidden">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
+                            <p class="text-xs text-gray-500">Ordinata per Cognome (A-Z)</p>
+                        </div>
+                        <button onclick="printRosterReport()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold">
+                            🖨️ Stampa Rosa Giocatori
+                        </button>
                     </div>
-                    <div id="players-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+
+                    <!-- VISTA SCHEDE (SCHERMO) -->
+                    <div id="players-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-2 print:hidden">
+                        <!-- Caricato da JS -->
+                    </div>
+
+                    <!-- VISTA TABELLARE A 3 COLONNE (SOLO PER STAMPA) -->
+                    <div id="roster-print-table-container" class="hidden print:block">
                         <!-- Caricato da JS -->
                     </div>
                 </div>
@@ -377,6 +403,43 @@
         let activeTeamId = null;
         let activeTeamPlayers = [];
         let currentSessionDocId = null;
+
+        // --- SISTEMA DI CACHING (IN-MEMORY & SESSIONSTORAGE) ---
+        const AppCache = {
+            players: {},      // { teamId: [playersArray] }
+            attendances: {},  // { teamId_year_month: [attendanceArray] }
+
+            setPlayers(teamId, data) {
+                this.players[teamId] = data;
+                sessionStorage.setItem(`cache_players_${teamId}`, JSON.stringify(data));
+            },
+            getPlayers(teamId) {
+                if (this.players[teamId]) return this.players[teamId];
+                const stored = sessionStorage.getItem(`cache_players_${teamId}`);
+                if (stored) {
+                    this.players[teamId] = JSON.parse(stored);
+                    return this.players[teamId];
+                }
+                return null;
+            },
+            clearPlayers(teamId) {
+                delete this.players[teamId];
+                sessionStorage.removeItem(`cache_players_${teamId}`);
+            },
+            setAttendances(teamId, year, month, data) {
+                const key = `${teamId}_${year}_${month}`;
+                this.attendances[key] = data;
+            },
+            getAttendances(teamId, year, month) {
+                const key = `${teamId}_${year}_${month}`;
+                return this.attendances[key] || null;
+            },
+            clearAttendances(teamId) {
+                Object.keys(this.attendances).forEach(k => {
+                    if (k.startsWith(`${teamId}_`)) delete this.attendances[k];
+                });
+            }
+        };
 
         const daysOfWeekIT = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 
@@ -472,42 +535,55 @@
             }
         }
 
-        async function loadTeamData() {
+        async function loadTeamData(forceRefresh = false) {
             if (!activeTeamId) return;
 
             document.getElementById('display-active-team').innerText = activeTeamId;
             document.getElementById('print-report-team').innerText = `Squadra / Categoria: ${activeTeamId}`;
 
-            const snapshot = await db.collection('players').where('teamId', '==', activeTeamId).get();
-            activeTeamPlayers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // USO DELLA CACHE PER I GIOCATORI
+            let players = AppCache.getPlayers(activeTeamId);
 
-            // ORDINAMENTO ALFABETICO ASCENDENTE PER COGNOME
-            activeTeamPlayers.sort((a, b) => {
-                const surnameA = (a.lastName || '').toLowerCase();
-                const surnameB = (b.lastName || '').toLowerCase();
-                if (surnameA < surnameB) return -1;
-                if (surnameA > surnameB) return 1;
-                const nameA = (a.firstName || '').toLowerCase();
-                const nameB = (b.firstName || '').toLowerCase();
-                return nameA.localeCompare(nameB);
-            });
+            if (!players || forceRefresh) {
+                const snapshot = await db.collection('players').where('teamId', '==', activeTeamId).get();
+                players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // ORDINAMENTO ALFABETICO ASCENDENTE PER COGNOME
+                players.sort((a, b) => {
+                    const surnameA = (a.lastName || '').toLowerCase();
+                    const surnameB = (b.lastName || '').toLowerCase();
+                    if (surnameA < surnameB) return -1;
+                    if (surnameA > surnameB) return 1;
+                    const nameA = (a.firstName || '').toLowerCase();
+                    const nameB = (b.firstName || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+
+                AppCache.setPlayers(activeTeamId, players);
+            }
+
+            activeTeamPlayers = players;
 
             renderPlayersList();
             renderAttendanceInputs();
             renderCallupCheckboxes();
             checkAndLoadExistingAttendance();
-            loadMonthlyAttendances();
+            loadMonthlyAttendances(forceRefresh);
         }
 
         function renderPlayersList() {
             const container = document.getElementById('players-list-container');
+            const printContainer = document.getElementById('roster-print-table-container');
             container.innerHTML = '';
+            printContainer.innerHTML = '';
 
             if (activeTeamPlayers.length === 0) {
                 container.innerHTML = '<p class="text-sm text-gray-400 col-span-2">Nessun giocatore in rosa.</p>';
+                printContainer.innerHTML = '<p class="text-sm text-gray-400">Nessun giocatore in rosa.</p>';
                 return;
             }
 
+            // TABELLA VISTA SCHERMO
             activeTeamPlayers.forEach(player => {
                 const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
                 const canDelete = currentUserProfile.role === 'admin' ? 
@@ -520,6 +596,37 @@
                     </div>
                 `;
             });
+
+            // TABELLA VISTA STAMPA (3 COLONNE: #, COGNOME E NOME, NOTE/FIRMA)
+            let printTableHtml = `
+                <table class="w-full border-collapse border border-black">
+                    <thead>
+                        <tr class="bg-gray-200 text-black">
+                            <th class="border border-black p-2 text-center w-12">#</th>
+                            <th class="border border-black p-2 text-left">Cognome e Nome</th>
+                            <th class="border border-black p-2 text-left w-1/3">Note / Firma</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            activeTeamPlayers.forEach((player, index) => {
+                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                printTableHtml += `
+                    <tr>
+                        <td class="border border-black p-2 text-center font-bold">${index + 1}</td>
+                        <td class="border border-black p-2 font-semibold">${displayName}</td>
+                        <td class="border border-black p-2"></td>
+                    </tr>
+                `;
+            });
+
+            printTableHtml += `
+                    </tbody>
+                </table>
+            `;
+
+            printContainer.innerHTML = printTableHtml;
         }
 
         function renderAttendanceInputs() {
@@ -668,12 +775,15 @@
                     alert('Allenamento e presenze salvati con successo!');
                 }
                 
+                // Pulisce cache del mese modificato per forzare l'aggiornamento
+                AppCache.clearAttendances(activeTeamId);
+
                 const savedDateObj = new Date(date + 'T00:00:00');
                 document.getElementById('filter-month').value = savedDateObj.getMonth();
                 document.getElementById('filter-year').value = savedDateObj.getFullYear();
 
                 checkAndLoadExistingAttendance();
-                loadMonthlyAttendances();
+                loadMonthlyAttendances(true);
 
             } catch (err) {
                 console.error("Errore salvataggio presenze:", err);
@@ -693,17 +803,18 @@
                 await db.collection('attendances').doc(currentSessionDocId).delete();
                 alert('Giornata ed allenamento eliminati con successo!');
 
+                AppCache.clearAttendances(activeTeamId);
                 currentSessionDocId = null;
                 checkAndLoadExistingAttendance();
-                loadMonthlyAttendances();
+                loadMonthlyAttendances(true);
             } catch (err) {
                 console.error("Errore eliminazione giornata:", err);
                 alert("Errore durante l'eliminazione: " + err.message);
             }
         }
 
-        // CARICAMENTO REGISTRO MENSILE IN FORMATO TABELLARE GRIGLIA
-        async function loadMonthlyAttendances() {
+        // CARICAMENTO REGISTRO MENSILE CON CACHING
+        async function loadMonthlyAttendances(forceRefresh = false) {
             if (!activeTeamId) return;
 
             const selectedMonth = parseInt(document.getElementById('filter-month').value);
@@ -713,22 +824,26 @@
             const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
             document.getElementById('print-report-period').innerText = `Periodo: ${monthNames[selectedMonth]} ${selectedYear}`;
 
-            container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
-
             const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
             const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
             const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(totalDaysInMonth).padStart(2, '0')}`;
 
             try {
-                const snapshot = await db.collection('attendances')
-                    .where('teamId', '==', activeTeamId)
-                    .where('date', '>=', startOfMonth)
-                    .where('date', '<=', endOfMonth)
-                    .get();
+                let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth);
 
-                const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (!sessions || forceRefresh) {
+                    container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
+                    const snapshot = await db.collection('attendances')
+                        .where('teamId', '==', activeTeamId)
+                        .where('date', '>=', startOfMonth)
+                        .where('date', '<=', endOfMonth)
+                        .get();
 
-                // Mappa giornate per un rapido accesso tramite giorno
+                    sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    AppCache.setAttendances(activeTeamId, selectedYear, selectedMonth, sessions);
+                }
+
+                // Mappa giornate
                 const sessionsByDay = {};
                 let totalPresentsCount = 0;
 
@@ -744,11 +859,10 @@
                 document.getElementById('stat-total-presents').innerText = totalPresentsCount;
                 document.getElementById('stat-avg-presents').innerText = sessions.length > 0 ? (totalPresentsCount / sessions.length).toFixed(1) : '0';
 
-                // COSTRUZIONE TABELLA PER STAMPA GRIGLIA
+                // COSTRUZIONE TABELLA GRIGLIA
                 let tableHtml = `
                     <table class="w-full text-xs border-collapse border border-gray-400 bg-white">
                         <thead>
-                            <!-- PRIMA RIGA INTESTAZIONE: GIORNO DELLA SETTIMANA ABBREVIATO -->
                             <tr class="bg-gray-100 text-gray-700">
                                 <th class="border border-gray-400 p-1 text-left">Giocatore</th>
                 `;
@@ -764,7 +878,6 @@
 
                 tableHtml += `
                             </tr>
-                            <!-- SECONDA RIGA INTESTAZIONE: NUMERO DEL GIORNO -->
                             <tr class="bg-gray-200 text-gray-800">
                                 <th class="border border-gray-400 p-1 text-left">Cognome e Nome</th>
                 `;
@@ -781,7 +894,6 @@
                         <tbody>
                 `;
 
-                // RIGHE GIOCATORI ORDINATI PER COGNOME
                 if (activeTeamPlayers.length === 0) {
                     tableHtml += `<tr><td colspan="${totalDaysInMonth + 1}" class="text-center p-4 text-gray-400">Nessun giocatore in rosa.</td></tr>`;
                 } else {
@@ -831,6 +943,24 @@
             }
         }
 
+        // GESTIONE STAMPE DEDICATE
+        function printRosterReport() {
+            document.body.classList.remove('print-landscape', 'print-monthly');
+            document.body.classList.add('print-roster');
+            document.getElementById('print-report-period').innerText = 'Documento: Rosa Giocatori Ufficiale';
+            window.print();
+        }
+
+        function printMonthlyReport() {
+            document.body.classList.remove('print-roster');
+            document.body.classList.add('print-landscape', 'print-monthly');
+            const selectedMonth = parseInt(document.getElementById('filter-month').value);
+            const selectedYear = parseInt(document.getElementById('filter-year').value);
+            const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+            document.getElementById('print-report-period').innerText = `Periodo: ${monthNames[selectedMonth]} ${selectedYear}`;
+            window.print();
+        }
+
         function openAddPlayerModal() {
             if (!activeTeamId) return alert('Seleziona prima una squadra!');
             document.getElementById('player-first-name').value = '';
@@ -857,14 +987,16 @@
                 });
 
                 closeAddPlayerModal();
-                loadTeamData();
+                AppCache.clearPlayers(activeTeamId);
+                loadTeamData(true);
             }
         }
 
         async function deletePlayer(playerId) {
             if (confirm("Rimuovere questo giocatore dalla rosa?")) {
                 await db.collection('players').doc(playerId).delete();
-                loadTeamData();
+                AppCache.clearPlayers(activeTeamId);
+                loadTeamData(true);
             }
         }
 
