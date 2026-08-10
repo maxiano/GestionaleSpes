@@ -34,6 +34,10 @@
             .print\:p-0 {
                 padding: 0 !important;
             }
+            /* In stampa mostra la sezione attiva del registro */
+            .tab-content {
+                display: block !important;
+            }
         }
     </style>
 </head>
@@ -86,7 +90,7 @@
         </div>
 
         <!-- DASHBOARD GENERICA -->
-        <div id="app-dashboard" class="hidden space-y-6">
+        <div id="app-dashboard" class="hidden space-y-4">
 
             <!-- HEADER DASHBOARD -->
             <div id="dashboard-header" class="bg-white p-4 rounded-lg shadow flex justify-between items-center border-l-4 border-blue-600 print:hidden">
@@ -139,22 +143,27 @@
                 </select>
             </div>
 
-            <!-- CONTENUTI OPERATIVI -->
-            <div id="main-content-area" class="space-y-6">
+            <!-- BARRA MENU A TAB -->
+            <div id="navigation-tabs" class="bg-white rounded-lg shadow p-1 flex space-x-1 border-b print:hidden hidden">
+                <button onclick="switchTab('tab-attendance')" id="btn-tab-attendance" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100">
+                    ⚽ Registra Presenze
+                </button>
+                <button onclick="switchTab('tab-monthly')" id="btn-tab-monthly" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                    📊 Registro Mensile
+                </button>
+                <button onclick="switchTab('tab-roster')" id="btn-tab-roster" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                    👥 Rosa Giocatori
+                </button>
+                <button onclick="switchTab('tab-callup')" id="btn-tab-callup" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                    📩 Convocazioni
+                </button>
+            </div>
 
-                <!-- 1. ROSA GIOCATORI -->
-                <div class="bg-white p-6 rounded-lg shadow print:hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
-                        <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-1.5 rounded font-bold">🖨️ Stampa Rosa</button>
-                    </div>
-                    <div id="players-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <!-- Caricato da JS -->
-                    </div>
-                </div>
+            <!-- CONTENUTI OPERATIVI SEPARATI PER TAB -->
+            <div id="main-content-area" class="hidden">
 
-                <!-- 2. REGISTRA NUOVO ALLENAMENTO E PRESENZE -->
-                <div class="bg-white p-6 rounded-lg shadow print:hidden">
+                <!-- TAB 1: REGISTRA NUOVO ALLENAMENTO E PRESENZE -->
+                <div id="tab-attendance" class="tab-content bg-white p-6 rounded-lg shadow">
                     <div class="flex justify-between items-center mb-4 border-b pb-3">
                         <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
                         <div class="flex items-center space-x-2">
@@ -186,8 +195,8 @@
                     </form>
                 </div>
 
-                <!-- 3. REGISTRO STORICO MENSILE ALLENAMENTI E PRESENZE DETTAGLIATO -->
-                <div class="bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
+                <!-- TAB 2: REGISTRO STORICO MENSILE ALLENAMENTI E PRESENZE DETTAGLIATO -->
+                <div id="tab-monthly" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b pb-3 gap-3 print:border-none">
                         <div>
                             <h3 class="text-lg font-bold text-gray-800">📊 Registro Mensile Allenamenti Dettagliato</h3>
@@ -244,8 +253,19 @@
                     </div>
                 </div>
 
-                <!-- 4. MODULO CONVOCAZIONI (SOLO COACH) -->
-                <div id="callup-section" class="bg-white p-6 rounded-lg shadow print:hidden">
+                <!-- TAB 3: ROSA GIOCATORI -->
+                <div id="tab-roster" class="tab-content hidden bg-white p-6 rounded-lg shadow">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
+                        <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-1.5 rounded font-bold">🖨️ Stampa Rosa</button>
+                    </div>
+                    <div id="players-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <!-- Caricato da JS -->
+                    </div>
+                </div>
+
+                <!-- TAB 4: MODULO CONVOCAZIONI (SOLO COACH) -->
+                <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow">
                     <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
                     <form id="form-callup" onsubmit="saveCallup(event)" class="space-y-3">
                         <div class="grid grid-cols-2 gap-2">
@@ -311,7 +331,7 @@
         let currentUserProfile = null;
         let activeTeamId = null;
         let activeTeamPlayers = [];
-        let currentSessionDocId = null; // Traccia il documento caricato per la data attiva
+        let currentSessionDocId = null;
 
         // Impostazione date e filtri iniziali
         const now = new Date();
@@ -322,6 +342,26 @@
 
         // Event listener cambio data
         document.getElementById('attendance-date').addEventListener('change', checkAndLoadExistingAttendance);
+
+        // GESTIONE NAVIGAZIONE A TAB / MENU
+        function switchTab(tabId) {
+            // Nasconde tutti i contenuti dei tab
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Ripristina lo stile di tutti i pulsanti menu
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
+            });
+
+            // Mostra il tab selezionato
+            document.getElementById(tabId).classList.remove('hidden');
+
+            // Evidenzia il pulsante attivo
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100";
+            }
+        }
 
         // AUTENTICAZIONE E INIZIALIZZAZIONE RUOLI
         auth.onAuthStateChanged(async (user) => {
@@ -338,15 +378,18 @@
                         document.getElementById('dashboard-role-title').innerText = "Panoramica Responsabile Tecnico";
                         document.getElementById('dashboard-subtitle').innerText = "Seleziona un gruppo per iniziare";
                         document.getElementById('admin-team-selector').classList.remove('hidden');
-                        document.getElementById('callup-section').classList.add('hidden');
+                        document.getElementById('navigation-tabs').classList.add('hidden');
                         document.getElementById('main-content-area').classList.add('hidden');
                     } else {
                         activeTeamId = currentUserProfile.teamId;
                         document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach";
                         document.getElementById('dashboard-subtitle').innerText = `Squadra: ${activeTeamId}`;
                         document.getElementById('admin-team-selector').classList.add('hidden');
-                        document.getElementById('callup-section').classList.remove('hidden');
+                        document.getElementById('navigation-tabs').classList.remove('hidden');
                         document.getElementById('main-content-area').classList.remove('hidden');
+                        
+                        // Sblocca anche il tab Convocazioni per i coach
+                        document.getElementById('btn-tab-callup').classList.remove('hidden');
                         loadTeamData();
                     }
                 }
@@ -376,11 +419,17 @@
             const selected = document.getElementById('admin-team-filter').value;
             if (selected !== 'ALL') {
                 activeTeamId = selected;
+                document.getElementById('navigation-tabs').classList.remove('hidden');
                 document.getElementById('main-content-area').classList.remove('hidden');
                 document.getElementById('dashboard-subtitle').innerText = `Gruppo Selezionato: ${activeTeamId}`;
+                
+                // Nascondi il tab convocazioni per l'admin se gestito solo dai coach
+                document.getElementById('btn-tab-callup').classList.add('hidden');
+                switchTab('tab-attendance'); // Torna al tab presenze predefinito
                 loadTeamData();
             } else {
                 activeTeamId = null;
+                document.getElementById('navigation-tabs').classList.add('hidden');
                 document.getElementById('main-content-area').classList.add('hidden');
             }
         }
@@ -496,13 +545,11 @@
                     currentSessionDocId = doc.id;
                     const records = doc.data().records || [];
 
-                    // Pre-seleziona i radio button esistenti
                     records.forEach(rec => {
                         const radio = document.querySelector(`input[name="att_${rec.playerId}"][value="${rec.status}"]`);
                         if (radio) radio.checked = true;
                     });
 
-                    // Mostra Badge "Già Salvato" e Pulsante Elimina
                     if (container) container.classList.remove('hidden');
                     if (badge) {
                         badge.className = "text-xs font-bold text-amber-800";
@@ -511,11 +558,9 @@
                     if (deleteBtn) deleteBtn.classList.remove('hidden');
 
                 } else {
-                    // Nuova giornata
                     currentSessionDocId = null;
                     resetAttendanceRadios();
 
-                    // Mostra Badge "Nuova Giornata" e nascondi Elimina
                     if (container) container.classList.remove('hidden');
                     if (badge) {
                         badge.className = "text-xs font-bold text-green-800";
@@ -550,12 +595,11 @@
                         `⚠️ Hai già salvato l'allenamento e le presenze per il ${formatDateIT(date)}.\n\nVuoi aggiornare e sovrascrivere i dati inseriti?`
                     );
 
-                    if (!confirmUpdate) return; // Annullato dall'utente
+                    if (!confirmUpdate) return;
 
                     docToUpdateId = existingCheck.docs[0].id;
                 }
 
-                // Prepara i record delle presenze
                 const records = [];
                 activeTeamPlayers.forEach(player => {
                     const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
@@ -566,14 +610,12 @@
                 });
 
                 if (docToUpdateId) {
-                    // Aggiorna giornata esistente
                     await db.collection('attendances').doc(docToUpdateId).update({
                         records: records,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     alert('Presenze aggiornate con successo!');
                 } else {
-                    // Salva nuova giornata
                     await db.collection('attendances').add({
                         teamId: activeTeamId,
                         date: date,
@@ -583,7 +625,6 @@
                     alert('Allenamento e presenze salvati con successo!');
                 }
                 
-                // Aggiorna filtri mese/anno
                 const savedDateObj = new Date(date + 'T00:00:00');
                 document.getElementById('filter-month').value = savedDateObj.getMonth();
                 document.getElementById('filter-year').value = savedDateObj.getFullYear();
@@ -632,7 +673,6 @@
 
             container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
 
-            // Calcolo dinamico esatto ultimo giorno del mese
             const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
             
             const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
@@ -647,7 +687,6 @@
 
                 const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                // Ordina per data decrescente
                 sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 if (sessions.length === 0) {
@@ -658,7 +697,6 @@
                     return;
                 }
 
-                // Statistiche Mensili
                 let totalPresentsCount = 0;
                 sessions.forEach(s => {
                     if (s.records) {
@@ -670,7 +708,6 @@
                 document.getElementById('stat-total-presents').innerText = totalPresentsCount;
                 document.getElementById('stat-avg-presents').innerText = (totalPresentsCount / sessions.length).toFixed(1);
 
-                // Rendering Lista Sedute
                 container.innerHTML = '';
                 sessions.forEach(session => {
                     const formattedDate = new Date(session.date + 'T00:00:00').toLocaleDateString('it-IT', {
@@ -713,7 +750,7 @@
                 });
             } catch (err) {
                 console.error("Errore caricamento allenamenti:", err);
-                container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore nel caricamento dei dati. Assicurati che l'indice Firestore sia stato attivato se richiesto in console.</p>`;
+                container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore nel caricamento dei dati.</p>`;
             }
         }
 
