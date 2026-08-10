@@ -60,9 +60,15 @@
             <h1 class="text-xl font-bold">Scuola Calcio Hub</h1>
             <p id="user-info" class="text-xs text-blue-200">Caricamento utente...</p>
         </div>
-        <button id="btn-logout" class="hidden bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-2 rounded font-semibold transition">
-            Esci
-        </button>
+        <div class="flex items-center space-x-3">
+            <!-- VOCE MENU STAFF NELLA BARRA SUPERIORE (VISIBILE SOLO ADMIN) -->
+            <button id="nav-btn-staff" class="hidden bg-purple-700 hover:bg-purple-800 text-white text-xs px-3 py-2 rounded font-semibold transition border border-purple-400">
+                ⚙️ Gestione Staff/Coach
+            </button>
+            <button id="btn-logout" class="hidden bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-2 rounded font-semibold transition">
+                Esci
+            </button>
+        </div>
     </nav>
 
     <!-- INTESTAZIONE UNICA REPORT DI STAMPA -->
@@ -109,49 +115,52 @@
                     <h2 id="dashboard-role-title" class="text-lg font-bold text-gray-800">Pannello Tecnico</h2>
                     <p id="dashboard-subtitle" class="text-sm text-gray-500">Squadra: --</p>
                 </div>
-                <div id="dashboard-actions" class="space-x-2">
-                    <button id="btn-open-add-player" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold transition">+ Giocatore</button>
-                </div>
             </div>
 
-            <!-- FILTRO SQUADRE -->
-            <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex items-center space-x-3 print:hidden hidden">
-                <label class="text-sm font-bold text-gray-600">Seleziona Categoria/Gruppo:</label>
-                <select id="admin-team-filter" class="border p-2 rounded text-sm flex-1 bg-white">
-                    <option value="ALL">Seleziona un gruppo...</option>
-                    <optgroup label="2014 (Esordienti)">
-                        <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
-                        <option value="2014 - Gruppo Verde">2014 - Gruppo Verde</option>
-                    </optgroup>
-                    <optgroup label="2015 (Pulcini)">
-                        <option value="2015 - Gruppo Nero">2015 - Gruppo Nero</option>
-                        <option value="2015 - Gruppo Verde">2015 - Gruppo Verde</option>
-                    </optgroup>
-                    <optgroup label="2016 (Pulcini)">
-                        <option value="2016 - Gruppo Nero">2016 - Gruppo Nero</option>
-                        <option value="2016 - Gruppo Verde">2016 - Gruppo Verde</option>
-                        <option value="2016 - Gruppo Giallo">2016 - Gruppo Giallo</option>
-                    </optgroup>
-                    <optgroup label="2017 (Primi Calci)">
-                        <option value="2017 - Gruppo Nero">2017 - Gruppo Nero</option>
-                        <option value="2017 - Gruppo Verde">2017 - Gruppo Verde</option>
-                        <option value="2017 - Gruppo Giallo">2017 - Gruppo Giallo</option>
-                    </optgroup>
-                    <optgroup label="2018 (Primi Calci)">
-                        <option value="2018 - Gruppo Nero">2018 - Gruppo Nero</option>
-                        <option value="2018 - Gruppo Verde">2018 - Gruppo Verde</option>
-                        <option value="2018 - Gruppo Giallo">2018 - Gruppo Giallo</option>
-                    </optgroup>
-                    <optgroup label="2019 (Piccoli Amici)">
-                        <option value="2019 - Gruppo Nero">2019 - Gruppo Nero</option>
-                        <option value="2019 - Gruppo Verde">2019 - Gruppo Verde</option>
-                        <option value="2019 - Gruppo Giallo">2019 - Gruppo Giallo</option>
-                    </optgroup>
-                    <optgroup label="2020-2021 (Piccoli Amici)">
-                        <option value="2020-21 - Gruppo Nero">2020-21 - Gruppo Nero</option>
-                        <option value="2020-21 - Gruppo Verde">2020-21 - Gruppo Verde</option>
-                    </optgroup>
-                </select>
+            <!-- FILTRO SQUADRE + BOTTONE AGGIUNGI GIOCATORE -->
+            <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex flex-col md:flex-row md:items-center justify-between gap-3 print:hidden hidden">
+                <div class="flex items-center space-x-3 flex-1">
+                    <label class="text-sm font-bold text-gray-600 whitespace-nowrap">Seleziona Categoria/Gruppo:</label>
+                    <select id="admin-team-filter" class="border p-2 rounded text-sm flex-1 bg-white">
+                        <option value="ALL">Seleziona un gruppo...</option>
+                        <optgroup label="2014 (Esordienti)">
+                            <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
+                            <option value="2014 - Gruppo Verde">2014 - Gruppo Verde</option>
+                        </optgroup>
+                        <optgroup label="2015 (Pulcini)">
+                            <option value="2015 - Gruppo Nero">2015 - Gruppo Nero</option>
+                            <option value="2015 - Gruppo Verde">2015 - Gruppo Verde</option>
+                        </optgroup>
+                        <optgroup label="2016 (Pulcini)">
+                            <option value="2016 - Gruppo Nero">2016 - Gruppo Nero</option>
+                            <option value="2016 - Gruppo Verde">2016 - Gruppo Verde</option>
+                            <option value="2016 - Gruppo Giallo">2016 - Gruppo Giallo</option>
+                        </optgroup>
+                        <optgroup label="2017 (Primi Calci)">
+                            <option value="2017 - Gruppo Nero">2017 - Gruppo Nero</option>
+                            <option value="2017 - Gruppo Verde">2017 - Gruppo Verde</option>
+                            <option value="2017 - Gruppo Giallo">2017 - Gruppo Giallo</option>
+                        </optgroup>
+                        <optgroup label="2018 (Primi Calci)">
+                            <option value="2018 - Gruppo Nero">2018 - Gruppo Nero</option>
+                            <option value="2018 - Gruppo Verde">2018 - Gruppo Verde</option>
+                            <option value="2018 - Gruppo Giallo">2018 - Gruppo Giallo</option>
+                        </optgroup>
+                        <optgroup label="2019 (Piccoli Amici)">
+                            <option value="2019 - Gruppo Nero">2019 - Gruppo Nero</option>
+                            <option value="2019 - Gruppo Verde">2019 - Gruppo Verde</option>
+                            <option value="2019 - Gruppo Giallo">2019 - Gruppo Giallo</option>
+                        </optgroup>
+                        <optgroup label="2020-2021 (Piccoli Amici)">
+                            <option value="2020-21 - Gruppo Nero">2020-21 - Gruppo Nero</option>
+                            <option value="2020-21 - Gruppo Verde">2020-21 - Gruppo Verde</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <!-- SPOSTATO DOPO LA SELEZIONE DEL GRUPPO -->
+                <button id="btn-open-add-player" class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded font-bold transition whitespace-nowrap">
+                    + Aggiungi Giocatore
+                </button>
             </div>
 
             <!-- BARRA MENU A TAB -->
@@ -307,7 +316,7 @@
                     <div class="print:hidden">
                         <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
                         <form id="form-callup" class="space-y-3">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <div>
                                     <label class="block text-[11px] font-bold text-gray-600 mb-1">Squadra Avversaria</label>
                                     <input type="text" id="match-opponent" placeholder="es. Tor di Quinto" required class="border p-2 rounded text-sm w-full">
@@ -315,10 +324,6 @@
                                 <div>
                                     <label class="block text-[11px] font-bold text-gray-600 mb-1">Campo / Luogo</label>
                                     <input type="text" id="match-location" placeholder="es. Campo Spes / Via Nomentana" required class="border p-2 rounded text-sm w-full">
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-gray-600 mb-1">🏆 Competizione / Campionato (Opzionale)</label>
-                                    <input type="text" id="match-competition" placeholder="es. Campionato Elite / Amichevole" class="border p-2 rounded text-sm w-full">
                                 </div>
                             </div>
 
@@ -455,13 +460,11 @@
 
     </div>
 
-    <!-- MODALE AGGIUNTA / MODIFICA GIOCATORE CON ANAGRAFICA AVANZATA -->
+    <!-- MODALE AGGIUNTA GIOCATORE CON ANAGRAFICA AVANZATA -->
     <div id="modal-add-player" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 print:hidden">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <h3 id="modal-player-title" class="text-lg font-bold text-gray-800 mb-4">Aggiungi Nuovo Giocatore</h3>
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Aggiungi Nuovo Giocatore</h3>
             <form id="form-add-player" class="space-y-3">
-                <input type="hidden" id="player-edit-id" value="">
-                
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs font-bold text-gray-600">Cognome *</label>
@@ -697,6 +700,7 @@
                         document.getElementById('dashboard-subtitle').innerText = "Seleziona un gruppo per iniziare";
                         document.getElementById('admin-team-selector').classList.remove('hidden');
                         document.getElementById('btn-tab-staff').classList.remove('hidden');
+                        document.getElementById('nav-btn-staff').classList.remove('hidden');
                         document.getElementById('navigation-tabs').classList.add('hidden');
                         document.getElementById('main-content-area').classList.add('hidden');
                     } else {
@@ -705,6 +709,7 @@
                         document.getElementById('dashboard-subtitle').innerText = `Squadra: ${activeTeamId}`;
                         document.getElementById('admin-team-selector').classList.add('hidden');
                         document.getElementById('btn-tab-staff').classList.add('hidden');
+                        document.getElementById('nav-btn-staff').classList.add('hidden');
                         document.getElementById('navigation-tabs').classList.remove('hidden');
                         document.getElementById('main-content-area').classList.remove('hidden');
                         loadTeamData();
@@ -712,6 +717,7 @@
                 }
             } else {
                 document.getElementById('btn-logout').classList.add('hidden');
+                document.getElementById('nav-btn-staff').classList.add('hidden');
                 document.getElementById('section-login').classList.remove('hidden');
                 document.getElementById('app-dashboard').classList.add('hidden');
             }
@@ -729,6 +735,13 @@
         });
 
         document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+
+        // EVENTO PULSANTE STAFF NELLA NAV BAR SUPERIORE
+        document.getElementById('nav-btn-staff').addEventListener('click', () => {
+            document.getElementById('navigation-tabs').classList.remove('hidden');
+            document.getElementById('main-content-area').classList.remove('hidden');
+            switchTab('tab-staff');
+        });
 
         document.getElementById('admin-team-filter').addEventListener('change', () => {
             const selected = document.getElementById('admin-team-filter').value;
@@ -935,19 +948,12 @@
                             <p class="text-gray-600"><strong>Tel. Genitore:</strong> ${player.parentPhone || 'N/D'}</p>
                             <div class="pt-1">${medStatusBadge}</div>
                         </div>
-                        <div class="flex flex-col items-end space-y-1">
-                            <button data-id="${player.id}" class="btn-edit-player text-xs text-blue-600 font-bold hover:text-blue-800">✏️ Modifica</button>
-                            ${canDelete}
-                        </div>
+                        <div>${canDelete}</div>
                     </div>
                 `;
             });
 
-            // GESTIONE DELEGA EVENTI PER MODIFICA ED ELIMINAZIONE GIOCATORI
-            container.querySelectorAll('.btn-edit-player').forEach(btn => {
-                btn.addEventListener('click', (e) => openEditPlayerModal(e.target.getAttribute('data-id')));
-            });
-
+            // GESTIONE DELEGA EVENTI PER ELIMINAZIONE GIOCATORI
             container.querySelectorAll('.btn-delete-player').forEach(btn => {
                 btn.addEventListener('click', (e) => deletePlayer(e.target.getAttribute('data-id')));
             });
@@ -1337,7 +1343,6 @@
 
             const opponent = document.getElementById('match-opponent').value.trim();
             const location = document.getElementById('match-location').value.trim();
-            const competition = document.getElementById('match-competition').value.trim();
             const matchDate = document.getElementById('match-date').value;
             const matchTime = document.getElementById('match-time').value;
             const gatheringTime = document.getElementById('gathering-time').value;
@@ -1361,7 +1366,6 @@
                     teamId: activeTeamId,
                     opponent: opponent,
                     location: location,
-                    competition: competition || '',
                     date: matchDate,
                     matchTime: matchTime,
                     gatheringTime: gatheringTime,
@@ -1408,12 +1412,10 @@
                 
                 docs.forEach(data => {
                     const playersList = (data.players || []).join(', ');
-                    const compBadge = data.competition ? `<span class="bg-indigo-100 text-indigo-800 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">${data.competition}</span>` : '';
-                    
                     container.innerHTML += `
                         <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs mb-2 shadow-sm">
                             <div class="space-y-1">
-                                <p class="font-bold text-sm text-indigo-900">⚽ Spes Montesacro vs ${data.opponent} ${compBadge}</p>
+                                <p class="font-bold text-sm text-indigo-900">⚽ Spes Montesacro vs ${data.opponent}</p>
                                 <p class="text-gray-700">
                                     📅 <strong>Giorno:</strong> ${formatDateIT(data.date)} | 
                                     🕒 <strong>Inizio:</strong> ${data.matchTime} | 
@@ -1451,9 +1453,7 @@
             const callup = loadedCallupsList.find(c => c.id === callupId);
             if (!callup) return;
             const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
-            const compText = callup.competition ? `🏆 *Competizione:* ${callup.competition}\n` : '';
-            
-            let text = `📢 *CONVOCAZIONE GARA UFFICIALE*\n⚽ *Spes Montesacro vs ${callup.opponent}*\n${compText}\n📅 *Giorno:* ${formatDateIT(callup.date)}\n🕒 *Inizio Partita:* ${callup.matchTime}\n⏰ *Ora Ritrovo:* ${callup.gatheringTime}\n📍 *Luogo:* ${callup.location}\n\n👥 *ELENCO CONVOCATI (${sortedPlayers.length}):*\n`;
+            let text = `📢 *CONVOCAZIONE GARA UFFICIALE*\n⚽ *Spes Montesacro vs ${callup.opponent}*\n\n📅 *Giorno:* ${formatDateIT(callup.date)}\n🕒 *Inizio Partita:* ${callup.matchTime}\n⏰ *Ora Ritrovo:* ${callup.gatheringTime}\n📍 *Luogo:* ${callup.location}\n\n👥 *ELENCO CONVOCATI (${sortedPlayers.length}):*\n`;
             sortedPlayers.forEach((p, i) => text += `${i + 1}. ${p}\n`);
             text += `\n⚠️ *Massima puntualità!*`;
             sendToWhatsApp(text, `Convocazione vs ${callup.opponent}`);
@@ -1486,12 +1486,9 @@
                 rows += `<tr><td class="border border-black p-2 text-center font-bold" style="width: 40px;">${index + 1}</td><td class="border border-black p-2 font-bold text-sm">${p}</td><td class="border border-black p-2"></td></tr>`;
             });
 
-            const compHeader = callup.competition ? `<p>🏆 <strong>Torneo/Campionato:</strong> ${callup.competition}</p>` : '';
-
             printContainer.innerHTML = `
                 <div class="bg-gray-100 border border-black p-3 mb-4 rounded space-y-1 text-sm">
                     <p class="text-base font-extrabold text-black">⚽ PARTITA: Spes Montesacro vs ${callup.opponent}</p>
-                    ${compHeader}
                     <div class="grid grid-cols-2 gap-2 pt-1 font-semibold">
                         <p>📅 <strong>Giorno:</strong> ${formatDateIT(callup.date)}</p>
                         <p>📍 <strong>Luogo:</strong> ${callup.location}</p>
@@ -1536,11 +1533,9 @@
             window.print();
         });
 
-        // MODALE E GESTIONE GIOCATORE (CREAZIONE E MODIFICA)
+        // MODALE E NUOVO GIOCATORE
         document.getElementById('btn-open-add-player').addEventListener('click', () => {
             if (!activeTeamId) return alert('Seleziona prima una squadra!');
-            document.getElementById('player-edit-id').value = '';
-            document.getElementById('modal-player-title').innerText = 'Aggiungi Nuovo Giocatore';
             document.getElementById('player-first-name').value = '';
             document.getElementById('player-last-name').value = '';
             document.getElementById('player-dob').value = '';
@@ -1551,30 +1546,12 @@
             document.getElementById('modal-add-player').classList.remove('hidden');
         });
 
-        function openEditPlayerModal(playerId) {
-            const player = activeTeamPlayers.find(p => p.id === playerId);
-            if (!player) return;
-
-            document.getElementById('player-edit-id').value = player.id;
-            document.getElementById('modal-player-title').innerText = 'Modifica Dati Giocatore';
-            document.getElementById('player-first-name').value = player.firstName || '';
-            document.getElementById('player-last-name').value = player.lastName || '';
-            document.getElementById('player-dob').value = player.dob || '';
-            document.getElementById('player-jersey').value = player.jersey || '';
-            document.getElementById('player-role').value = player.role || '';
-            document.getElementById('player-medical-exp').value = player.medicalExp || '';
-            document.getElementById('player-parent-phone').value = player.parentPhone || '';
-
-            document.getElementById('modal-add-player').classList.remove('hidden');
-        }
-
         document.getElementById('btn-close-modal-player').addEventListener('click', () => {
             document.getElementById('modal-add-player').classList.add('hidden');
         });
 
         document.getElementById('form-add-player').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const playerId = document.getElementById('player-edit-id').value;
             const firstName = document.getElementById('player-first-name').value.trim();
             const lastName = document.getElementById('player-last-name').value.trim();
             const dob = document.getElementById('player-dob').value;
@@ -1584,7 +1561,7 @@
             const parentPhone = document.getElementById('player-parent-phone').value.trim();
 
             if (firstName && lastName && activeTeamId) {
-                const playerData = {
+                await addDoc(collection(db, 'players'), {
                     firstName: firstName,
                     lastName: lastName,
                     name: `${lastName} ${firstName}`,
@@ -1594,18 +1571,7 @@
                     medicalExp: medicalExp,
                     parentPhone: parentPhone,
                     teamId: activeTeamId
-                };
-
-                if (playerId) {
-                    // Aggiornamento giocatore esistente
-                    const docRef = doc(db, 'players', playerId);
-                    await updateDoc(docRef, playerData);
-                    alert("Dati giocatore aggiornati con successo!");
-                } else {
-                    // Creazione nuovo giocatore
-                    await addDoc(collection(db, 'players'), playerData);
-                    alert("Nuovo giocatore aggiunto con successo!");
-                }
+                });
 
                 document.getElementById('modal-add-player').classList.add('hidden');
                 AppCache.clearPlayers(activeTeamId);
