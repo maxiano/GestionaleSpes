@@ -162,16 +162,16 @@
                 </button>
             </div>
 
-            <!-- BARRA MENU A TAB -->
+            <!-- BARRA MENU A TAB (ROSA GIOCATORI ORA AL PRIMO POSTO) -->
             <div id="navigation-tabs" class="bg-white rounded-lg shadow p-1 flex flex-wrap space-x-1 border-b print:hidden hidden">
-                <button id="btn-tab-attendance" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100">
+                <button id="btn-tab-roster" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100">
+                    👥 Rosa Giocatori
+                </button>
+                <button id="btn-tab-attendance" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
                     ⚽ Registra Presenze
                 </button>
                 <button id="btn-tab-monthly" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
                     📊 Registro Mensile
-                </button>
-                <button id="btn-tab-roster" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
-                    👥 Rosa Giocatori
                 </button>
                 <button id="btn-tab-callup" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
                     📩 Convocazioni
@@ -185,8 +185,37 @@
             <!-- CONTENUTI OPERATIVI SEPARATI PER TAB -->
             <div id="main-content-area" class="hidden">
 
-                <!-- TAB 1: REGISTRA NUOVO ALLENAMENTO E PRESENZE -->
-                <div id="tab-attendance" class="tab-content print:hidden bg-white p-6 rounded-lg shadow">
+                <!-- TAB 1: ROSA GIOCATORI COMPLETA DI ANAGRAFICA (ORA PRIMA SCHERMATA) -->
+                <div id="tab-roster" class="tab-content bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
+                    <div class="flex justify-between items-center mb-4 border-b pb-3 print:hidden">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
+                            <p class="text-xs text-gray-500">Gestione Anagrafica e Certificati Medici</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button id="btn-export-roster-csv" class="bg-teal-600 hover:bg-teal-700 text-white text-xs px-3 py-2 rounded font-bold transition">
+                                📄 Esporta CSV
+                            </button>
+                            <button id="btn-share-roster-wa" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold transition">
+                                📲 Condividi WhatsApp
+                            </button>
+                            <button id="btn-print-roster" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold transition">
+                                🖨️ Stampa Rosa
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="players-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-3 print:hidden">
+                        <!-- Caricato da JS -->
+                    </div>
+
+                    <div id="roster-print-table-container" class="hidden print:block">
+                        <!-- Caricato da JS -->
+                    </div>
+                </div>
+
+                <!-- TAB 2: REGISTRA NUOVO ALLENAMENTO E PRESENZE -->
+                <div id="tab-attendance" class="tab-content hidden print:hidden bg-white p-6 rounded-lg shadow">
                     <div class="flex justify-between items-center mb-4 border-b pb-3">
                         <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
                         <div class="flex items-center space-x-2">
@@ -222,7 +251,7 @@
                     </form>
                 </div>
 
-                <!-- TAB 2: REGISTRO STORICO MENSILE ALLENAMENTI A GRIGLIA -->
+                <!-- TAB 3: REGISTRO STORICO MENSILE ALLENAMENTI A GRIGLIA -->
                 <div id="tab-monthly" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0 overflow-x-auto">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b pb-3 gap-3 print:hidden">
                         <div>
@@ -278,35 +307,6 @@
 
                     <div id="monthly-sessions-container" class="overflow-x-auto">
                         <!-- Caricato dinamicamente -->
-                    </div>
-                </div>
-
-                <!-- TAB 3: ROSA GIOCATORI COMPLETA DI ANAGRAFICA -->
-                <div id="tab-roster" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
-                    <div class="flex justify-between items-center mb-4 border-b pb-3 print:hidden">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
-                            <p class="text-xs text-gray-500">Gestione Anagrafica e Certificati Medici</p>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <button id="btn-export-roster-csv" class="bg-teal-600 hover:bg-teal-700 text-white text-xs px-3 py-2 rounded font-bold transition">
-                                📄 Esporta CSV
-                            </button>
-                            <button id="btn-share-roster-wa" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold transition">
-                                📲 Condividi WhatsApp
-                            </button>
-                            <button id="btn-print-roster" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold transition">
-                                🖨️ Stampa Rosa
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="players-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-3 print:hidden">
-                        <!-- Caricato da JS -->
-                    </div>
-
-                    <div id="roster-print-table-container" class="hidden print:block">
-                        <!-- Caricato da JS -->
                     </div>
                 </div>
 
@@ -772,7 +772,7 @@
                     document.getElementById('dashboard-subtitle').innerText = `Squadra: ${activeTeamId}`;
                     document.getElementById('navigation-tabs').classList.remove('hidden');
                     document.getElementById('main-content-area').classList.remove('hidden');
-                    switchTab('tab-attendance');
+                    switchTab('tab-roster');
                     loadTeamData();
                 } else {
                     let optionsHtml = '<option value="SELECT_TEAM" selected disabled>-- Seleziona la tua Squadra --</option>';
@@ -847,7 +847,7 @@
                 document.getElementById('navigation-tabs').classList.remove('hidden');
                 document.getElementById('main-content-area').classList.remove('hidden');
                 document.getElementById('dashboard-subtitle').innerText = `Gruppo Selezionato: ${activeTeamId}`;
-                switchTab('tab-attendance');
+                switchTab('tab-roster');
                 loadTeamData();
             } else {
                 activeTeamId = null;
@@ -1707,9 +1707,9 @@
         document.getElementById('btn-reset-attendance-radios').addEventListener('click', resetAttendanceRadios);
 
         // GESTIONE NAVIGAZIONE A TAB
+        document.getElementById('btn-tab-roster').addEventListener('click', () => switchTab('tab-roster'));
         document.getElementById('btn-tab-attendance').addEventListener('click', () => switchTab('tab-attendance'));
         document.getElementById('btn-tab-monthly').addEventListener('click', () => switchTab('tab-monthly'));
-        document.getElementById('btn-tab-roster').addEventListener('click', () => switchTab('tab-roster'));
         document.getElementById('btn-tab-callup').addEventListener('click', () => switchTab('tab-callup'));
         document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-staff'));
 
