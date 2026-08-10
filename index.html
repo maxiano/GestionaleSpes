@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestione Scuola Calcio - Report Presenze</title>
+    <title>Gestione Scuola Calcio - Registro Allenamenti</title>
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase App & Firestore SDK -->
@@ -11,13 +11,13 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    <!-- STILI PER LA STAMPA DEL REPORT -->
+    <!-- STILI PER LA STAMPA -->
     <style>
         @media print {
             body {
                 background-color: white !important;
                 color: black !important;
-                font-size: 12pt;
+                font-size: 11pt;
             }
             .print\:hidden {
                 display: none !important;
@@ -50,13 +50,13 @@
         </button>
     </nav>
 
-    <!-- INTESTAZIONE REPORT DI STAMPA (VISIBILE SOLO IN STAMPA) -->
+    <!-- INTESTAZIONE REPORT DI STAMPA -->
     <div class="hidden print:block p-4 border-b-2 border-black mb-6">
         <div class="flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-bold uppercase tracking-wide">Scuola Calcio - Report Presenze Allenamento</h1>
+                <h1 class="text-2xl font-bold uppercase tracking-wide">Scuola Calcio Spes Montesacro</h1>
                 <p id="print-report-team" class="text-sm font-semibold mt-1">Squadra / Categoria: --</p>
-                <p id="print-report-date" class="text-sm">Data Seduta: --</p>
+                <p id="print-report-period" class="text-sm">Periodo: --</p>
             </div>
             <div class="text-right text-xs">
                 <p class="font-bold">Spes Montesacro</p>
@@ -85,103 +85,25 @@
             </form>
         </div>
 
-        <!-- SECTION: DASHBOARD ALLENATORE -->
-        <div id="section-coach" class="hidden space-y-6">
-            <div class="bg-white p-4 rounded-lg shadow flex justify-between items-center border-l-4 border-blue-600 print:hidden">
+        <!-- DASHBOARD GENERICA (CONTENITORE PER ALLENATORE O RT) -->
+        <div id="app-dashboard" class="hidden space-y-6">
+
+            <!-- HEADER DASHBOARD -->
+            <div id="dashboard-header" class="bg-white p-4 rounded-lg shadow flex justify-between items-center border-l-4 border-blue-600 print:hidden">
                 <div>
-                    <h2 class="text-lg font-bold text-gray-800">Pannello Tecnico</h2>
-                    <p id="coach-team-name" class="text-sm text-gray-500">Squadra: --</p>
+                    <h2 id="dashboard-role-title" class="text-lg font-bold text-gray-800">Pannello Tecnico</h2>
+                    <p id="dashboard-subtitle" class="text-sm text-gray-500">Squadra: --</p>
                 </div>
-                <button onclick="openAddPlayerModal()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">+ Giocatore</button>
-            </div>
-
-            <!-- 1. ROSA GIOCATORI (ALLENATORE) -->
-            <div class="bg-white p-6 rounded-lg shadow print:hidden">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori</h3>
-                    <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-1.5 rounded font-bold">🖨️ Stampa Rosa</button>
-                </div>
-                <div id="coach-players-list" class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <!-- Giocatori rosa caricati dinamicamente -->
+                <div id="dashboard-actions" class="space-x-2">
+                    <button onclick="openAddPlayerModal()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">+ Giocatore</button>
                 </div>
             </div>
 
-            <!-- 2. REGISTRO ALLENAMENTO E PRESENZE (ALLENATORE) -->
-            <div class="bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
-                <div class="flex justify-between items-center mb-4 border-b pb-3">
-                    <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
-                    <div class="flex items-center space-x-2">
-                        <label class="text-xs font-bold text-gray-600 print:hidden">Data:</label>
-                        <input type="date" id="attendance-date" onchange="updatePrintMetadata()" class="border p-1 rounded text-sm">
-                        <button type="button" onclick="triggerPrintReport()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold print:hidden">
-                            🖨️ Stampa Report Presenze
-                        </button>
-                    </div>
-                </div>
-
-                <form id="form-attendance" onsubmit="saveAttendance(event)" class="space-y-4">
-                    <p class="text-xs font-bold text-gray-600 print:text-sm">Elenco Giocatori - Stato Presenza:</p>
-                    <div id="players-list-attendance" class="divide-y space-y-2 mb-4 border rounded p-3 print:border-black">
-                        <!-- Giocatori caricati dinamicamente -->
-                    </div>
-
-                    <!-- SEZIONE NOTE E FIRMA PER LA STAMPA -->
-                    <div class="hidden print:block mt-8 pt-4 border-t border-gray-400">
-                        <div class="grid grid-cols-2 gap-8 text-xs">
-                            <div>
-                                <p class="font-bold mb-1">Note Allenamento / Valutazioni Tecniche:</p>
-                                <div class="border border-gray-300 h-20 rounded p-2">____________________________________________________</div>
-                            </div>
-                            <div class="text-right flex flex-col justify-end">
-                                <p class="font-bold">Firma Istruttore / Allenatore</p>
-                                <p class="mt-8">____________________________________</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-start items-center pt-2 print:hidden">
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-bold text-xs px-4">
-                            Salva Allenamento e Presenze
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- 3. MODULO CONVOCAZIONI -->
-            <div class="bg-white p-6 rounded-lg shadow print:hidden">
-                <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione</h3>
-                <form id="form-callup" onsubmit="saveCallup(event)" class="space-y-3">
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="text" id="match-opponent" placeholder="Avversario" required class="border p-2 rounded text-sm w-full">
-                        <input type="datetime-local" id="match-datetime" required class="border p-2 rounded text-sm w-full">
-                    </div>
-                    <input type="text" id="match-location" placeholder="Luogo / Campo" required class="border p-2 rounded text-sm w-full">
-                    
-                    <p class="text-xs font-bold text-gray-500 mt-2">Seleziona Convocati:</p>
-                    <div id="players-list-callup" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded">
-                        <!-- Checkbox giocatori -->
-                    </div>
-
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded font-bold">
-                        Genera Convocazione
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- SECTION: DASHBOARD RESPONSABILE TECNICO (ADMIN) -->
-        <div id="section-admin" class="hidden space-y-6">
-            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-purple-600 print:hidden">
-                <h2 class="text-lg font-bold text-gray-800">Panoramica Responsabile Tecnico</h2>
-                <p class="text-sm text-gray-500">Monitoraggio e gestione gruppi societari</p>
-            </div>
-
-            <!-- FILTRO SQUADRE COMPLETO -->
-            <div class="bg-white p-4 rounded-lg shadow flex items-center space-x-3 print:hidden">
+            <!-- FILTRO SQUADRE (SOLO PER RESPONSABILE TECNICO/ADMIN) -->
+            <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex items-center space-x-3 print:hidden hidden">
                 <label class="text-sm font-bold text-gray-600">Seleziona Categoria/Gruppo:</label>
-                <select id="admin-team-filter" onchange="loadAdminData()" class="border p-2 rounded text-sm flex-1">
-                    <option value="ALL">Tutte le Squadre (Seleziona un gruppo)</option>
-                    
+                <select id="admin-team-filter" onchange="handleTeamChange()" class="border p-2 rounded text-sm flex-1">
+                    <option value="ALL">Seleziona un gruppo...</option>
                     <optgroup label="2014 (Esordienti)">
                         <option value="2014 - Gruppo A">2014 - Gruppo A</option>
                         <option value="2014 - Gruppo B">2014 - Gruppo B</option>
@@ -217,59 +139,123 @@
                 </select>
             </div>
 
-            <!-- 1. SEZIONE ROSA GIOCATORI GRUPPO SELEZIONATO -->
-            <div id="admin-players-section" class="bg-white p-6 rounded-lg shadow hidden print:hidden">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="admin-team-title">--</span>)</h3>
-                    <div class="space-x-2">
-                        <button onclick="openAddPlayerModal()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">+ Giocatore</button>
-                        <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold">🖨️ Stampa Rosa</button>
+            <!-- CONTENUTI OPERATIVI -->
+            <div id="main-content-area" class="space-y-6">
+
+                <!-- 1. ROSA GIOCATORI -->
+                <div class="bg-white p-6 rounded-lg shadow print:hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
+                        <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-1.5 rounded font-bold">🖨️ Stampa Rosa</button>
+                    </div>
+                    <div id="players-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <!-- Caricato da JS -->
                     </div>
                 </div>
-                <div id="admin-players-list" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
-                    <!-- Giocatori -->
-                </div>
-            </div>
 
-            <!-- 2. REGISTRA ALLENAMENTO E PRESENZE (RESPONSABILE TECNICO) -->
-            <div id="admin-add-session-section" class="bg-white p-6 rounded-lg shadow hidden print:shadow-none print:p-0">
-                <div class="flex justify-between items-center mb-3 border-b pb-3">
-                    <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
-                    <button onclick="triggerPrintReport()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold print:hidden">
-                        🖨️ Stampa Report Presenze
-                    </button>
-                </div>
-                <form id="form-admin-attendance" onsubmit="saveAdminAttendance(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1 print:text-sm">Data Allenamento</label>
-                        <input type="date" id="admin-attendance-date" onchange="updatePrintMetadata()" required class="border p-2 rounded text-sm w-full md:w-1/2">
-                    </div>
-
-                    <p class="text-xs font-bold text-gray-600 pt-2 print:text-sm">Presenze Giocatori:</p>
-                    <div id="admin-players-attendance-list" class="divide-y space-y-2 border p-3 rounded print:border-black">
-                        <!-- Giocatori -->
-                    </div>
-
-                    <!-- SEZIONE NOTE E FIRMA PER LA STAMPA -->
-                    <div class="hidden print:block mt-8 pt-4 border-t border-gray-400">
-                        <div class="grid grid-cols-2 gap-8 text-xs">
-                            <div>
-                                <p class="font-bold mb-1">Note Allenamento / Valutazioni Tecniche:</p>
-                                <div class="border border-gray-300 h-20 rounded p-2">____________________________________________________</div>
-                            </div>
-                            <div class="text-right flex flex-col justify-end">
-                                <p class="font-bold">Firma Responsabile Tecnico</p>
-                                <p class="mt-8">____________________________________</p>
-                            </div>
+                <!-- 2. REGISTRA NUOVO ALLENAMENTO E PRESENZE -->
+                <div class="bg-white p-6 rounded-lg shadow print:hidden">
+                    <div class="flex justify-between items-center mb-4 border-b pb-3">
+                        <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
+                        <div class="flex items-center space-x-2">
+                            <label class="text-xs font-bold text-gray-600">Data:</label>
+                            <input type="date" id="attendance-date" class="border p-1 rounded text-sm">
                         </div>
                     </div>
 
-                    <div class="pt-2 print:hidden">
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded font-bold">
-                            Salva Allenamento & Presenze
-                        </button>
+                    <form id="form-attendance" onsubmit="saveAttendance(event)" class="space-y-4">
+                        <p class="text-xs font-bold text-gray-600">Seleziona Stato Presenza:</p>
+                        <div id="attendance-players-inputs" class="divide-y space-y-2 mb-4 border rounded p-3">
+                            <!-- Caricato da JS -->
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-bold text-xs px-4">
+                                Salva Allenamento e Presenze
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 3. NUOVA SEZIONE: REGISTRO STORICO MENSILE ALLENAMENTI E PRESENZE DETTAGLIATO -->
+                <div class="bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b pb-3 gap-3 print:border-none">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">📊 Registro Mensile Allenamenti Dettagliato</h3>
+                            <p class="text-xs text-gray-500 print:hidden">Storico completo delle sedute d'allenamento per giornata e presenza singoli giocatori</p>
+                        </div>
+                        
+                        <!-- FILTRI MESE ED ANNO -->
+                        <div class="flex items-center space-x-2 print:hidden">
+                            <select id="filter-month" onchange="loadMonthlyAttendances()" class="border p-1.5 rounded text-sm font-semibold bg-gray-50">
+                                <option value="0">Gennaio</option>
+                                <option value="1">Febbraio</option>
+                                <option value="2">Marzo</option>
+                                <option value="3">Aprile</option>
+                                <option value="4">Maggio</option>
+                                <option value="5">Giugno</option>
+                                <option value="6">Luglio</option>
+                                <option value="7">Agosto</option>
+                                <option value="8">Settembre</option>
+                                <option value="9">Ottobre</option>
+                                <option value="10">Novembre</option>
+                                <option value="11">Dicembre</option>
+                            </select>
+
+                            <select id="filter-year" onchange="loadMonthlyAttendances()" class="border p-1.5 rounded text-sm font-semibold bg-gray-50">
+                                <option value="2026">2026</option>
+                                <option value="2027">2027</option>
+                            </select>
+
+                            <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold">
+                                🖨️ Stampa Report Mensile
+                            </button>
+                        </div>
                     </div>
-                </form>
+
+                    <!-- STATISTICHE RAPIDE MESE -->
+                    <div id="monthly-stats-bar" class="grid grid-cols-3 gap-3 mb-6 text-center text-xs">
+                        <div class="bg-blue-50 border border-blue-200 p-3 rounded">
+                            <p class="text-gray-500 font-semibold">Sedute Mese</p>
+                            <p id="stat-total-sessions" class="text-lg font-bold text-blue-800">0</p>
+                        </div>
+                        <div class="bg-green-50 border border-green-200 p-3 rounded">
+                            <p class="text-gray-500 font-semibold">Presenze Totali</p>
+                            <p id="stat-total-presents" class="text-lg font-bold text-green-800">0</p>
+                        </div>
+                        <div class="bg-purple-50 border border-purple-200 p-3 rounded">
+                            <p class="text-gray-500 font-semibold">Media Presenze/Seduta</p>
+                            <p id="stat-avg-presents" class="text-lg font-bold text-purple-800">0</p>
+                        </div>
+                    </div>
+
+                    <!-- CONTENITORE GIORNATE DI ALLENAMENTO DEL MESE -->
+                    <div id="monthly-sessions-container" class="space-y-4">
+                        <!-- Caricato dinamicamente con le giornate del mese -->
+                    </div>
+                </div>
+
+                <!-- 4. MODULO CONVOCAZIONI (SOLO COACH) -->
+                <div id="callup-section" class="bg-white p-6 rounded-lg shadow print:hidden">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
+                    <form id="form-callup" onsubmit="saveCallup(event)" class="space-y-3">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="match-opponent" placeholder="Avversario" required class="border p-2 rounded text-sm w-full">
+                            <input type="datetime-local" id="match-datetime" required class="border p-2 rounded text-sm w-full">
+                        </div>
+                        <input type="text" id="match-location" placeholder="Luogo / Campo" required class="border p-2 rounded text-sm w-full">
+                        
+                        <p class="text-xs font-bold text-gray-500 mt-2">Seleziona Convocati:</p>
+                        <div id="players-list-callup" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded">
+                            <!-- Checkbox giocatori -->
+                        </div>
+
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded font-bold">
+                            Genera Convocazione
+                        </button>
+                    </form>
+                </div>
+
             </div>
         </div>
 
@@ -282,11 +268,11 @@
             <form onsubmit="handleSavePlayer(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-600">Nome</label>
-                    <input type="text" id="player-first-name" required class="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    <input type="text" id="player-first-name" required class="w-full border p-2 rounded mt-1 text-sm">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-600">Cognome</label>
-                    <input type="text" id="player-last-name" required class="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    <input type="text" id="player-last-name" required class="w-full border p-2 rounded mt-1 text-sm">
                 </div>
                 <div class="flex justify-end space-x-2 pt-2">
                     <button type="button" onclick="closeAddPlayerModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 text-xs px-4 py-2 rounded font-bold">Annulla</button>
@@ -314,37 +300,17 @@
         const db = firebase.firestore();
 
         let currentUserProfile = null;
-        let currentTeamPlayers = [];
-        let adminCurrentTeamPlayers = [];
+        let activeTeamId = null;
+        let activeTeamPlayers = [];
 
-        // Imposta date iniziali
-        const todayStr = new Date().toISOString().split('T')[0];
+        // Impostazione date e filtri iniziali
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
         document.getElementById('attendance-date').value = todayStr;
-        document.getElementById('admin-attendance-date').value = todayStr;
+        document.getElementById('filter-month').value = now.getMonth();
+        document.getElementById('filter-year').value = now.getFullYear();
 
-        // FUNZIONE PER AGGIORNARE I METADATI NELL'INTESTAZIONE DI STAMPA
-        function updatePrintMetadata() {
-            let teamName = "--";
-            let dateVal = todayStr;
-
-            if (currentUserProfile && currentUserProfile.role === 'coach') {
-                teamName = currentUserProfile.teamId || "--";
-                dateVal = document.getElementById('attendance-date').value;
-            } else if (currentUserProfile && currentUserProfile.role === 'admin') {
-                teamName = document.getElementById('admin-team-filter').value || "--";
-                dateVal = document.getElementById('admin-attendance-date').value;
-            }
-
-            document.getElementById('print-report-team').innerText = `Squadra / Categoria: ${teamName}`;
-            document.getElementById('print-report-date').innerText = `Data Seduta: ${dateVal}`;
-        }
-
-        function triggerPrintReport() {
-            updatePrintMetadata();
-            window.print();
-        }
-
-        // AUTENTICAZIONE E RUOLI
+        // AUTENTICAZIONE E INIZIALIZZAZIONE RUOLI
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 const userDoc = await db.collection('users').doc(user.uid).get();
@@ -353,23 +319,28 @@
                     document.getElementById('user-info').innerText = `${currentUserProfile.name} (${currentUserProfile.role})`;
                     document.getElementById('btn-logout').classList.remove('hidden');
                     document.getElementById('section-login').classList.add('hidden');
+                    document.getElementById('app-dashboard').classList.remove('hidden');
 
                     if (currentUserProfile.role === 'admin') {
-                        document.getElementById('section-admin').classList.remove('hidden');
-                        loadAdminData();
-                    } else if (currentUserProfile.role === 'coach') {
-                        document.getElementById('section-coach').classList.remove('hidden');
-                        document.getElementById('coach-team-name').innerText = `Squadra: ${currentUserProfile.teamId}`;
-                        loadCoachData(currentUserProfile.teamId);
+                        document.getElementById('dashboard-role-title').innerText = "Panoramica Responsabile Tecnico";
+                        document.getElementById('dashboard-subtitle').innerText = "Seleziona un gruppo per iniziare";
+                        document.getElementById('admin-team-selector').classList.remove('hidden');
+                        document.getElementById('callup-section').classList.add('hidden');
+                        document.getElementById('main-content-area').classList.add('hidden'); // Nasconde finché non si sceglie la squadra
+                    } else {
+                        activeTeamId = currentUserProfile.teamId;
+                        document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach";
+                        document.getElementById('dashboard-subtitle').innerText = `Squadra: ${activeTeamId}`;
+                        document.getElementById('admin-team-selector').classList.add('hidden');
+                        document.getElementById('callup-section').classList.remove('hidden');
+                        document.getElementById('main-content-area').classList.remove('hidden');
+                        loadTeamData();
                     }
-                    updatePrintMetadata();
                 }
             } else {
-                document.getElementById('user-info').innerText = 'Non connesso';
                 document.getElementById('btn-logout').classList.add('hidden');
                 document.getElementById('section-login').classList.remove('hidden');
-                document.getElementById('section-coach').classList.add('hidden');
-                document.getElementById('section-admin').classList.add('hidden');
+                document.getElementById('app-dashboard').classList.add('hidden');
             }
         });
 
@@ -388,8 +359,232 @@
             auth.signOut();
         }
 
-        // GESTIONE MODALE GIOCATORE
+        function handleTeamChange() {
+            const selected = document.getElementById('admin-team-filter').value;
+            if (selected !== 'ALL') {
+                activeTeamId = selected;
+                document.getElementById('main-content-area').classList.remove('hidden');
+                document.getElementById('dashboard-subtitle').innerText = `Gruppo Selezionato: ${activeTeamId}`;
+                loadTeamData();
+            } else {
+                activeTeamId = null;
+                document.getElementById('main-content-area').classList.add('hidden');
+            }
+        }
+
+        // CARICAMENTO GIOCATORI E DATI DELLA SQUADRA ATTIVA
+        async function loadTeamData() {
+            if (!activeTeamId) return;
+
+            document.getElementById('display-active-team').innerText = activeTeamId;
+            document.getElementById('print-report-team').innerText = `Squadra / Categoria: ${activeTeamId}`;
+
+            const snapshot = await db.collection('players').where('teamId', '==', activeTeamId).get();
+            activeTeamPlayers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            renderPlayersList();
+            renderAttendanceInputs();
+            renderCallupCheckboxes();
+            loadMonthlyAttendances();
+        }
+
+        function renderPlayersList() {
+            const container = document.getElementById('players-list-container');
+            container.innerHTML = '';
+
+            if (activeTeamPlayers.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-400 col-span-2">Nessun giocatore in rosa.</p>';
+                return;
+            }
+
+            activeTeamPlayers.forEach(player => {
+                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                const canDelete = currentUserProfile.role === 'admin' ? 
+                    `<button onclick="deletePlayer('${player.id}')" class="text-xs text-red-500 font-bold hover:text-red-700">Rimuovi</button>` : '';
+
+                container.innerHTML += `
+                    <div class="p-2 border rounded bg-gray-50 flex justify-between items-center text-sm font-semibold text-gray-700">
+                        <span>⚽ ${displayName}</span>
+                        ${canDelete}
+                    </div>
+                `;
+            });
+        }
+
+        function renderAttendanceInputs() {
+            const container = document.getElementById('attendance-players-inputs');
+            container.innerHTML = '';
+
+            if (activeTeamPlayers.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-400">Nessun giocatore in rosa. Aggiungine uno con il pulsante "+ Giocatore".</p>';
+                return;
+            }
+
+            activeTeamPlayers.forEach(player => {
+                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                container.innerHTML += `
+                    <div class="flex justify-between items-center py-2">
+                        <span class="font-medium text-sm text-gray-700">${displayName}</span>
+                        <div class="space-x-3">
+                            <label class="inline-flex items-center text-xs cursor-pointer">
+                                <input type="radio" name="att_${player.id}" value="present" checked class="text-green-600">
+                                <span class="ml-1 text-green-700 font-bold">Presente (P)</span>
+                            </label>
+                            <label class="inline-flex items-center text-xs cursor-pointer">
+                                <input type="radio" name="att_${player.id}" value="absent" class="text-red-600">
+                                <span class="ml-1 text-red-700 font-bold">Assente (A)</span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderCallupCheckboxes() {
+            const container = document.getElementById('players-list-callup');
+            if (!container) return;
+            container.innerHTML = '';
+
+            activeTeamPlayers.forEach(player => {
+                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                container.innerHTML += `
+                    <label class="flex items-center space-x-2 text-xs p-1 border rounded bg-gray-50">
+                        <input type="checkbox" name="callup_player" value="${displayName}" checked class="rounded text-indigo-600">
+                        <span>${displayName}</span>
+                    </label>
+                `;
+            });
+        }
+
+        // SALVATAGGIO ALLENAMENTO E PRESENZE
+        async function saveAttendance(e) {
+            e.preventDefault();
+            if (!activeTeamId || activeTeamPlayers.length === 0) return alert('Nessuna squadra o giocatore presente!');
+
+            const date = document.getElementById('attendance-date').value;
+            const records = [];
+
+            activeTeamPlayers.forEach(player => {
+                const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
+                if (radio) {
+                    const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                    records.push({ playerId: player.id, name: displayName, status: radio.value });
+                }
+            });
+
+            await db.collection('attendances').add({
+                teamId: activeTeamId,
+                date: date,
+                records: records,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            alert('Allenamento e presenze salvati con successo!');
+            loadMonthlyAttendances(); // Ricarica lo storico mensile
+        }
+
+        // LOGICA CARICAMENTO REGISTRO MENSILE DETTAGLIATO PER GIORNATA
+        async function loadMonthlyAttendances() {
+            if (!activeTeamId) return;
+
+            const selectedMonth = parseInt(document.getElementById('filter-month').value);
+            const selectedYear = parseInt(document.getElementById('filter-year').value);
+            const container = document.getElementById('monthly-sessions-container');
+
+            const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+            document.getElementById('print-report-period').innerText = `Periodo: ${monthNames[selectedMonth]} ${selectedYear}`;
+
+            container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
+
+            // Date di inizio e fine mese
+            const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+            const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-31`;
+
+            const snapshot = await db.collection('attendances')
+                .where('teamId', '==', activeTeamId)
+                .where('date', '>=', startOfMonth)
+                .where('date', '<=', endOfMonth)
+                .get();
+
+            const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // Ordina per data (dalla più recente)
+            sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (sessions.length === 0) {
+                container.innerHTML = `<p class="text-sm text-gray-400 py-4 italic">Nessun allenamento registrato per ${monthNames[selectedMonth]} ${selectedYear}.</p>`;
+                document.getElementById('stat-total-sessions').innerText = '0';
+                document.getElementById('stat-total-presents').innerText = '0';
+                document.getElementById('stat-avg-presents').innerText = '0';
+                return;
+            }
+
+            // Calcolo Statistiche Mensili
+            let totalPresentsCount = 0;
+            sessions.forEach(s => {
+                if (s.records) {
+                    totalPresentsCount += s.records.filter(r => r.status === 'present').length;
+                }
+            });
+
+            document.getElementById('stat-total-sessions').innerText = sessions.length;
+            document.getElementById('stat-total-presents').innerText = totalPresentsCount;
+            document.getElementById('stat-avg-presents').innerText = (totalPresentsCount / sessions.length).toFixed(1);
+
+            // Generazione Dettaglio Giornate
+            container.innerHTML = '';
+            sessions.forEach(session => {
+                const formattedDate = new Date(session.date).toLocaleDateString('it-IT', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+
+                const presentPlayers = session.records ? session.records.filter(r => r.status === 'present') : [];
+                const absentPlayers = session.records ? session.records.filter(r => r.status === 'absent') : [];
+
+                let presentListHtml = presentPlayers.map(p => `<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-semibold mr-1 mb-1">✓ ${p.name}</span>`).join('');
+                let absentListHtml = absentPlayers.map(p => `<span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded font-semibold mr-1 mb-1">✗ ${p.name}</span>`).join('');
+
+                container.innerHTML += `
+                    <div class="border rounded-lg p-4 bg-gray-50 print:bg-white print:border-black space-y-3">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-sm md:text-base capitalize">🗓️ Seduta: ${formattedDate}</h4>
+                                <p class="text-xs text-gray-500">Data: ${session.date}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="bg-blue-600 text-white text-xs px-2.5 py-1 rounded-full font-bold">
+                                    Presenze: ${presentPlayers.length} / ${session.records.length}
+                                </span>
+                                <button onclick="deleteSession('${session.id}')" class="text-xs text-red-500 hover:text-red-700 ml-2 font-bold print:hidden">Elimina</button>
+                            </div>
+                        </div>
+
+                        <!-- ELENCO GIOCATORI PRESENTI ED ASSENTI PER LA GIORNATA -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            <div>
+                                <p class="font-bold text-green-700 mb-1">Presenti (${presentPlayers.length}):</p>
+                                <div class="flex flex-wrap">${presentListHtml || '<span class="text-gray-400 italic">Nessun presente</span>'}</div>
+                            </div>
+                            <div>
+                                <p class="font-bold text-red-700 mb-1">Assenti (${absentPlayers.length}):</p>
+                                <div class="flex flex-wrap">${absentListHtml || '<span class="text-gray-400 italic">Nessun assente</span>'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function deleteSession(sessionId) {
+            if (confirm("Sei sicuro di voler eliminare questo allenamento dal registro?")) {
+                await db.collection('attendances').doc(sessionId).delete();
+                loadMonthlyAttendances();
+            }
+        }
+
+        // GESTIONE AGGIUNTA GIOCATORE
         function openAddPlayerModal() {
+            if (!activeTeamId) return alert('Seleziona prima una squadra!');
             document.getElementById('player-first-name').value = '';
             document.getElementById('player-last-name').value = '';
             document.getElementById('modal-add-player').classList.remove('hidden');
@@ -404,116 +599,25 @@
             const firstName = document.getElementById('player-first-name').value.trim();
             const lastName = document.getElementById('player-last-name').value.trim();
 
-            let targetTeam = null;
-            if (currentUserProfile.role === 'coach') {
-                targetTeam = currentUserProfile.teamId;
-            } else if (currentUserProfile.role === 'admin') {
-                targetTeam = document.getElementById('admin-team-filter').value;
-                if (targetTeam === 'ALL') {
-                    alert('Seleziona una squadra specifica prima di aggiungere un giocatore.');
-                    return;
-                }
-            }
-
-            if (firstName && lastName && targetTeam) {
+            if (firstName && lastName && activeTeamId) {
                 const fullName = `${lastName} ${firstName}`;
                 await db.collection('players').add({
                     firstName: firstName,
                     lastName: lastName,
                     name: fullName,
-                    teamId: targetTeam
+                    teamId: activeTeamId
                 });
 
                 closeAddPlayerModal();
-
-                if (currentUserProfile.role === 'coach') {
-                    loadCoachData(targetTeam);
-                } else {
-                    loadAdminData();
-                }
+                loadTeamData();
             }
         }
 
-        // LOGICA ALLENATORE
-        async function loadCoachData(teamId) {
-            const snapshot = await db.collection('players').where('teamId', '==', teamId).get();
-            currentTeamPlayers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            const coachPlayersContainer = document.getElementById('coach-players-list');
-            const attendanceContainer = document.getElementById('players-list-attendance');
-            const callupContainer = document.getElementById('players-list-callup');
-            
-            coachPlayersContainer.innerHTML = '';
-            attendanceContainer.innerHTML = '';
-            callupContainer.innerHTML = '';
-
-            if (currentTeamPlayers.length === 0) {
-                coachPlayersContainer.innerHTML = '<p class="text-sm text-gray-400 col-span-2 py-2">Nessun giocatore in rosa.</p>';
-                attendanceContainer.innerHTML = '<p class="text-sm text-gray-400 py-2">Nessun giocatore in rosa. Clicca su "+ Giocatore".</p>';
-                callupContainer.innerHTML = '<p class="text-sm text-gray-400 p-1">Nessun giocatore in rosa.</p>';
-                return;
+        async function deletePlayer(playerId) {
+            if (confirm("Rimuovere questo giocatore dalla rosa?")) {
+                await db.collection('players').doc(playerId).delete();
+                loadTeamData();
             }
-
-            currentTeamPlayers.forEach(player => {
-                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
-
-                // Rosa
-                coachPlayersContainer.innerHTML += `
-                    <div class="p-2 border rounded bg-gray-50 text-sm font-semibold text-gray-700">
-                        ⚽ ${displayName}
-                    </div>
-                `;
-
-                // Presenze
-                attendanceContainer.innerHTML += `
-                    <div class="flex justify-between items-center py-2">
-                        <span class="font-medium text-sm text-gray-700">${displayName}</span>
-                        <div class="space-x-2">
-                            <label class="inline-flex items-center text-xs">
-                                <input type="radio" name="att_${player.id}" value="present" checked class="text-green-600">
-                                <span class="ml-1 text-green-700 font-bold">P</span>
-                            </label>
-                            <label class="inline-flex items-center text-xs">
-                                <input type="radio" name="att_${player.id}" value="absent" class="text-red-600">
-                                <span class="ml-1 text-red-700 font-bold">A</span>
-                            </label>
-                        </div>
-                    </div>
-                `;
-
-                // Convocazioni
-                callupContainer.innerHTML += `
-                    <label class="flex items-center space-x-2 text-xs p-1 border rounded bg-gray-50">
-                        <input type="checkbox" name="callup_player" value="${displayName}" checked class="rounded text-indigo-600">
-                        <span>${displayName}</span>
-                    </label>
-                `;
-            });
-        }
-
-        async function saveAttendance(e) {
-            e.preventDefault();
-            if (currentTeamPlayers.length === 0) return alert('Aggiungi prima i giocatori alla rosa!');
-
-            const date = document.getElementById('attendance-date').value;
-            const records = [];
-
-            currentTeamPlayers.forEach(player => {
-                const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
-                if (radio) {
-                    const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
-                    records.push({ playerId: player.id, name: displayName, status: radio.value });
-                }
-            });
-
-            await db.collection('attendances').add({
-                teamId: currentUserProfile.teamId,
-                date: date,
-                records: records,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            alert('Allenamento e presenze salvati con successo!');
         }
 
         async function saveCallup(e) {
@@ -528,7 +632,7 @@
             });
 
             await db.collection('callups').add({
-                teamId: currentUserProfile.teamId,
+                teamId: activeTeamId,
                 opponent: opponent,
                 datetime: datetime,
                 location: location,
@@ -537,102 +641,6 @@
             });
 
             alert(`Convocazione creata con ${selectedPlayers.length} giocatori!`);
-        }
-
-        // LOGICA RESPONSABILE TECNICO (ADMIN)
-        async function loadAdminData() {
-            const selectedTeam = document.getElementById('admin-team-filter').value;
-            const playersSection = document.getElementById('admin-players-section');
-            const addSessionSection = document.getElementById('admin-add-session-section');
-            const playersListContainer = document.getElementById('admin-players-list');
-            const adminAttListContainer = document.getElementById('admin-players-attendance-list');
-            const teamTitle = document.getElementById('admin-team-title');
-
-            updatePrintMetadata();
-
-            if (selectedTeam !== 'ALL') {
-                playersSection.classList.remove('hidden');
-                addSessionSection.classList.remove('hidden');
-                teamTitle.innerText = selectedTeam;
-                playersListContainer.innerHTML = 'Caricamento giocatori...';
-                adminAttListContainer.innerHTML = 'Caricamento...';
-
-                const playersSnapshot = await db.collection('players').where('teamId', '==', selectedTeam).get();
-                adminCurrentTeamPlayers = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                playersListContainer.innerHTML = '';
-                adminAttListContainer.innerHTML = '';
-
-                if (adminCurrentTeamPlayers.length === 0) {
-                    playersListContainer.innerHTML = '<p class="text-sm text-gray-400 col-span-2 py-2">Nessun giocatore tesserato per questo gruppo.</p>';
-                    adminAttListContainer.innerHTML = '<p class="text-sm text-gray-400 py-2">Nessun giocatore disponibile per questo gruppo.</p>';
-                } else {
-                    adminCurrentTeamPlayers.forEach(player => {
-                        const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
-                        
-                        playersListContainer.innerHTML += `
-                            <div class="p-2 border rounded bg-gray-50 flex justify-between items-center text-sm">
-                                <span class="font-semibold text-gray-700">⚽ ${displayName}</span>
-                                <button onclick="deletePlayer('${player.id}')" class="text-xs text-red-500 hover:text-red-700 font-bold print:hidden">Rimuovi</button>
-                            </div>
-                        `;
-
-                        adminAttListContainer.innerHTML += `
-                            <div class="flex justify-between items-center py-1">
-                                <span class="font-medium text-sm text-gray-700">${displayName}</span>
-                                <div class="space-x-2">
-                                    <label class="inline-flex items-center text-xs">
-                                        <input type="radio" name="admin_att_${player.id}" value="present" checked class="text-green-600">
-                                        <span class="ml-1 text-green-700 font-bold">P</span>
-                                    </label>
-                                    <label class="inline-flex items-center text-xs">
-                                        <input type="radio" name="admin_att_${player.id}" value="absent" class="text-red-600">
-                                        <span class="ml-1 text-red-700 font-bold">A</span>
-                                    </label>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-            } else {
-                playersSection.classList.add('hidden');
-                addSessionSection.classList.add('hidden');
-            }
-        }
-
-        async function saveAdminAttendance(e) {
-            e.preventDefault();
-            const selectedTeam = document.getElementById('admin-team-filter').value;
-            if (selectedTeam === 'ALL' || adminCurrentTeamPlayers.length === 0) {
-                return alert('Seleziona una squadra valida e accertati che ci siano giocatori.');
-            }
-
-            const date = document.getElementById('admin-attendance-date').value;
-            const records = [];
-
-            adminCurrentTeamPlayers.forEach(player => {
-                const radio = document.querySelector(`input[name="admin_att_${player.id}"]:checked`);
-                if (radio) {
-                    const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
-                    records.push({ playerId: player.id, name: displayName, status: radio.value });
-                }
-            });
-
-            await db.collection('attendances').add({
-                teamId: selectedTeam,
-                date: date,
-                records: records,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            alert('Allenamento e presenze registrati con successo!');
-        }
-
-        async function deletePlayer(playerId) {
-            if (confirm("Sei sicuro di voler rimuovere questo giocatore dalla rosa?")) {
-                await db.collection('players').doc(playerId).delete();
-                loadAdminData();
-            }
         }
     </script>
 </body>
