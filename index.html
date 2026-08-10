@@ -11,14 +11,23 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    <!-- STILI PER LA STAMPA -->
+    <!-- STILI PER LA STAMPA OTTIMIZZATI PER PAGINA SINGOLA -->
     <style>
         @media print {
+            /* FORZA ORIENTAMENTO ORIZZONTALE E MARGINI MINIMI PER FAR RIENTRARE IN 1 PAGINA */
+            @page {
+                size: A4 landscape;
+                margin: 5mm;
+            }
+
             body {
                 background-color: white !important;
                 color: black !important;
-                font-size: 11pt;
+                font-size: 8pt !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
+
             .print\:hidden {
                 display: none !important;
             }
@@ -26,7 +35,7 @@
                 display: block !important;
             }
             .print\:border-b {
-                border-bottom: 2px solid #000 !important;
+                border-bottom: 1.5px solid #000 !important;
             }
             .print\:shadow-none {
                 box-shadow: none !important;
@@ -34,8 +43,8 @@
             .print\:p-0 {
                 padding: 0 !important;
             }
-            
-            /* ESCLUSIONE SEZIONE REGISTRA ALLENAMENTO E PRESENZE */
+
+            /* ESCLUSIONE SCHEDE OPERATIVE IN STAMPA */
             #tab-attendance,
             #tab-roster,
             #tab-callup {
@@ -45,6 +54,37 @@
             /* MOSTRA ESCLUSIVAMENTE IL REGISTRO MENSILE */
             #tab-monthly {
                 display: block !important;
+                width: 100% !important;
+            }
+
+            /* INTESTAZIONE REPORT COMPATTA */
+            .print\:block {
+                margin-bottom: 8px !important;
+                padding-bottom: 4px !important;
+            }
+
+            /* STRUTTURA TABELLA ADATTABILE */
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                table-layout: fixed !important; /* Mantiene proporzioni fisse per far rientrare le 31 colonne */
+            }
+
+            th, td {
+                border: 1px solid #000 !important;
+                padding: 2px 1px !important;
+                text-align: center !important;
+                font-size: 7.5pt !important;
+                overflow: hidden;
+            }
+
+            /* PRIMA COLONNA COGNOME E NOME GIOCATORI */
+            th:first-child, td:first-child {
+                text-align: left !important;
+                padding-left: 4px !important;
+                width: 170px !important;
+                white-space: nowrap !important;
+                text-overflow: ellipsis;
             }
         }
     </style>
@@ -63,21 +103,21 @@
     </nav>
 
     <!-- INTESTAZIONE REPORT DI STAMPA -->
-    <div class="hidden print:block p-4 border-b-2 border-black mb-6">
+    <div class="hidden print:block p-2 border-b-2 border-black mb-3">
         <div class="flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-bold uppercase tracking-wide">Scuola Calcio Spes Montesacro</h1>
-                <p id="print-report-team" class="text-sm font-semibold mt-1">Squadra / Categoria: --</p>
-                <p id="print-report-period" class="text-sm">Periodo: --</p>
+                <h1 class="text-xl font-bold uppercase tracking-wide">Scuola Calcio Spes Montesacro</h1>
+                <p id="print-report-team" class="text-xs font-semibold mt-0.5">Squadra / Categoria: --</p>
+                <p id="print-report-period" class="text-xs">Periodo: --</p>
             </div>
-            <div class="text-right text-xs">
+            <div class="text-right text-[10px]">
                 <p class="font-bold">Spes Montesacro</p>
                 <p>Stagione Sportiva 2026/2027</p>
             </div>
         </div>
     </div>
 
-    <div class="max-w-4xl mx-auto p-4 print:p-0">
+    <div class="max-w-6xl mx-auto p-4 print:p-0">
 
         <!-- SECTION: LOGIN -->
         <div id="section-login" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mt-10 print:hidden">
@@ -111,7 +151,7 @@
                 </div>
             </div>
 
-            <!-- FILTRO SQUADRE (CON DENOMINAZIONE COLORI) -->
+            <!-- FILTRO SQUADRE -->
             <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex items-center space-x-3 print:hidden hidden">
                 <label class="text-sm font-bold text-gray-600">Seleziona Categoria/Gruppo:</label>
                 <select id="admin-team-filter" onchange="handleTeamChange()" class="border p-2 rounded text-sm flex-1">
@@ -170,7 +210,7 @@
             <!-- CONTENUTI OPERATIVI SEPARATI PER TAB -->
             <div id="main-content-area" class="hidden">
 
-                <!-- TAB 1: REGISTRA NUOVO ALLENAMENTO E PRESENZE (NASCOSTO IN STAMPA) -->
+                <!-- TAB 1: REGISTRA NUOVO ALLENAMENTO E PRESENZE -->
                 <div id="tab-attendance" class="tab-content print:hidden bg-white p-6 rounded-lg shadow">
                     <div class="flex justify-between items-center mb-4 border-b pb-3">
                         <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
@@ -180,10 +220,8 @@
                         </div>
                     </div>
 
-                    <!-- BADGE STATO GIORNATA + PULSANTE ELIMINA -->
                     <div id="attendance-status-container" class="hidden flex justify-between items-center bg-gray-50 border p-3 rounded-lg mb-4">
                         <div id="attendance-status-badge" class="text-xs font-bold"></div>
-                        
                         <button id="btn-delete-session" type="button" onclick="deleteCurrentSession()" class="hidden bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-bold transition">
                             🗑️ Elimina Giornata
                         </button>
@@ -203,16 +241,16 @@
                     </form>
                 </div>
 
-                <!-- TAB 2: REGISTRO STORICO MENSILE ALLENAMENTI E PRESENZE DETTAGLIATO -->
-                <div id="tab-monthly" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
-                    <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b pb-3 gap-3 print:border-none">
+                <!-- TAB 2: REGISTRO STORICO MENSILE ALLENAMENTI A GRIGLIA -->
+                <div id="tab-monthly" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0 overflow-x-auto">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b pb-3 gap-3 print:hidden">
                         <div>
                             <h3 class="text-lg font-bold text-gray-800">📊 Registro Mensile Allenamenti Dettagliato</h3>
-                            <p class="text-xs text-gray-500 print:hidden">Storico completo delle sedute d'allenamento per giornata e presenza singoli giocatori</p>
+                            <p class="text-xs text-gray-500">Griglia presenze del mese con giocatori in ordine alfabetico per cognome</p>
                         </div>
                         
                         <!-- FILTRI MESE ED ANNO -->
-                        <div class="flex items-center space-x-2 print:hidden">
+                        <div class="flex items-center space-x-2">
                             <select id="filter-month" onchange="loadMonthlyAttendances()" class="border p-1.5 rounded text-sm font-semibold bg-gray-50">
                                 <option value="0">Gennaio</option>
                                 <option value="1">Febbraio</option>
@@ -240,7 +278,7 @@
                     </div>
 
                     <!-- STATISTICHE RAPIDE MESE -->
-                    <div id="monthly-stats-bar" class="grid grid-cols-3 gap-3 mb-6 text-center text-xs">
+                    <div id="monthly-stats-bar" class="grid grid-cols-3 gap-3 mb-6 text-center text-xs print:hidden">
                         <div class="bg-blue-50 border border-blue-200 p-3 rounded">
                             <p class="text-gray-500 font-semibold">Sedute Mese</p>
                             <p id="stat-total-sessions" class="text-lg font-bold text-blue-800">0</p>
@@ -255,9 +293,9 @@
                         </div>
                     </div>
 
-                    <!-- CONTENITORE GIORNATE DI ALLENAMENTO DEL MESE -->
-                    <div id="monthly-sessions-container" class="space-y-4">
-                        <!-- Caricato dinamicamente con le giornate del mese -->
+                    <!-- TABELLA GRIGLIA PRESENZE MENSILE -->
+                    <div id="monthly-sessions-container" class="overflow-x-auto">
+                        <!-- Caricato dinamicamente -->
                     </div>
                 </div>
 
@@ -265,14 +303,13 @@
                 <div id="tab-roster" class="tab-content hidden bg-white p-6 rounded-lg shadow print:hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
-                        <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-1.5 rounded font-bold">🖨️ Stampa Rosa</button>
                     </div>
                     <div id="players-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <!-- Caricato da JS -->
                     </div>
                 </div>
 
-                <!-- TAB 4: MODULO CONVOCAZIONI (SOLO COACH) -->
+                <!-- TAB 4: MODULO CONVOCAZIONI -->
                 <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow print:hidden">
                     <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
                     <form id="form-callup" onsubmit="saveCallup(event)" class="space-y-3">
@@ -298,7 +335,7 @@
 
     </div>
 
-    <!-- MODALE PER AGGIUNTA GIOCATORE -->
+    <!-- MODALE AGGIUNTA GIOCATORE -->
     <div id="modal-add-player" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 print:hidden">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
             <h3 class="text-lg font-bold text-gray-800 mb-4">Aggiungi Nuovo Giocatore</h3>
@@ -341,6 +378,8 @@
         let activeTeamPlayers = [];
         let currentSessionDocId = null;
 
+        const daysOfWeekIT = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+
         // Impostazione date e filtri iniziali
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
@@ -348,10 +387,8 @@
         document.getElementById('filter-month').value = now.getMonth();
         document.getElementById('filter-year').value = now.getFullYear();
 
-        // Event listener cambio data
         document.getElementById('attendance-date').addEventListener('change', checkAndLoadExistingAttendance);
 
-        // GESTIONE NAVIGAZIONE A TAB / MENU
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             
@@ -367,7 +404,6 @@
             }
         }
 
-        // AUTENTICAZIONE E INIZIALIZZAZIONE RUOLI
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 const userDoc = await db.collection('users').doc(user.uid).get();
@@ -436,7 +472,6 @@
             }
         }
 
-        // CARICAMENTO GIOCATORI E DATI DELLA SQUADRA ATTIVA
         async function loadTeamData() {
             if (!activeTeamId) return;
 
@@ -445,6 +480,17 @@
 
             const snapshot = await db.collection('players').where('teamId', '==', activeTeamId).get();
             activeTeamPlayers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // ORDINAMENTO ALFABETICO ASCENDENTE PER COGNOME
+            activeTeamPlayers.sort((a, b) => {
+                const surnameA = (a.lastName || '').toLowerCase();
+                const surnameB = (b.lastName || '').toLowerCase();
+                if (surnameA < surnameB) return -1;
+                if (surnameA > surnameB) return 1;
+                const nameA = (a.firstName || '').toLowerCase();
+                const nameB = (b.firstName || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
 
             renderPlayersList();
             renderAttendanceInputs();
@@ -521,7 +567,6 @@
             });
         }
 
-        // VERIFICA E CARICAMENTO AUTOMATICO PRESENZE SELEZIONANDO UNA DATA
         async function checkAndLoadExistingAttendance() {
             const dateInput = document.getElementById('attendance-date');
             const container = document.getElementById('attendance-status-container');
@@ -575,13 +620,11 @@
             }
         }
 
-        // SALVATAGGIO CON GESTIONE DUPLICATI / SOVRASCRITTURA
         async function saveAttendance(e) {
             e.preventDefault();
             if (!activeTeamId || activeTeamPlayers.length === 0) return alert('Nessuna squadra o giocatore presente!');
 
             const date = document.getElementById('attendance-date').value;
-
             if (!date) return alert('Seleziona una data valida!');
 
             try {
@@ -596,9 +639,7 @@
                     const confirmUpdate = confirm(
                         `⚠️ Hai già salvato l'allenamento e le presenze per il ${formatDateIT(date)}.\n\nVuoi aggiornare e sovrascrivere i dati inseriti?`
                     );
-
                     if (!confirmUpdate) return;
-
                     docToUpdateId = existingCheck.docs[0].id;
                 }
 
@@ -640,7 +681,6 @@
             }
         }
 
-        // ELIMINAZIONE GIORNATA DAL MODULO DI REGISTRAZIONE
         async function deleteCurrentSession() {
             if (!currentSessionDocId) return;
 
@@ -662,7 +702,7 @@
             }
         }
 
-        // CARICAMENTO REGISTRO MENSILE DETTAGLIATO
+        // CARICAMENTO REGISTRO MENSILE IN FORMATO TABELLARE GRIGLIA
         async function loadMonthlyAttendances() {
             if (!activeTeamId) return;
 
@@ -675,10 +715,9 @@
 
             container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
 
-            const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-            
+            const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
             const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
-            const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
+            const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(totalDaysInMonth).padStart(2, '0')}`;
 
             try {
                 const snapshot = await db.collection('attendances')
@@ -689,18 +728,13 @@
 
                 const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                if (sessions.length === 0) {
-                    container.innerHTML = `<p class="text-sm text-gray-400 py-4 italic">Nessun allenamento registrato per ${monthNames[selectedMonth]} ${selectedYear}.</p>`;
-                    document.getElementById('stat-total-sessions').innerText = '0';
-                    document.getElementById('stat-total-presents').innerText = '0';
-                    document.getElementById('stat-avg-presents').innerText = '0';
-                    return;
-                }
-
+                // Mappa giornate per un rapido accesso tramite giorno
+                const sessionsByDay = {};
                 let totalPresentsCount = 0;
+
                 sessions.forEach(s => {
+                    const dayNum = parseInt(s.date.split('-')[2], 10);
+                    sessionsByDay[dayNum] = s;
                     if (s.records) {
                         totalPresentsCount += s.records.filter(r => r.status === 'present').length;
                     }
@@ -708,63 +742,95 @@
 
                 document.getElementById('stat-total-sessions').innerText = sessions.length;
                 document.getElementById('stat-total-presents').innerText = totalPresentsCount;
-                document.getElementById('stat-avg-presents').innerText = (totalPresentsCount / sessions.length).toFixed(1);
+                document.getElementById('stat-avg-presents').innerText = sessions.length > 0 ? (totalPresentsCount / sessions.length).toFixed(1) : '0';
 
-                container.innerHTML = '';
-                sessions.forEach(session => {
-                    const formattedDate = new Date(session.date + 'T00:00:00').toLocaleDateString('it-IT', {
-                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                // COSTRUZIONE TABELLA PER STAMPA GRIGLIA
+                let tableHtml = `
+                    <table class="w-full text-xs border-collapse border border-gray-400 bg-white">
+                        <thead>
+                            <!-- PRIMA RIGA INTESTAZIONE: GIORNO DELLA SETTIMANA ABBREVIATO -->
+                            <tr class="bg-gray-100 text-gray-700">
+                                <th class="border border-gray-400 p-1 text-left">Giocatore</th>
+                `;
+
+                for (let d = 1; d <= totalDaysInMonth; d++) {
+                    const dateObj = new Date(selectedYear, selectedMonth, d);
+                    const dayName = daysOfWeekIT[dateObj.getDay()];
+                    const isSession = !!sessionsByDay[d];
+                    const bgClass = isSession ? 'bg-blue-100 text-blue-900 font-bold' : '';
+                    
+                    tableHtml += `<th class="border border-gray-400 p-1 text-center capitalize ${bgClass}">${dayName}</th>`;
+                }
+
+                tableHtml += `
+                            </tr>
+                            <!-- SECONDA RIGA INTESTAZIONE: NUMERO DEL GIORNO -->
+                            <tr class="bg-gray-200 text-gray-800">
+                                <th class="border border-gray-400 p-1 text-left">Cognome e Nome</th>
+                `;
+
+                for (let d = 1; d <= totalDaysInMonth; d++) {
+                    const isSession = !!sessionsByDay[d];
+                    const bgClass = isSession ? 'bg-blue-200 text-blue-950 font-bold' : '';
+                    tableHtml += `<th class="border border-gray-400 p-1 text-center ${bgClass}">${d}</th>`;
+                }
+
+                tableHtml += `
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                // RIGHE GIOCATORI ORDINATI PER COGNOME
+                if (activeTeamPlayers.length === 0) {
+                    tableHtml += `<tr><td colspan="${totalDaysInMonth + 1}" class="text-center p-4 text-gray-400">Nessun giocatore in rosa.</td></tr>`;
+                } else {
+                    activeTeamPlayers.forEach(player => {
+                        const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                        
+                        tableHtml += `
+                            <tr class="hover:bg-gray-50">
+                                <td class="border border-gray-400 p-1.5 font-bold text-gray-800 whitespace-nowrap">${displayName}</td>
+                        `;
+
+                        for (let d = 1; d <= totalDaysInMonth; d++) {
+                            const session = sessionsByDay[d];
+                            let statusSymbol = '-';
+                            let statusColor = 'text-gray-300';
+
+                            if (session && session.records) {
+                                const rec = session.records.find(r => r.playerId === player.id);
+                                if (rec) {
+                                    if (rec.status === 'present') {
+                                        statusSymbol = 'P';
+                                        statusColor = 'text-green-700 font-bold bg-green-50';
+                                    } else if (rec.status === 'absent') {
+                                        statusSymbol = 'A';
+                                        statusColor = 'text-red-600 font-bold bg-red-50';
+                                    }
+                                }
+                            }
+
+                            tableHtml += `<td class="border border-gray-400 p-1 text-center ${statusColor}">${statusSymbol}</td>`;
+                        }
+
+                        tableHtml += `</tr>`;
                     });
+                }
 
-                    const presentPlayers = session.records ? session.records.filter(r => r.status === 'present') : [];
-                    const absentPlayers = session.records ? session.records.filter(r => r.status === 'absent') : [];
+                tableHtml += `
+                        </tbody>
+                    </table>
+                `;
 
-                    let presentListHtml = presentPlayers.map(p => `<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-semibold mr-1 mb-1">✓ ${p.name}</span>`).join('');
-                    let absentListHtml = absentPlayers.map(p => `<span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded font-semibold mr-1 mb-1">✗ ${p.name}</span>`).join('');
+                container.innerHTML = tableHtml;
 
-                    container.innerHTML += `
-                        <div class="border rounded-lg p-4 bg-gray-50 print:bg-white print:border-black space-y-3">
-                            <div class="flex justify-between items-center border-b pb-2">
-                                <div>
-                                    <h4 class="font-bold text-gray-800 text-sm md:text-base capitalize">🗓️ Seduta: ${formattedDate}</h4>
-                                    <p class="text-xs text-gray-500">Data: ${session.date}</p>
-                                </div>
-                                <div class="text-right">
-                                    <span class="bg-blue-600 text-white text-xs px-2.5 py-1 rounded-full font-bold">
-                                        Presenze: ${presentPlayers.length} / ${session.records.length}
-                                    </span>
-                                    <button onclick="deleteSession('${session.id}')" class="text-xs text-red-500 hover:text-red-700 ml-2 font-bold print:hidden">Elimina</button>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                                <div>
-                                    <p class="font-bold text-green-700 mb-1">Presenti (${presentPlayers.length}):</p>
-                                    <div class="flex flex-wrap">${presentListHtml || '<span class="text-gray-400 italic">Nessun presente</span>'}</div>
-                                </div>
-                                <div>
-                                    <p class="font-bold text-red-700 mb-1">Assenti (${absentPlayers.length}):</p>
-                                    <div class="flex flex-wrap">${absentListHtml || '<span class="text-gray-400 italic">Nessun assente</span>'}</div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
             } catch (err) {
                 console.error("Errore caricamento allenamenti:", err);
                 container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore nel caricamento dei dati.</p>`;
             }
         }
 
-        async function deleteSession(sessionId) {
-            if (confirm("Sei sicuro di voler eliminare questo allenamento dal registro?")) {
-                await db.collection('attendances').doc(sessionId).delete();
-                checkAndLoadExistingAttendance();
-                loadMonthlyAttendances();
-            }
-        }
-
-        // AGGIUNTA E GESTIONE GIOCATORI
         function openAddPlayerModal() {
             if (!activeTeamId) return alert('Seleziona prima una squadra!');
             document.getElementById('player-first-name').value = '';
@@ -825,7 +891,6 @@
             alert(`Convocazione creata con ${selectedPlayers.length} giocatori!`);
         }
 
-        // UTILITIES
         function formatDateIT(dateStr) {
             if (!dateStr) return '';
             const [year, month, day] = dateStr.split('-');
