@@ -177,7 +177,7 @@
                     </form>
                 </div>
 
-                <!-- 3. NUOVA SEZIONE: REGISTRO STORICO MENSILE ALLENAMENTI E PRESENZE DETTAGLIATO -->
+                <!-- 3. REGISTRO STORICO MENSILE ALLENAMENTI E PRESENZE DETTAGLIATO -->
                 <div class="bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b pb-3 gap-3 print:border-none">
                         <div>
@@ -326,7 +326,7 @@
                         document.getElementById('dashboard-subtitle').innerText = "Seleziona un gruppo per iniziare";
                         document.getElementById('admin-team-selector').classList.remove('hidden');
                         document.getElementById('callup-section').classList.add('hidden');
-                        document.getElementById('main-content-area').classList.add('hidden'); // Nasconde finché non si sceglie la squadra
+                        document.getElementById('main-content-area').classList.add('hidden');
                     } else {
                         activeTeamId = currentUserProfile.teamId;
                         document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach";
@@ -472,18 +472,29 @@
                 }
             });
 
-            await db.collection('attendances').add({
-                teamId: activeTeamId,
-                date: date,
-                records: records,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            try {
+                await db.collection('attendances').add({
+                    teamId: activeTeamId,
+                    date: date,
+                    records: records,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
 
-            alert('Allenamento e presenze salvati con successo!');
-            loadMonthlyAttendances(); // Ricarica lo storico mensile
+                alert('Allenamento e presenze salvati con successo!');
+                
+                // Imposta i selettori del mese ed anno in base alla data dell'allenamento appena salvato
+                const savedDateObj = new Date(date + 'T00:00:00');
+                document.getElementById('filter-month').value = savedDateObj.getMonth();
+                document.getElementById('filter-year').value = savedDateObj.getFullYear();
+
+                // Ricarica subito lo storico
+                loadMonthlyAttendances();
+            } catch (err) {
+                alert("Errore durante il salvataggio: " + err.message);
+            }
         }
 
-        // LOGICA CARICAMENTO REGISTRO MENSILE DETTAGLIATO PER GIORNATA
+        // CARICAMENTO REGISTRO MENSILE DETTAGLIATO
         async function loadMonthlyAttendances() {
             if (!activeTeamId) return;
 
@@ -496,83 +507,89 @@
 
             container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
 
-            // Date di inizio e fine mese
+            // Calcolo dinamico dell'ultimo giorno del mese (28, 29, 30, 31)
+            const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+            
             const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
-            const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-31`;
+            const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
 
-            const snapshot = await db.collection('attendances')
-                .where('teamId', '==', activeTeamId)
-                .where('date', '>=', startOfMonth)
-                .where('date', '<=', endOfMonth)
-                .get();
+            try {
+                const snapshot = await db.collection('attendances')
+                    .where('teamId', '==', activeTeamId)
+                    .where('date', '>=', startOfMonth)
+                    .where('date', '<=', endOfMonth)
+                    .get();
 
-            const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            // Ordina per data (dalla più recente)
-            sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                // Ordina per data decrescente (dal più recente)
+                sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            if (sessions.length === 0) {
-                container.innerHTML = `<p class="text-sm text-gray-400 py-4 italic">Nessun allenamento registrato per ${monthNames[selectedMonth]} ${selectedYear}.</p>`;
-                document.getElementById('stat-total-sessions').innerText = '0';
-                document.getElementById('stat-total-presents').innerText = '0';
-                document.getElementById('stat-avg-presents').innerText = '0';
-                return;
-            }
-
-            // Calcolo Statistiche Mensili
-            let totalPresentsCount = 0;
-            sessions.forEach(s => {
-                if (s.records) {
-                    totalPresentsCount += s.records.filter(r => r.status === 'present').length;
+                if (sessions.length === 0) {
+                    container.innerHTML = `<p class="text-sm text-gray-400 py-4 italic">Nessun allenamento registrato per ${monthNames[selectedMonth]} ${selectedYear}.</p>`;
+                    document.getElementById('stat-total-sessions').innerText = '0';
+                    document.getElementById('stat-total-presents').innerText = '0';
+                    document.getElementById('stat-avg-presents').innerText = '0';
+                    return;
                 }
-            });
 
-            document.getElementById('stat-total-sessions').innerText = sessions.length;
-            document.getElementById('stat-total-presents').innerText = totalPresentsCount;
-            document.getElementById('stat-avg-presents').innerText = (totalPresentsCount / sessions.length).toFixed(1);
-
-            // Generazione Dettaglio Giornate
-            container.innerHTML = '';
-            sessions.forEach(session => {
-                const formattedDate = new Date(session.date).toLocaleDateString('it-IT', {
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                // Calcolo Statistiche Mensili
+                let totalPresentsCount = 0;
+                sessions.forEach(s => {
+                    if (s.records) {
+                        totalPresentsCount += s.records.filter(r => r.status === 'present').length;
+                    }
                 });
 
-                const presentPlayers = session.records ? session.records.filter(r => r.status === 'present') : [];
-                const absentPlayers = session.records ? session.records.filter(r => r.status === 'absent') : [];
+                document.getElementById('stat-total-sessions').innerText = sessions.length;
+                document.getElementById('stat-total-presents').innerText = totalPresentsCount;
+                document.getElementById('stat-avg-presents').innerText = (totalPresentsCount / sessions.length).toFixed(1);
 
-                let presentListHtml = presentPlayers.map(p => `<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-semibold mr-1 mb-1">✓ ${p.name}</span>`).join('');
-                let absentListHtml = absentPlayers.map(p => `<span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded font-semibold mr-1 mb-1">✗ ${p.name}</span>`).join('');
+                // Generazione Dettaglio Giornate
+                container.innerHTML = '';
+                sessions.forEach(session => {
+                    const formattedDate = new Date(session.date + 'T00:00:00').toLocaleDateString('it-IT', {
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                    });
 
-                container.innerHTML += `
-                    <div class="border rounded-lg p-4 bg-gray-50 print:bg-white print:border-black space-y-3">
-                        <div class="flex justify-between items-center border-b pb-2">
-                            <div>
-                                <h4 class="font-bold text-gray-800 text-sm md:text-base capitalize">🗓️ Seduta: ${formattedDate}</h4>
-                                <p class="text-xs text-gray-500">Data: ${session.date}</p>
+                    const presentPlayers = session.records ? session.records.filter(r => r.status === 'present') : [];
+                    const absentPlayers = session.records ? session.records.filter(r => r.status === 'absent') : [];
+
+                    let presentListHtml = presentPlayers.map(p => `<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-semibold mr-1 mb-1">✓ ${p.name}</span>`).join('');
+                    let absentListHtml = absentPlayers.map(p => `<span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded font-semibold mr-1 mb-1">✗ ${p.name}</span>`).join('');
+
+                    container.innerHTML += `
+                        <div class="border rounded-lg p-4 bg-gray-50 print:bg-white print:border-black space-y-3">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <div>
+                                    <h4 class="font-bold text-gray-800 text-sm md:text-base capitalize">🗓️ Seduta: ${formattedDate}</h4>
+                                    <p class="text-xs text-gray-500">Data: ${session.date}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="bg-blue-600 text-white text-xs px-2.5 py-1 rounded-full font-bold">
+                                        Presenze: ${presentPlayers.length} / ${session.records.length}
+                                    </span>
+                                    <button onclick="deleteSession('${session.id}')" class="text-xs text-red-500 hover:text-red-700 ml-2 font-bold print:hidden">Elimina</button>
+                                </div>
                             </div>
-                            <div class="text-right">
-                                <span class="bg-blue-600 text-white text-xs px-2.5 py-1 rounded-full font-bold">
-                                    Presenze: ${presentPlayers.length} / ${session.records.length}
-                                </span>
-                                <button onclick="deleteSession('${session.id}')" class="text-xs text-red-500 hover:text-red-700 ml-2 font-bold print:hidden">Elimina</button>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                <div>
+                                    <p class="font-bold text-green-700 mb-1">Presenti (${presentPlayers.length}):</p>
+                                    <div class="flex flex-wrap">${presentListHtml || '<span class="text-gray-400 italic">Nessun presente</span>'}</div>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-red-700 mb-1">Assenti (${absentPlayers.length}):</p>
+                                    <div class="flex flex-wrap">${absentListHtml || '<span class="text-gray-400 italic">Nessun assente</span>'}</div>
+                                </div>
                             </div>
                         </div>
-
-                        <!-- ELENCO GIOCATORI PRESENTI ED ASSENTI PER LA GIORNATA -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                            <div>
-                                <p class="font-bold text-green-700 mb-1">Presenti (${presentPlayers.length}):</p>
-                                <div class="flex flex-wrap">${presentListHtml || '<span class="text-gray-400 italic">Nessun presente</span>'}</div>
-                            </div>
-                            <div>
-                                <p class="font-bold text-red-700 mb-1">Assenti (${absentPlayers.length}):</p>
-                                <div class="flex flex-wrap">${absentListHtml || '<span class="text-gray-400 italic">Nessun assente</span>'}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            } catch (err) {
+                console.error("Errore caricamento allenamenti:", err);
+                container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore nel caricamento dei dati. Controlla la console del browser per verificare se occorre attivare l'indice Firestore.</p>`;
+            }
         }
 
         async function deleteSession(sessionId) {
