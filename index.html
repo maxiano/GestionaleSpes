@@ -251,7 +251,7 @@
                             <p class="text-xs text-gray-500">Griglia presenze del mese con giocatori in ordine alfabetico per cognome</p>
                         </div>
                         
-                        <div class="flex items-center space-x-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             <select id="filter-month" onchange="loadMonthlyAttendances()" class="border p-1.5 rounded text-sm font-semibold bg-gray-50">
                                 <option value="0">Gennaio</option>
                                 <option value="1">Febbraio</option>
@@ -272,6 +272,10 @@
                                 <option value="2027">2027</option>
                             </select>
 
+                            <!-- PULSANTI STAMPA E WHATSAPP ACCIOPPATI -->
+                            <button onclick="shareMonthlyWhatsApp()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">
+                                📲 Condividi WhatsApp
+                            </button>
                             <button onclick="printMonthlyReport()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold">
                                 🖨️ Stampa Report Mensile
                             </button>
@@ -305,9 +309,15 @@
                             <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
                             <p class="text-xs text-gray-500">Ordinata per Cognome (A-Z)</p>
                         </div>
-                        <button onclick="printRosterReport()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold">
-                            🖨️ Stampa Rosa Giocatori
-                        </button>
+                        <div class="flex items-center space-x-2">
+                            <!-- PULSANTI STAMPA E WHATSAPP ACCIOPPATI -->
+                            <button onclick="shareRosterWhatsApp()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">
+                                📲 Condividi WhatsApp
+                            </button>
+                            <button onclick="printRosterReport()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold">
+                                🖨️ Stampa Rosa Giocatori
+                            </button>
+                        </div>
                     </div>
 
                     <div id="players-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-2 print:hidden">
@@ -463,6 +473,7 @@
         };
 
         const daysOfWeekIT = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+        const monthNamesIT = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
 
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
@@ -477,6 +488,20 @@
             const parts = dateStr.split('-');
             if (parts.length !== 3) return dateStr;
             return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        // FUNZIONE UNIFICATA PER CONDIVIDERE TESTO SU WHATSAPP
+        function sendToWhatsApp(text, title = "Spes Montesacro Report") {
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    text: text
+                }).catch(() => {
+                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                });
+            } else {
+                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            }
         }
 
         function switchTab(tabId) {
@@ -562,7 +587,7 @@
             } else {
                 activeTeamId = null;
                 document.getElementById('navigation-tabs').classList.add('hidden');
-                document.getElementById('main-content-area').classList.add('hidden');
+                document.getElementById('main-content-area').classList.remove('hidden');
             }
         }
 
@@ -846,8 +871,7 @@
             const selectedYear = parseInt(document.getElementById('filter-year').value);
             const container = document.getElementById('monthly-sessions-container');
 
-            const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
-            document.getElementById('print-report-period').innerText = `Periodo: ${monthNames[selectedMonth]} ${selectedYear}`;
+            document.getElementById('print-report-period').innerText = `Periodo: ${monthNamesIT[selectedMonth]} ${selectedYear}`;
 
             const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
             const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
@@ -1072,10 +1096,6 @@
 
                     if (data.date) {
                         formattedDate = formatDateIT(data.date);
-                    } else if (data.datetime) {
-                        const dateObj = new Date(data.datetime);
-                        formattedDate = dateObj.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                        matchTimeStr = dateObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
                     }
 
                     const playersList = (data.players || []).join(', ');
@@ -1093,6 +1113,10 @@
                                 <p class="text-gray-500 pt-1">👥 <strong>Convocati (${data.players ? data.players.length : 0}):</strong> ${playersList}</p>
                             </div>
                             <div class="flex flex-col space-y-1">
+                                <!-- PULSANTI WHATSAPP E STAMPA AFFIANCATI NEL LOOK -->
+                                <button onclick="shareCallupWhatsApp('${data.id}')" class="bg-green-600 hover:bg-green-700 text-white font-bold px-2 py-1 rounded text-[10px] whitespace-nowrap">
+                                    📲 Condividi WhatsApp
+                                </button>
                                 <button onclick="printCallupReport('${data.id}')" class="bg-gray-800 hover:bg-black text-white font-bold px-2 py-1 rounded text-[10px] whitespace-nowrap">
                                     🖨️ Stampa Convocazione
                                 </button>
@@ -1109,6 +1133,68 @@
             }
         }
 
+        // --- FUNZIONI CONDIVISIONE WHATSAPP PER REPORT ---
+
+        function shareCallupWhatsApp(callupId) {
+            const callup = loadedCallupsList.find(c => c.id === callupId);
+            if (!callup) return alert("Convocazione non trovata!");
+
+            const formattedDate = formatDateIT(callup.date);
+            const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
+            
+            let text = `📢 *CONVOCAZIONE GARA UFFICIALE*\n`;
+            text += `⚽ *Spes Montesacro vs ${callup.opponent}*\n\n`;
+            text += `📅 *Giorno:* ${formattedDate}\n`;
+            text += `🕒 *Ora Inizio Partita:* ${callup.matchTime || '--:--'}\n`;
+            text += `⏰ *Ora Convocazione Campo:* ${callup.gatheringTime || '--:--'}\n`;
+            text += `📍 *Luogo:* ${callup.location}\n\n`;
+            text += `👥 *ELENCO CONVOCATI (${sortedPlayers.length}):*\n`;
+
+            sortedPlayers.forEach((player, index) => {
+                text += `${index + 1}. ${player}\n`;
+            });
+
+            text += `\n⚠️ *Si raccomanda la massima puntualità!*`;
+
+            sendToWhatsApp(text, `Convocazione Spes vs ${callup.opponent}`);
+        }
+
+        function shareMonthlyWhatsApp() {
+            if (!activeTeamId) return alert("Seleziona prima una squadra!");
+
+            const selectedMonth = parseInt(document.getElementById('filter-month').value);
+            const selectedYear = parseInt(document.getElementById('filter-year').value);
+            
+            const totalSessions = document.getElementById('stat-total-sessions').innerText;
+            const totalPresents = document.getElementById('stat-total-presents').innerText;
+            const avgPresents = document.getElementById('stat-avg-presents').innerText;
+
+            let text = `📊 *RIEPILOGO PRESENZE MENSILE*\n`;
+            text += `🏆 *Spes Montesacro - ${activeTeamId}*\n`;
+            text += `📅 *Mese:* ${monthNamesIT[selectedMonth]} ${selectedYear}\n\n`;
+            text += `📌 *Sedute Effettuate:* ${totalSessions}\n`;
+            text += `✅ *Presenze Totali:* ${totalPresents}\n`;
+            text += `📈 *Media Presenze/Seduta:* ${avgPresents}\n\n`;
+            text += `_Report generato dal Registro Tecnico Spes Montesacro._`;
+
+            sendToWhatsApp(text, `Report Mensile ${monthNamesIT[selectedMonth]}`);
+        }
+
+        function shareRosterWhatsApp() {
+            if (!activeTeamId || activeTeamPlayers.length === 0) return alert("Nessun giocatore in rosa da condividere!");
+
+            let text = `👥 *ROSA UFFICIALE GIOCATORI*\n`;
+            text += `🏆 *Spes Montesacro - ${activeTeamId}*\n`;
+            text += `📊 *Totale Tesserati:* ${activeTeamPlayers.length}\n\n`;
+
+            activeTeamPlayers.forEach((player, index) => {
+                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                text += `${index + 1}. ${displayName}\n`;
+            });
+
+            sendToWhatsApp(text, `Rosa Giocatori ${activeTeamId}`);
+        }
+
         function printCallupReport(callupId) {
             const callup = loadedCallupsList.find(c => c.id === callupId);
             if (!callup) return alert("Convocazione non trovata!");
@@ -1119,10 +1205,8 @@
             let matchTimeStr = callup.matchTime || '--:--';
             let gatheringTimeStr = callup.gatheringTime || '--:--';
 
-            // Impostiamo la dicitura del documento nell'intestazione unica di stampa
             document.getElementById('print-report-period').innerText = 'Modulo Convocazione Gara Ufficiale';
 
-            // Ordinamento alfabetico per Cognome dei giocatori convocati
             const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
 
             let tableRows = '';
@@ -1136,7 +1220,6 @@
                 `;
             });
 
-            // Inserimento dettagli partita ed elenco senza riprodurre l'intestazione generale della società
             printContainer.innerHTML = `
                 <div class="bg-gray-100 border border-black p-3 mb-4 rounded space-y-1 text-sm">
                     <p class="text-base font-extrabold text-black">⚽ PARTITA: Spes Montesacro vs ${callup.opponent}</p>
@@ -1195,8 +1278,7 @@
             document.body.classList.add('print-landscape', 'print-monthly');
             const selectedMonth = parseInt(document.getElementById('filter-month').value);
             const selectedYear = parseInt(document.getElementById('filter-year').value);
-            const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
-            document.getElementById('print-report-period').innerText = `Periodo: ${monthNames[selectedMonth]} ${selectedYear}`;
+            document.getElementById('print-report-period').innerText = `Periodo: ${monthNamesIT[selectedMonth]} ${selectedYear}`;
             window.print();
         }
 
