@@ -54,18 +54,25 @@
                 <button onclick="openAddPlayerModal()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold print:hidden">+ Giocatore</button>
             </div>
 
-            <!-- REGISTRO PRESENZE -->
+            <!-- REGISTRO ALLENAMENTO E PRESENZE -->
             <div class="bg-white p-6 rounded-lg shadow">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-gray-700">📋 Presenze del Giorno</h3>
+                    <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
                     <input type="date" id="attendance-date" class="border p-1 rounded text-sm">
                 </div>
-                <form id="form-attendance" onsubmit="saveAttendance(event)">
+                <form id="form-attendance" onsubmit="saveAttendance(event)" class="space-y-4">
+                    <!-- TEMA E NOTE ALLENAMENTO -->
+                    <div class="bg-blue-50 p-3 rounded border border-blue-200">
+                        <label class="block text-xs font-bold text-blue-900 mb-1">Tema / Obiettivo dell'Allenamento</label>
+                        <input type="text" id="training-topic" placeholder="Es. Guida palla, 1v1, Trasmissione e controllo" required class="w-full border p-2 rounded text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+
+                    <p class="text-xs font-bold text-gray-600 pt-2">Elenco Giocatori - Presenze:</p>
                     <div id="players-list-attendance" class="divide-y space-y-2 mb-4">
                         <!-- Giocatori caricati dinamicamente -->
                     </div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-bold print:hidden">
-                        Salva Presenze
+                        Salva Allenamento e Presenze
                     </button>
                 </form>
             </div>
@@ -146,6 +153,32 @@
                 </select>
             </div>
 
+            <!-- SEZIONE REGISTRA ALLENAMENTO DA PARTE DEL RESPONSABILE TECNICO -->
+            <div id="admin-add-session-section" class="bg-white p-6 rounded-lg shadow hidden print:hidden">
+                <h3 class="text-lg font-bold text-gray-700 mb-3">⚽ Registra Allenamento per il Gruppo Selezionato</h3>
+                <form id="form-admin-attendance" onsubmit="saveAdminAttendance(event)" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Data Allenamento</label>
+                            <input type="date" id="admin-attendance-date" required class="w-full border p-2 rounded text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Obiettivo / Tema Tecnico</label>
+                            <input type="text" id="admin-training-topic" placeholder="Es. Ricezione e Orientamento" required class="w-full border p-2 rounded text-sm">
+                        </div>
+                    </div>
+
+                    <p class="text-xs font-bold text-gray-600 pt-2">Presenze Giocatori:</p>
+                    <div id="admin-players-attendance-list" class="divide-y space-y-2 max-h-60 overflow-y-auto border p-3 rounded">
+                        <!-- Giocatori in rosa caricati dinamicamente per spunta presenze -->
+                    </div>
+
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded font-bold">
+                        Salva Allenamento & Presenze
+                    </button>
+                </form>
+            </div>
+
             <!-- SEZIONE GIOCATORI GRUPPO SELEZIONATO -->
             <div id="admin-players-section" class="bg-white p-6 rounded-lg shadow hidden">
                 <div class="flex justify-between items-center mb-4">
@@ -164,9 +197,9 @@
                 </div>
             </div>
 
-            <!-- FEED RECENTI / REGISTRO PRESENZE -->
+            <!-- FEED RECENTI / REGISTRO PRESENZE E ALLENAMENTI -->
             <div class="bg-white p-6 rounded-lg shadow print:hidden">
-                <h3 class="text-lg font-bold text-gray-700 mb-4">📊 Registro Presenze & Allenamenti</h3>
+                <h3 class="text-lg font-bold text-gray-700 mb-4">📊 Registro Allenamenti & Presenze Effettuate</h3>
                 <div id="admin-logs" class="space-y-3">
                     <p class="text-gray-400 text-sm">Seleziona una squadra per caricare i dati...</p>
                 </div>
@@ -198,7 +231,7 @@
 
     <!-- SCRIPT LOGICA APPLICATIVA -->
     <script>
-        // 1. CONFIGURAZIONE FIREBASE REALE
+        // 1. CONFIGURAZIONE FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyBv0g2gejMRNsD4INV80ODkYS2QPyCLj30",
             authDomain: "gestione-scuola-calcio-43987.firebaseapp.com",
@@ -216,9 +249,12 @@
 
         let currentUserProfile = null;
         let currentTeamPlayers = [];
+        let adminCurrentTeamPlayers = [];
 
-        // Imposta la data odierna
-        document.getElementById('attendance-date').valueAsDate = new Date();
+        // Imposta le date odierne
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('attendance-date').value = todayStr;
+        document.getElementById('admin-attendance-date').value = todayStr;
 
         // 2. AUTENTICAZIONE E RUOLI
         auth.onAuthStateChanged(async (user) => {
@@ -359,6 +395,7 @@
             if (currentTeamPlayers.length === 0) return alert('Aggiungi prima i giocatori alla rosa!');
 
             const date = document.getElementById('attendance-date').value;
+            const topic = document.getElementById('training-topic').value.trim();
             const records = [];
 
             currentTeamPlayers.forEach(player => {
@@ -372,11 +409,13 @@
             await db.collection('attendances').add({
                 teamId: currentUserProfile.teamId,
                 date: date,
+                topic: topic,
                 records: records,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            alert('Presenze salvate con successo!');
+            document.getElementById('training-topic').value = '';
+            alert('Allenamento e presenze salvati con successo!');
         }
 
         async function saveCallup(e) {
@@ -402,45 +441,72 @@
             alert(`Convocazione creata con ${selectedPlayers.length} giocatori!`);
         }
 
-        // 5. LOGICA RESPONSABILE TECNICO
+        // 5. LOGICA RESPONSABILE TECNICO (ADMIN)
         async function loadAdminData() {
             const selectedTeam = document.getElementById('admin-team-filter').value;
             const logsContainer = document.getElementById('admin-logs');
             const playersSection = document.getElementById('admin-players-section');
+            const addSessionSection = document.getElementById('admin-add-session-section');
             const playersListContainer = document.getElementById('admin-players-list');
+            const adminAttListContainer = document.getElementById('admin-players-attendance-list');
             const teamTitle = document.getElementById('admin-team-title');
 
             logsContainer.innerHTML = 'Caricamento dati in corso...';
 
-            // GESTIONE SEZIONE GIOCATORI PER SQUADRA
+            // GESTIONE SEZIONE GIOCATORI E REGISTRAZIONE ALLENAMENTO PER SQUADRA SELEZIONATA
             if (selectedTeam !== 'ALL') {
                 playersSection.classList.remove('hidden');
+                addSessionSection.classList.remove('hidden');
                 teamTitle.innerText = selectedTeam;
                 playersListContainer.innerHTML = 'Caricamento giocatori...';
+                adminAttListContainer.innerHTML = 'Caricamento...';
 
                 // Carica rosa del gruppo
                 const playersSnapshot = await db.collection('players').where('teamId', '==', selectedTeam).get();
-                playersListContainer.innerHTML = '';
+                adminCurrentTeamPlayers = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                if (playersSnapshot.empty) {
+                playersListContainer.innerHTML = '';
+                adminAttListContainer.innerHTML = '';
+
+                if (adminCurrentTeamPlayers.length === 0) {
                     playersListContainer.innerHTML = '<p class="text-sm text-gray-400 col-span-2 py-2">Nessun giocatore tesserato per questo gruppo.</p>';
+                    adminAttListContainer.innerHTML = '<p class="text-sm text-gray-400 py-2">Nessun giocatore disponibile per questo gruppo.</p>';
                 } else {
-                    playersSnapshot.forEach(doc => {
-                        const player = doc.data();
+                    adminCurrentTeamPlayers.forEach(player => {
                         const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                        
+                        // Lista per la gestione rosa
                         playersListContainer.innerHTML += `
                             <div class="p-2 border rounded bg-gray-50 flex justify-between items-center text-sm">
                                 <span class="font-semibold text-gray-700">⚽ ${displayName}</span>
-                                <button onclick="deletePlayer('${doc.id}')" class="text-xs text-red-500 hover:text-red-700 font-bold print:hidden">Rimuovi</button>
+                                <button onclick="deletePlayer('${player.id}')" class="text-xs text-red-500 hover:text-red-700 font-bold print:hidden">Rimuovi</button>
+                            </div>
+                        `;
+
+                        // Lista per la presa presenze dell'admin
+                        adminAttListContainer.innerHTML += `
+                            <div class="flex justify-between items-center py-1">
+                                <span class="font-medium text-sm text-gray-700">${displayName}</span>
+                                <div class="space-x-2">
+                                    <label class="inline-flex items-center text-xs">
+                                        <input type="radio" name="admin_att_${player.id}" value="present" checked class="text-green-600">
+                                        <span class="ml-1 text-green-700 font-bold">P</span>
+                                    </label>
+                                    <label class="inline-flex items-center text-xs">
+                                        <input type="radio" name="admin_att_${player.id}" value="absent" class="text-red-600">
+                                        <span class="ml-1 text-red-700 font-bold">A</span>
+                                    </label>
+                                </div>
                             </div>
                         `;
                     });
                 }
             } else {
                 playersSection.classList.add('hidden');
+                addSessionSection.classList.add('hidden');
             }
 
-            // CARICAMENTO REGISTRO PRESENZE
+            // CARICAMENTO REGISTRO PRESENZE E ALLENAMENTI
             let query = db.collection('attendances');
             if (selectedTeam !== 'ALL') {
                 query = query.where('teamId', '==', selectedTeam);
@@ -450,7 +516,7 @@
             logsContainer.innerHTML = '';
 
             if (snapshot.empty) {
-                logsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessun registro presenze trovato.</p>';
+                logsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessun allenamento o registro presenze trovato.</p>';
                 return;
             }
 
@@ -458,19 +524,53 @@
                 const data = doc.data();
                 const presents = data.records ? data.records.filter(r => r.status === 'present').length : 0;
                 const total = data.records ? data.records.length : 0;
+                const topicText = data.topic ? `<p class="text-xs text-blue-700 font-semibold mt-1">Obiettivo: ${data.topic}</p>` : '';
 
                 logsContainer.innerHTML += `
                     <div class="p-3 border rounded bg-gray-50 flex justify-between items-center text-sm">
                         <div>
                             <span class="font-bold text-blue-800">${data.teamId}</span>
                             <span class="text-gray-500 text-xs ml-2">Data: ${data.date}</span>
+                            ${topicText}
                         </div>
-                        <div class="font-bold text-gray-700">
+                        <div class="font-bold text-gray-700 text-right">
                             Presenti: <span class="text-green-600">${presents}</span> / ${total}
                         </div>
                     </div>
                 `;
             });
+        }
+
+        async function saveAdminAttendance(e) {
+            e.preventDefault();
+            const selectedTeam = document.getElementById('admin-team-filter').value;
+            if (selectedTeam === 'ALL' || adminCurrentTeamPlayers.length === 0) {
+                return alert('Seleziona una squadra valida e accertati che ci siano giocatori.');
+            }
+
+            const date = document.getElementById('admin-attendance-date').value;
+            const topic = document.getElementById('admin-training-topic').value.trim();
+            const records = [];
+
+            adminCurrentTeamPlayers.forEach(player => {
+                const radio = document.querySelector(`input[name="admin_att_${player.id}"]:checked`);
+                if (radio) {
+                    const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                    records.push({ playerId: player.id, name: displayName, status: radio.value });
+                }
+            });
+
+            await db.collection('attendances').add({
+                teamId: selectedTeam,
+                date: date,
+                topic: topic,
+                records: records,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            document.getElementById('admin-training-topic').value = '';
+            alert('Allenamento e presenze registrati con successo!');
+            loadAdminData();
         }
 
         async function deletePlayer(playerId) {
