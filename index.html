@@ -6,6 +6,8 @@
     <title>Gestione Scuola Calcio Spes Montesacro - Registro Pro</title>
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse per il Parsing dei file CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <!-- STILI PER LA STAMPA OTTIMIZZATI -->
     <style>
@@ -193,6 +195,11 @@
                             <p class="text-xs text-gray-500">Gestione Anagrafica e Certificati Medici</p>
                         </div>
                         <div class="flex items-center space-x-2">
+                            <!-- INPUT E PULSANTE PER IMPORTAZIONE CSV -->
+                            <input type="file" id="input-import-roster-csv" accept=".csv" class="hidden">
+                            <button id="btn-import-roster-csv" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-2 rounded font-bold transition">
+                                📥 Importa CSV
+                            </button>
                             <button id="btn-export-roster-csv" class="bg-teal-600 hover:bg-teal-700 text-white text-xs px-3 py-2 rounded font-bold transition">
                                 📄 Esporta CSV
                             </button>
@@ -265,7 +272,7 @@
                                 <option value="1">Febbraio</option>
                                 <option value="2">Marzo</option>
                                 <option value="3">Aprile</option>
-                                <option value="4">Maggio</option>
+                                <option value="5">Maggio</option>
                                 <option value="5">Giugno</option>
                                 <option value="6">Luglio</option>
                                 <option value="7">Agosto</option>
@@ -1452,6 +1459,76 @@
                 csv += `"${p.lastName || ''}";"${p.firstName || ''}";"${p.jersey || ''}";"${p.dob || ''}";"${p.role || ''}";"${p.medicalExp || ''}";"${p.parentPhone || ''}"\n`;
             });
             downloadCSV(`Rosa_${activeTeamId}.csv`, csv);
+        });
+
+        // IMPORTAZIONE GIOCATORI DA FILE CSV
+        const btnImportCsv = document.getElementById('btn-import-roster-csv');
+        const inputImportCsv = document.getElementById('input-import-roster-csv');
+
+        btnImportCsv.addEventListener('click', () => {
+            if (!activeTeamId) return alert('Seleziona prima una squadra per poter importare i giocatori!');
+            inputImportCsv.click();
+        });
+
+        inputImportCsv.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: async function(results) {
+                    const rows = results.data;
+                    if (!rows || rows.length === 0) {
+                        return alert("Il file CSV sembra vuoto o non formattato correttamente.");
+                    }
+
+                    if (!confirm(`Trovati ${rows.length} giocatori nel file CSV.\nConfermi l'importazione nel gruppo "${activeTeamId}"?`)) {
+                        inputImportCsv.value = '';
+                        return;
+                    }
+
+                    try {
+                        let count = 0;
+                        for (const row of rows) {
+                            // Lettura dei campi supportando sia il nome esatto delle colonne esportate che varianti
+                            const lastName = (row['Cognome'] || row['cognome'] || '').trim();
+                            const firstName = (row['Nome'] || row['nome'] || '').trim();
+
+                            if (lastName || firstName) {
+                                const playerData = {
+                                    lastName: lastName,
+                                    firstName: firstName,
+                                    name: `${lastName} ${firstName}`.trim(),
+                                    jersey: (row['Numero Maglia'] || row['Maglia'] || row['jersey'] || '').toString().trim(),
+                                    dob: (row['Data Nascita'] || row['dob'] || '').trim(),
+                                    role: (row['Ruolo'] || row['role'] || '').trim(),
+                                    medicalExp: (row['Scadenza Certificato'] || row['medicalExp'] || '').trim(),
+                                    parentPhone: (row['Tel. Genitore'] || row['parentPhone'] || '').toString().trim(),
+                                    teamId: activeTeamId,
+                                    createdAt: serverTimestamp()
+                                };
+
+                                await addDoc(collection(db, 'players'), playerData);
+                                count++;
+                            }
+                        }
+
+                        alert(`✅ Importazione completata! Aggiunti ${count} giocatori al gruppo ${activeTeamId}.`);
+                        AppCache.clearPlayers(activeTeamId);
+                        loadTeamData(true);
+
+                    } catch (err) {
+                        alert("Errore durante l'importazione dei dati: " + err.message);
+                    } finally {
+                        inputImportCsv.value = '';
+                    }
+                },
+                error: function(err) {
+                    alert("Errore nella lettura del file CSV: " + err.message);
+                    inputImportCsv.value = '';
+                }
+            });
         });
 
         // CONVOCAZIONI E GESTIONE
