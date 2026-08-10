@@ -663,16 +663,23 @@
                 return alert("Accesso non autorizzato alla Gestione Staff.");
             }
 
+            const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
+
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Ripristina lo stile base mantenendo la classe 'hidden' per lo staff se l'utente non è admin
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 if (btn.id === 'btn-tab-staff') {
-                    btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 transition border border-purple-200";
+                    btn.className = `tab-btn ${isAdmin ? '' : 'hidden'} flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 transition border border-purple-200`;
                 } else {
                     btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
                 }
             });
 
+            // Mostra il contenuto della tab selezionata
             document.getElementById(tabId).classList.remove('hidden');
+            
+            // Applica lo stile attivo al pulsante selezionato
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
                 if (tabId === 'tab-staff') {
