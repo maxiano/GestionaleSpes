@@ -51,7 +51,7 @@
                     <h2 class="text-lg font-bold text-gray-800">Pannello Tecnico</h2>
                     <p id="coach-team-name" class="text-sm text-gray-500">Squadra: --</p>
                 </div>
-                <button onclick="showModalAddPlayer()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">+ Giocatore</button>
+                <button onclick="openAddPlayerModal()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">+ Giocatore</button>
             </div>
 
             <!-- REGISTRO PRESENZE -->
@@ -150,7 +150,7 @@
             <div id="admin-players-section" class="bg-white p-6 rounded-lg shadow hidden">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="admin-team-title">--</span>)</h3>
-                    <button onclick="adminAddPlayer()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">+ Aggiungi Giocatore</button>
+                    <button onclick="openAddPlayerModal()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">+ Aggiungi Giocatore</button>
                 </div>
                 <div id="admin-players-list" class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <!-- Giocatori caricati dinamicamente -->
@@ -166,6 +166,27 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- MODALE PER AGGIUNTA GIOCATORE (NOME E COGNOME SEPARATI) -->
+    <div id="modal-add-player" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Aggiungi Nuovo Giocatore</h3>
+            <form onsubmit="handleSavePlayer(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600">Nome</label>
+                    <input type="text" id="player-first-name" required class="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600">Cognome</label>
+                    <input type="text" id="player-last-name" required class="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeAddPlayerModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 text-xs px-4 py-2 rounded font-bold">Annulla</button>
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded font-bold">Salva Giocatore</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- SCRIPT LOGICA APPLICATIVA -->
@@ -235,7 +256,53 @@
             auth.signOut();
         }
 
-        // 3. LOGICA ALLENATORE
+        // 3. LOGICA GESTIONE MODALE GIOCATORE
+        function openAddPlayerModal() {
+            document.getElementById('player-first-name').value = '';
+            document.getElementById('player-last-name').value = '';
+            document.getElementById('modal-add-player').classList.remove('hidden');
+        }
+
+        function closeAddPlayerModal() {
+            document.getElementById('modal-add-player').classList.add('hidden');
+        }
+
+        async function handleSavePlayer(e) {
+            e.preventDefault();
+            const firstName = document.getElementById('player-first-name').value.trim();
+            const lastName = document.getElementById('player-last-name').value.trim();
+
+            let targetTeam = null;
+            if (currentUserProfile.role === 'coach') {
+                targetTeam = currentUserProfile.teamId;
+            } else if (currentUserProfile.role === 'admin') {
+                targetTeam = document.getElementById('admin-team-filter').value;
+                if (targetTeam === 'ALL') {
+                    alert('Seleziona una squadra specifica prima di aggiungere un giocatore.');
+                    return;
+                }
+            }
+
+            if (firstName && lastName && targetTeam) {
+                const fullName = `${lastName} ${firstName}`; // Ordine Cognome Nome
+                await db.collection('players').add({
+                    firstName: firstName,
+                    lastName: lastName,
+                    name: fullName,
+                    teamId: targetTeam
+                });
+
+                closeAddPlayerModal();
+
+                if (currentUserProfile.role === 'coach') {
+                    loadCoachData(targetTeam);
+                } else {
+                    loadAdminData();
+                }
+            }
+        }
+
+        // 4. LOGICA ALLENATORE
         async function loadCoachData(teamId) {
             const snapshot = await db.collection('players').where('teamId', '==', teamId).get();
             currentTeamPlayers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -253,9 +320,11 @@
             }
 
             currentTeamPlayers.forEach(player => {
+                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+
                 attendanceContainer.innerHTML += `
                     <div class="flex justify-between items-center py-2">
-                        <span class="font-medium text-sm text-gray-700">${player.name}</span>
+                        <span class="font-medium text-sm text-gray-700">${displayName}</span>
                         <div class="space-x-2">
                             <label class="inline-flex items-center text-xs">
                                 <input type="radio" name="att_${player.id}" value="present" checked class="text-green-600">
@@ -271,8 +340,8 @@
 
                 callupContainer.innerHTML += `
                     <label class="flex items-center space-x-2 text-xs p-1 border rounded bg-gray-50">
-                        <input type="checkbox" name="callup_player" value="${player.name}" checked class="rounded text-indigo-600">
-                        <span>${player.name}</span>
+                        <input type="checkbox" name="callup_player" value="${displayName}" checked class="rounded text-indigo-600">
+                        <span>${displayName}</span>
                     </label>
                 `;
             });
@@ -288,7 +357,8 @@
             currentTeamPlayers.forEach(player => {
                 const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
                 if (radio) {
-                    records.push({ playerId: player.id, name: player.name, status: radio.value });
+                    const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                    records.push({ playerId: player.id, name: displayName, status: radio.value });
                 }
             });
 
@@ -325,18 +395,7 @@
             alert(`Convocazione creata con ${selectedPlayers.length} giocatori!`);
         }
 
-        async function showModalAddPlayer() {
-            const name = prompt("Nome e Cognome del Giocatore:");
-            if (name && name.trim() !== "") {
-                await db.collection('players').add({
-                    name: name.trim(),
-                    teamId: currentUserProfile.teamId
-                });
-                loadCoachData(currentUserProfile.teamId);
-            }
-        }
-
-        // 4. LOGICA RESPONSABILE TECNICO
+        // 5. LOGICA RESPONSABILE TECNICO
         async function loadAdminData() {
             const selectedTeam = document.getElementById('admin-team-filter').value;
             const logsContainer = document.getElementById('admin-logs');
@@ -361,9 +420,10 @@
                 } else {
                     playersSnapshot.forEach(doc => {
                         const player = doc.data();
+                        const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
                         playersListContainer.innerHTML += `
                             <div class="p-2 border rounded bg-gray-50 flex justify-between items-center text-sm">
-                                <span class="font-semibold text-gray-700">⚽ ${player.name}</span>
+                                <span class="font-semibold text-gray-700">⚽ ${displayName}</span>
                                 <button onclick="deletePlayer('${doc.id}')" class="text-xs text-red-500 hover:text-red-700 font-bold">Rimuovi</button>
                             </div>
                         `;
@@ -404,20 +464,6 @@
                     </div>
                 `;
             });
-        }
-
-        async function adminAddPlayer() {
-            const selectedTeam = document.getElementById('admin-team-filter').value;
-            if (selectedTeam === 'ALL') return;
-
-            const name = prompt(`Nome e Cognome del Giocatore da aggiungere a "${selectedTeam}":`);
-            if (name && name.trim() !== "") {
-                await db.collection('players').add({
-                    name: name.trim(),
-                    teamId: selectedTeam
-                });
-                loadAdminData();
-            }
         }
 
         async function deletePlayer(playerId) {
