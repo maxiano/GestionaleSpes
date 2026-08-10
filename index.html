@@ -114,7 +114,7 @@
                 </div>
             </div>
 
-            <!-- FILTRO SQUADRE (VISIBILE AD ADMIN E COACH MULTI-SQUADRA) -->
+            <!-- FILTRO SQUADRE -->
             <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex items-center space-x-3 print:hidden hidden">
                 <label class="text-sm font-bold text-gray-600">Seleziona Categoria/Gruppo:</label>
                 <select id="admin-team-filter" class="border p-2 rounded text-sm flex-1 bg-white">
@@ -307,7 +307,7 @@
                     <div class="print:hidden">
                         <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
                         <form id="form-callup" class="space-y-3">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                                 <div>
                                     <label class="block text-[11px] font-bold text-gray-600 mb-1">Squadra Avversaria</label>
                                     <input type="text" id="match-opponent" placeholder="es. Tor di Quinto" required class="border p-2 rounded text-sm w-full">
@@ -315,6 +315,10 @@
                                 <div>
                                     <label class="block text-[11px] font-bold text-gray-600 mb-1">Campo / Luogo</label>
                                     <input type="text" id="match-location" placeholder="es. Campo Spes / Via Nomentana" required class="border p-2 rounded text-sm w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-600 mb-1">🏆 Competizione / Campionato (Opzionale)</label>
+                                    <input type="text" id="match-competition" placeholder="es. Campionato Elite / Amichevole" class="border p-2 rounded text-sm w-full">
                                 </div>
                             </div>
 
@@ -365,7 +369,7 @@
                         <p class="text-xs text-gray-500">Crea o rimuovi le credenziali di accesso per gli allenatori e la direzione della Scuola Calcio Spes Montesacro.</p>
                     </div>
 
-                    <!-- FORM CREAZIONE NUOVO COACH/UTENTE CON SELEZIONE MULTI-SQUADRA -->
+                    <!-- FORM CREAZIONE NUOVO COACH/UTENTE -->
                     <form id="form-create-staff" class="bg-purple-50 p-4 border border-purple-200 rounded-lg space-y-3">
                         <h4 class="text-sm font-bold text-purple-800">➕ Registra Nuovo Utente / Coach</h4>
                         
@@ -393,8 +397,9 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 mb-1">Squadre Assegnate (CTRL per selez. multipla)</label>
-                                <select id="staff-team" multiple class="w-full border p-2 rounded text-xs bg-white h-28">
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Squadra / Gruppo Assegnato</label>
+                                <select id="staff-team" class="w-full border p-2 rounded text-xs bg-white">
+                                    <option value="">Tutte le squadre (Solo per Admin)</option>
                                     <optgroup label="2014 (Esordienti)">
                                         <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
                                         <option value="2014 - Gruppo Verde">2014 - Gruppo Verde</option>
@@ -450,11 +455,13 @@
 
     </div>
 
-    <!-- MODALE AGGIUNTA GIOCATORE CON ANAGRAFICA AVANZATA -->
+    <!-- MODALE AGGIUNTA / MODIFICA GIOCATORE CON ANAGRAFICA AVANZATA -->
     <div id="modal-add-player" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 print:hidden">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Aggiungi Nuovo Giocatore</h3>
+            <h3 id="modal-player-title" class="text-lg font-bold text-gray-800 mb-4">Aggiungi Nuovo Giocatore</h3>
             <form id="form-add-player" class="space-y-3">
+                <input type="hidden" id="player-edit-id" value="">
+                
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs font-bold text-gray-600">Cognome *</label>
@@ -672,25 +679,7 @@
             if (tabId === 'tab-staff') loadStaffList();
         }
 
-        // FUNZIONE FILTRO SQUADRE MOSTRATE AL COACH MULTI-SQUADRA
-        function setupCoachTeamFilter(allowedTeams) {
-            const select = document.getElementById('admin-team-filter');
-            const options = select.querySelectorAll('option');
-
-            options.forEach(opt => {
-                if (opt.value === 'ALL') {
-                    opt.textContent = "Seleziona una delle tue squadre...";
-                    opt.style.display = 'block';
-                } else if (allowedTeams.includes(opt.value)) {
-                    opt.style.display = 'block';
-                } else {
-                    opt.style.display = 'none';
-                }
-            });
-            select.value = 'ALL';
-        }
-
-        // GESTIONE AUTENTICAZIONE UTENTE CON LOGICA MULTI-SQUADRA
+        // GESTIONE AUTENTICAZIONE UTENTE
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userDocRef = doc(db, 'users', user.uid);
@@ -703,32 +692,15 @@
                     document.getElementById('section-login').classList.add('hidden');
                     document.getElementById('app-dashboard').classList.remove('hidden');
 
-                    const userTeams = currentUserProfile.teams || (currentUserProfile.teamId ? [currentUserProfile.teamId] : []);
-
                     if (currentUserProfile.role === 'admin') {
                         document.getElementById('dashboard-role-title').innerText = "Panoramica Responsabile Tecnico";
                         document.getElementById('dashboard-subtitle').innerText = "Seleziona un gruppo per iniziare";
-                        
-                        // Mostra tutte le opzioni per Admin
-                        const select = document.getElementById('admin-team-filter');
-                        select.querySelectorAll('option').forEach(opt => opt.style.display = 'block');
-                        
                         document.getElementById('admin-team-selector').classList.remove('hidden');
                         document.getElementById('btn-tab-staff').classList.remove('hidden');
                         document.getElementById('navigation-tabs').classList.add('hidden');
                         document.getElementById('main-content-area').classList.add('hidden');
-                    } else if (userTeams.length > 1) {
-                        // COACH MULTI-SQUADRA
-                        document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach Multi-Squadra";
-                        document.getElementById('dashboard-subtitle').innerText = "Seleziona la squadra su cui lavorare";
-                        setupCoachTeamFilter(userTeams);
-                        document.getElementById('admin-team-selector').classList.remove('hidden');
-                        document.getElementById('btn-tab-staff').classList.add('hidden');
-                        document.getElementById('navigation-tabs').classList.add('hidden');
-                        document.getElementById('main-content-area').classList.add('hidden');
                     } else {
-                        // COACH CON 1 SOLA SQUADRA
-                        activeTeamId = userTeams[0] || 'N/D';
+                        activeTeamId = currentUserProfile.teamId;
                         document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach";
                         document.getElementById('dashboard-subtitle').innerText = `Squadra: ${activeTeamId}`;
                         document.getElementById('admin-team-selector').classList.add('hidden');
@@ -774,7 +746,7 @@
             }
         });
 
-        // GESTIONE CREAZIONE ED ELIMINAZIONE UTENTI STAFF/COACH (MULTI-SQUADRA)
+        // GESTIONE CREAZIONE ED ELIMINAZIONE UTENTI STAFF/COACH (SOLO ADMIN)
         document.getElementById('form-create-staff').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentUserProfile || currentUserProfile.role !== 'admin') {
@@ -785,16 +757,14 @@
             const email = document.getElementById('staff-email').value.trim();
             const password = document.getElementById('staff-password').value;
             const role = document.getElementById('staff-role').value;
-            
-            // Lettura delle opzioni multiple per le squadre
-            const selectedOptions = Array.from(document.getElementById('staff-team').selectedOptions);
-            const teams = selectedOptions.map(option => option.value).filter(val => val !== '');
+            const teamId = document.getElementById('staff-team').value;
 
-            if (role === 'coach' && teams.length === 0) {
-                return alert("Seleziona almeno una squadra di competenza per il Coach!");
+            if (role === 'coach' && !teamId) {
+                return alert("Seleziona una squadra di competenza per il Coach!");
             }
 
             try {
+                // Utilizzo dell'endpoint REST Firebase Auth per registrare l'utente senza disconnettere l'Admin corrente
                 const signUpUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`;
                 const response = await fetch(signUpUrl, {
                     method: 'POST',
@@ -814,13 +784,13 @@
 
                 const newUid = data.localId;
 
-                // Salva il profilo utente con l'array `teams`
+                // Salva il profilo utente su Firestore nella collezione `users`
                 await setDoc(doc(db, 'users', newUid), {
                     uid: newUid,
                     name: name,
                     email: email,
                     role: role,
-                    teams: teams.length > 0 ? teams : ['ALL'],
+                    teamId: teamId || 'ALL',
                     createdAt: serverTimestamp()
                 });
 
@@ -849,7 +819,6 @@
                     const user = docSnap.data();
                     const userId = docSnap.id;
                     const isSelf = auth.currentUser && auth.currentUser.uid === userId;
-                    const displayTeams = user.teams ? user.teams.join(', ') : (user.teamId || 'Tutte');
 
                     container.innerHTML += `
                         <div class="border p-3 rounded bg-white flex justify-between items-center text-xs shadow-sm">
@@ -858,7 +827,7 @@
                                 <p class="text-gray-600">📧 <strong>Email:</strong> ${user.email}</p>
                                 <p class="text-gray-600">
                                     🛡️ <strong>Ruolo:</strong> <span class="uppercase font-bold ${user.role === 'admin' ? 'text-purple-700' : 'text-blue-700'}">${user.role}</span> | 
-                                    🏆 <strong>Squadre:</strong> ${displayTeams}
+                                    🏆 <strong>Squadra:</strong> ${user.teamId || 'Tutte'}
                                 </p>
                             </div>
                             <div>
@@ -923,6 +892,8 @@
             renderAttendanceInputs();
             renderCallupCheckboxes();
             checkAndLoadExistingAttendance();
+            
+            // CARICAMENTO IN BACKGROUND DELLE PRESENZE MENSILI (CACHE WARMING)
             loadMonthlyAttendances(forceRefresh);
         }
 
@@ -964,9 +935,17 @@
                             <p class="text-gray-600"><strong>Tel. Genitore:</strong> ${player.parentPhone || 'N/D'}</p>
                             <div class="pt-1">${medStatusBadge}</div>
                         </div>
-                        <div>${canDelete}</div>
+                        <div class="flex flex-col items-end space-y-1">
+                            <button data-id="${player.id}" class="btn-edit-player text-xs text-blue-600 font-bold hover:text-blue-800">✏️ Modifica</button>
+                            ${canDelete}
+                        </div>
                     </div>
                 `;
+            });
+
+            // GESTIONE DELEGA EVENTI PER MODIFICA ED ELIMINAZIONE GIOCATORI
+            container.querySelectorAll('.btn-edit-player').forEach(btn => {
+                btn.addEventListener('click', (e) => openEditPlayerModal(e.target.getAttribute('data-id')));
             });
 
             container.querySelectorAll('.btn-delete-player').forEach(btn => {
@@ -1358,6 +1337,7 @@
 
             const opponent = document.getElementById('match-opponent').value.trim();
             const location = document.getElementById('match-location').value.trim();
+            const competition = document.getElementById('match-competition').value.trim();
             const matchDate = document.getElementById('match-date').value;
             const matchTime = document.getElementById('match-time').value;
             const gatheringTime = document.getElementById('gathering-time').value;
@@ -1381,6 +1361,7 @@
                     teamId: activeTeamId,
                     opponent: opponent,
                     location: location,
+                    competition: competition || '',
                     date: matchDate,
                     matchTime: matchTime,
                     gatheringTime: gatheringTime,
@@ -1427,10 +1408,12 @@
                 
                 docs.forEach(data => {
                     const playersList = (data.players || []).join(', ');
+                    const compBadge = data.competition ? `<span class="bg-indigo-100 text-indigo-800 text-[10px] px-1.5 py-0.5 rounded font-bold ml-2">${data.competition}</span>` : '';
+                    
                     container.innerHTML += `
                         <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs mb-2 shadow-sm">
                             <div class="space-y-1">
-                                <p class="font-bold text-sm text-indigo-900">⚽ Spes Montesacro vs ${data.opponent}</p>
+                                <p class="font-bold text-sm text-indigo-900">⚽ Spes Montesacro vs ${data.opponent} ${compBadge}</p>
                                 <p class="text-gray-700">
                                     📅 <strong>Giorno:</strong> ${formatDateIT(data.date)} | 
                                     🕒 <strong>Inizio:</strong> ${data.matchTime} | 
@@ -1448,6 +1431,7 @@
                     `;
                 });
 
+                // ASSEGNAZIONE EVENTI DINAMICI
                 container.querySelectorAll('.btn-share-callup-wa').forEach(b => {
                     b.addEventListener('click', (e) => shareCallupWhatsApp(e.target.getAttribute('data-id')));
                 });
@@ -1467,7 +1451,9 @@
             const callup = loadedCallupsList.find(c => c.id === callupId);
             if (!callup) return;
             const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
-            let text = `📢 *CONVOCAZIONE GARA UFFICIALE*\n⚽ *Spes Montesacro vs ${callup.opponent}*\n\n📅 *Giorno:* ${formatDateIT(callup.date)}\n🕒 *Inizio Partita:* ${callup.matchTime}\n⏰ *Ora Ritrovo:* ${callup.gatheringTime}\n📍 *Luogo:* ${callup.location}\n\n👥 *ELENCO CONVOCATI (${sortedPlayers.length}):*\n`;
+            const compText = callup.competition ? `🏆 *Competizione:* ${callup.competition}\n` : '';
+            
+            let text = `📢 *CONVOCAZIONE GARA UFFICIALE*\n⚽ *Spes Montesacro vs ${callup.opponent}*\n${compText}\n📅 *Giorno:* ${formatDateIT(callup.date)}\n🕒 *Inizio Partita:* ${callup.matchTime}\n⏰ *Ora Ritrovo:* ${callup.gatheringTime}\n📍 *Luogo:* ${callup.location}\n\n👥 *ELENCO CONVOCATI (${sortedPlayers.length}):*\n`;
             sortedPlayers.forEach((p, i) => text += `${i + 1}. ${p}\n`);
             text += `\n⚠️ *Massima puntualità!*`;
             sendToWhatsApp(text, `Convocazione vs ${callup.opponent}`);
@@ -1500,9 +1486,12 @@
                 rows += `<tr><td class="border border-black p-2 text-center font-bold" style="width: 40px;">${index + 1}</td><td class="border border-black p-2 font-bold text-sm">${p}</td><td class="border border-black p-2"></td></tr>`;
             });
 
+            const compHeader = callup.competition ? `<p>🏆 <strong>Torneo/Campionato:</strong> ${callup.competition}</p>` : '';
+
             printContainer.innerHTML = `
                 <div class="bg-gray-100 border border-black p-3 mb-4 rounded space-y-1 text-sm">
                     <p class="text-base font-extrabold text-black">⚽ PARTITA: Spes Montesacro vs ${callup.opponent}</p>
+                    ${compHeader}
                     <div class="grid grid-cols-2 gap-2 pt-1 font-semibold">
                         <p>📅 <strong>Giorno:</strong> ${formatDateIT(callup.date)}</p>
                         <p>📍 <strong>Luogo:</strong> ${callup.location}</p>
@@ -1547,9 +1536,11 @@
             window.print();
         });
 
-        // MODALE E NUOVO GIOCATORE
+        // MODALE E GESTIONE GIOCATORE (CREAZIONE E MODIFICA)
         document.getElementById('btn-open-add-player').addEventListener('click', () => {
             if (!activeTeamId) return alert('Seleziona prima una squadra!');
+            document.getElementById('player-edit-id').value = '';
+            document.getElementById('modal-player-title').innerText = 'Aggiungi Nuovo Giocatore';
             document.getElementById('player-first-name').value = '';
             document.getElementById('player-last-name').value = '';
             document.getElementById('player-dob').value = '';
@@ -1560,12 +1551,30 @@
             document.getElementById('modal-add-player').classList.remove('hidden');
         });
 
+        function openEditPlayerModal(playerId) {
+            const player = activeTeamPlayers.find(p => p.id === playerId);
+            if (!player) return;
+
+            document.getElementById('player-edit-id').value = player.id;
+            document.getElementById('modal-player-title').innerText = 'Modifica Dati Giocatore';
+            document.getElementById('player-first-name').value = player.firstName || '';
+            document.getElementById('player-last-name').value = player.lastName || '';
+            document.getElementById('player-dob').value = player.dob || '';
+            document.getElementById('player-jersey').value = player.jersey || '';
+            document.getElementById('player-role').value = player.role || '';
+            document.getElementById('player-medical-exp').value = player.medicalExp || '';
+            document.getElementById('player-parent-phone').value = player.parentPhone || '';
+
+            document.getElementById('modal-add-player').classList.remove('hidden');
+        }
+
         document.getElementById('btn-close-modal-player').addEventListener('click', () => {
             document.getElementById('modal-add-player').classList.add('hidden');
         });
 
         document.getElementById('form-add-player').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const playerId = document.getElementById('player-edit-id').value;
             const firstName = document.getElementById('player-first-name').value.trim();
             const lastName = document.getElementById('player-last-name').value.trim();
             const dob = document.getElementById('player-dob').value;
@@ -1575,7 +1584,7 @@
             const parentPhone = document.getElementById('player-parent-phone').value.trim();
 
             if (firstName && lastName && activeTeamId) {
-                await addDoc(collection(db, 'players'), {
+                const playerData = {
                     firstName: firstName,
                     lastName: lastName,
                     name: `${lastName} ${firstName}`,
@@ -1585,7 +1594,18 @@
                     medicalExp: medicalExp,
                     parentPhone: parentPhone,
                     teamId: activeTeamId
-                });
+                };
+
+                if (playerId) {
+                    // Aggiornamento giocatore esistente
+                    const docRef = doc(db, 'players', playerId);
+                    await updateDoc(docRef, playerData);
+                    alert("Dati giocatore aggiornati con successo!");
+                } else {
+                    // Creazione nuovo giocatore
+                    await addDoc(collection(db, 'players'), playerData);
+                    alert("Nuovo giocatore aggiunto con successo!");
+                }
 
                 document.getElementById('modal-add-player').classList.add('hidden');
                 AppCache.clearPlayers(activeTeamId);
