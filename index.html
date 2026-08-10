@@ -459,10 +459,10 @@
 
     </div>
 
-    <!-- MODALE AGGIUNTA GIOCATORE CON ANAGRAFICA AVANZATA -->
+    <!-- MODALE AGGIUNTA / MODIFICA GIOCATORE -->
     <div id="modal-add-player" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 print:hidden">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Aggiungi Nuovo Giocatore</h3>
+            <h3 id="modal-player-title" class="text-lg font-bold text-gray-800 mb-4">Aggiungi Nuovo Giocatore</h3>
             <form id="form-add-player" class="space-y-3">
                 <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -509,7 +509,7 @@
 
                 <div class="flex justify-end space-x-2 pt-4">
                     <button type="button" id="btn-close-modal-player" class="bg-gray-300 hover:bg-gray-400 text-gray-800 text-xs px-4 py-2 rounded font-bold transition">Annulla</button>
-                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded font-bold transition">Salva Giocatore</button>
+                    <button type="submit" id="btn-submit-player" class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded font-bold transition">Salva Giocatore</button>
                 </div>
             </form>
         </div>
@@ -569,6 +569,7 @@
         let activeTeamPlayers = [];
         let loadedCallupsList = [];
         let currentSessionDocId = null;
+        let editingPlayerId = null;
 
         const AppCache = {
             players: {},
@@ -1033,7 +1034,7 @@
             activeTeamPlayers.forEach(player => {
                 const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
                 const canDelete = currentUserProfile && currentUserProfile.role === 'admin' ? 
-                    `<button data-id="${player.id}" class="btn-delete-player text-xs text-red-500 font-bold hover:text-red-700">Rimuovi</button>` : '';
+                    `<button data-id="${player.id}" class="btn-delete-player text-xs text-red-500 font-bold hover:text-red-700 ml-2">Rimuovi</button>` : '';
 
                 let medStatusBadge = '';
                 if (player.medicalExp) {
@@ -1054,9 +1055,16 @@
                             <p class="text-gray-600"><strong>Tel. Genitore:</strong> ${player.parentPhone || 'N/D'}</p>
                             <div class="pt-1">${medStatusBadge}</div>
                         </div>
-                        <div>${canDelete}</div>
+                        <div class="flex items-center space-x-1">
+                            <button data-id="${player.id}" class="btn-edit-player text-xs text-amber-600 font-bold hover:text-amber-800 bg-amber-50 px-2 py-1 rounded border border-amber-200 transition">✏️ Modifica</button>
+                            ${canDelete}
+                        </div>
                     </div>
                 `;
+            });
+
+            container.querySelectorAll('.btn-edit-player').forEach(btn => {
+                btn.addEventListener('click', (e) => openEditPlayerModal(e.currentTarget.getAttribute('data-id')));
             });
 
             container.querySelectorAll('.btn-delete-player').forEach(btn => {
@@ -1642,9 +1650,13 @@
             window.print();
         });
 
-        // MODALE E NUOVO GIOCATORE
+        // MODALE E GESTIONE GIOCATORE (CREAZIONE E MODIFICA)
         document.getElementById('btn-open-add-player').addEventListener('click', () => {
             if (!activeTeamId) return alert('Seleziona prima una squadra!');
+            editingPlayerId = null;
+            document.getElementById('modal-player-title').innerText = "Aggiungi Nuovo Giocatore";
+            document.getElementById('btn-submit-player').innerText = "Salva Giocatore";
+            
             document.getElementById('player-first-name').value = '';
             document.getElementById('player-last-name').value = '';
             document.getElementById('player-dob').value = '';
@@ -1655,7 +1667,27 @@
             document.getElementById('modal-add-player').classList.remove('hidden');
         });
 
+        function openEditPlayerModal(playerId) {
+            const player = activeTeamPlayers.find(p => p.id === playerId);
+            if (!player) return;
+
+            editingPlayerId = playerId;
+            document.getElementById('modal-player-title').innerText = "Modifica Giocatore";
+            document.getElementById('btn-submit-player').innerText = "Aggiorna Giocatore";
+
+            document.getElementById('player-first-name').value = player.firstName || '';
+            document.getElementById('player-last-name').value = player.lastName || '';
+            document.getElementById('player-dob').value = player.dob || '';
+            document.getElementById('player-jersey').value = player.jersey || '';
+            document.getElementById('player-role').value = player.role || '';
+            document.getElementById('player-medical-exp').value = player.medicalExp || '';
+            document.getElementById('player-parent-phone').value = player.parentPhone || '';
+
+            document.getElementById('modal-add-player').classList.remove('hidden');
+        }
+
         document.getElementById('btn-close-modal-player').addEventListener('click', () => {
+            editingPlayerId = null;
             document.getElementById('modal-add-player').classList.add('hidden');
         });
 
@@ -1670,7 +1702,7 @@
             const parentPhone = document.getElementById('player-parent-phone').value.trim();
 
             if (firstName && lastName && activeTeamId) {
-                await addDoc(collection(db, 'players'), {
+                const playerData = {
                     firstName: firstName,
                     lastName: lastName,
                     name: `${lastName} ${firstName}`,
@@ -1680,11 +1712,24 @@
                     medicalExp: medicalExp,
                     parentPhone: parentPhone,
                     teamId: activeTeamId
-                });
+                };
 
-                document.getElementById('modal-add-player').classList.add('hidden');
-                AppCache.clearPlayers(activeTeamId);
-                loadTeamData(true);
+                try {
+                    if (editingPlayerId) {
+                        await updateDoc(doc(db, 'players', editingPlayerId), playerData);
+                        alert('Dati giocatore aggiornati con successo!');
+                    } else {
+                        await addDoc(collection(db, 'players'), playerData);
+                        alert('Giocatore aggiunto con successo!');
+                    }
+
+                    editingPlayerId = null;
+                    document.getElementById('modal-add-player').classList.add('hidden');
+                    AppCache.clearPlayers(activeTeamId);
+                    loadTeamData(true);
+                } catch (err) {
+                    alert("Errore nel salvataggio: " + err.message);
+                }
             }
         });
 
