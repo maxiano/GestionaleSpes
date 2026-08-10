@@ -41,12 +41,8 @@
             .print\:border-b {
                 border-bottom: 1.5px solid #000 !important;
             }
-            .print\:p-0 {
-                padding: 0 !important;
-            }
 
-            #tab-attendance,
-            #tab-callup {
+            #tab-attendance {
                 display: none !important;
             }
 
@@ -56,16 +52,15 @@
             body:not(.print-monthly) #tab-monthly {
                 display: none !important;
             }
-
-            body.print-roster #tab-roster,
-            body.print-monthly #tab-monthly {
-                display: block !important;
-                width: 100% !important;
+            body:not(.print-callup) #tab-callup {
+                display: none !important;
             }
 
-            .print\:block {
-                margin-bottom: 8px !important;
-                padding-bottom: 4px !important;
+            body.print-roster #tab-roster,
+            body.print-monthly #tab-monthly,
+            body.print-callup #tab-callup {
+                display: block !important;
+                width: 100% !important;
             }
 
             table {
@@ -109,8 +104,8 @@
         </button>
     </nav>
 
-    <!-- INTESTAZIONE REPORT DI STAMPA -->
-    <div class="hidden print:block p-2 border-b-2 border-black mb-3">
+    <!-- INTESTAZIONE REPORT DI STAMPA GENERICA -->
+    <div id="generic-print-header" class="hidden print:block p-2 border-b-2 border-black mb-3">
         <div class="flex justify-between items-center">
             <div>
                 <h1 class="text-xl font-bold uppercase tracking-wide">Scuola Calcio Spes Montesacro</h1>
@@ -324,9 +319,9 @@
                     </div>
                 </div>
 
-                <!-- TAB 4: MODULO E STORICO CONVOCAZIONI (CAMPI SEPARATI) -->
-                <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow print:hidden space-y-6">
-                    <div>
+                <!-- TAB 4: MODULO E STORICO CONVOCAZIONI -->
+                <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0 space-y-6">
+                    <div class="print:hidden">
                         <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
                         <form id="form-callup" onsubmit="saveCallup(event)" class="space-y-3">
                             
@@ -368,11 +363,16 @@
                     </div>
 
                     <!-- SEZIONE STORICO CONVOCAZIONI -->
-                    <div class="border-t pt-4">
+                    <div class="border-t pt-4 print:hidden">
                         <h4 class="text-md font-bold text-gray-700 mb-3">📋 Convocazioni Inserite</h4>
                         <div id="callups-list-container" class="space-y-3">
                             <!-- Schede caricate da JS -->
                         </div>
+                    </div>
+
+                    <!-- CONTENITORE STAMPA CONVOCAZIONE DEDICATO -->
+                    <div id="callup-print-container" class="hidden print:block">
+                        <!-- Generato dinamicamente per la stampa -->
                     </div>
                 </div>
 
@@ -422,6 +422,7 @@
         let currentUserProfile = null;
         let activeTeamId = null;
         let activeTeamPlayers = [];
+        let loadedCallupsList = [];
         let currentSessionDocId = null;
 
         // --- SISTEMA DI CACHING ---
@@ -965,7 +966,7 @@
             }
         }
 
-        // --- GESTIONE CONVOCAZIONI CON CONTROLLO DATA + ORA PARTITA ---
+        // --- GESTIONE CONVOCAZIONI E STAMPA DEDICATA ---
         async function saveCallup(e) {
             e.preventDefault();
             if (!activeTeamId) return alert("Seleziona prima una squadra!");
@@ -990,7 +991,6 @@
             }
 
             try {
-                // Controllo duplicati: stessa squadra, stesso giorno E stesso orario d'inizio
                 const snapshot = await db.collection('callups')
                     .where('teamId', '==', activeTeamId)
                     .where('date', '==', matchDate)
@@ -1050,19 +1050,21 @@
 
                 if (snapshot.empty) {
                     container.innerHTML = '<p class="text-xs text-gray-400">Nessuna convocazione presente per questo gruppo.</p>';
+                    loadedCallupsList = [];
                     return;
                 }
 
                 const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // Ordinamento decrescente per data e orario partita
                 docs.sort((a, b) => {
                     const dateA = new Date(`${a.date || '1970-01-01'}T${a.matchTime || '00:00'}`);
                     const dateB = new Date(`${b.date || '1970-01-01'}T${b.matchTime || '00:00'}`);
                     return dateB - dateA;
                 });
 
+                loadedCallupsList = docs;
                 container.innerHTML = '';
+                
                 docs.forEach(data => {
                     let formattedDate = '--/--/----';
                     let matchTimeStr = data.matchTime || '--:--';
@@ -1071,7 +1073,6 @@
                     if (data.date) {
                         formattedDate = formatDateIT(data.date);
                     } else if (data.datetime) {
-                        // Retrocompatibilità per vecchi dati
                         const dateObj = new Date(data.datetime);
                         formattedDate = dateObj.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
                         matchTimeStr = dateObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
@@ -1091,9 +1092,14 @@
                                 <p class="text-gray-600">📍 <strong>Campo:</strong> ${data.location}</p>
                                 <p class="text-gray-500 pt-1">👥 <strong>Convocati (${data.players ? data.players.length : 0}):</strong> ${playersList}</p>
                             </div>
-                            <button onclick="deleteCallup('${data.id}')" class="bg-red-500 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] ml-2">
-                                🗑️ Elimina
-                            </button>
+                            <div class="flex flex-col space-y-1">
+                                <button onclick="printCallupReport('${data.id}')" class="bg-gray-800 hover:bg-black text-white font-bold px-2 py-1 rounded text-[10px] whitespace-nowrap">
+                                    🖨️ Stampa Convocazione
+                                </button>
+                                <button onclick="deleteCallup('${data.id}')" class="bg-red-500 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px]">
+                                    🗑️ Elimina
+                                </button>
+                            </div>
                         </div>
                     `;
                 });
@@ -1101,6 +1107,82 @@
                 console.error("Errore caricamento convocazioni:", err);
                 container.innerHTML = `<p class="text-xs text-red-500">Errore: ${err.message}</p>`;
             }
+        }
+
+        function printCallupReport(callupId) {
+            const callup = loadedCallupsList.find(c => c.id === callupId);
+            if (!callup) return alert("Convocazione non trovata!");
+
+            const printContainer = document.getElementById('callup-print-container');
+            
+            let formattedDate = formatDateIT(callup.date);
+            let matchTimeStr = callup.matchTime || '--:--';
+            let gatheringTimeStr = callup.gatheringTime || '--:--';
+
+            // Ordinamento alfabetico per Cognome dei giocatori convocati
+            const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
+
+            let tableRows = '';
+            sortedPlayers.forEach((player, index) => {
+                tableRows += `
+                    <tr>
+                        <td class="border border-black p-2 text-center font-bold" style="width: 40px;">${index + 1}</td>
+                        <td class="border border-black p-2 font-bold text-sm">${player}</td>
+                        <td class="border border-black p-2"></td>
+                    </tr>
+                `;
+            });
+
+            printContainer.innerHTML = `
+                <div class="border-b-2 border-black pb-3 mb-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h1 class="text-2xl font-black uppercase tracking-wider">SCUOLA CALCIO SPES MONTESACRO</h1>
+                            <h2 class="text-lg font-bold text-gray-800 mt-1">SQUADRA: ${activeTeamId}</h2>
+                        </div>
+                        <div class="text-right text-xs">
+                            <p class="font-bold">Stagione Sportiva 2026/2027</p>
+                            <p class="text-gray-600">Modulo Convocazione Gara</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-100 border border-black p-3 mb-4 rounded space-y-1 text-sm">
+                    <p class="text-base font-extrabold text-black">⚽ PARTITA: Spes Montesacro vs ${callup.opponent}</p>
+                    <div class="grid grid-cols-2 gap-2 pt-1 font-semibold">
+                        <p>📅 <strong>Giorno:</strong> ${formattedDate}</p>
+                        <p>📍 <strong>Luogo/Campo:</strong> ${callup.location}</p>
+                        <p>🕒 <strong>Inizio Partita:</strong> ${matchTimeStr}</p>
+                        <p>⏰ <strong>Ora Convocazione Campo:</strong> ${gatheringTimeStr}</p>
+                    </div>
+                </div>
+
+                <h3 class="text-md font-bold mb-2 uppercase tracking-wide border-b border-black pb-1">Elenco Giocatori Convocati (${sortedPlayers.length})</h3>
+
+                <table class="w-full border-collapse border border-black text-left">
+                    <thead>
+                        <tr class="bg-gray-200 text-black uppercase text-xs">
+                            <th class="border border-black p-2 text-center">#</th>
+                            <th class="border border-black p-2">Cognome e Nome</th>
+                            <th class="border border-black p-2 w-1/3">Note / Presenza</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            `;
+
+            document.body.classList.remove('print-landscape', 'print-monthly', 'print-roster');
+            document.body.classList.add('print-callup');
+            
+            // Nascondiamo l'intestazione generica solo per la stampa delle convocazioni per evitare sovrapposizioni
+            document.getElementById('generic-print-header').classList.add('print:hidden');
+
+            window.print();
+
+            // Ripristiniamo la visibilità dopo il comando di stampa
+            document.getElementById('generic-print-header').classList.remove('print:hidden');
         }
 
         async function deleteCallup(callupId) {
@@ -1117,14 +1199,14 @@
         }
 
         function printRosterReport() {
-            document.body.classList.remove('print-landscape', 'print-monthly');
+            document.body.classList.remove('print-landscape', 'print-monthly', 'print-callup');
             document.body.classList.add('print-roster');
             document.getElementById('print-report-period').innerText = 'Documento: Rosa Giocatori Ufficiale';
             window.print();
         }
 
         function printMonthlyReport() {
-            document.body.classList.remove('print-roster');
+            document.body.classList.remove('print-roster', 'print-callup');
             document.body.classList.add('print-landscape', 'print-monthly');
             const selectedMonth = parseInt(document.getElementById('filter-month').value);
             const selectedYear = parseInt(document.getElementById('filter-year').value);
