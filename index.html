@@ -34,8 +34,16 @@
             .print\:p-0 {
                 padding: 0 !important;
             }
-            /* In stampa mostra la sezione attiva del registro */
-            .tab-content {
+            
+            /* ESCLUSIONE SEZIONE REGISTRA ALLENAMENTO E PRESENZE */
+            #tab-attendance,
+            #tab-roster,
+            #tab-callup {
+                display: none !important;
+            }
+
+            /* MOSTRA ESCLUSIVAMENTE IL REGISTRO MENSILE */
+            #tab-monthly {
                 display: block !important;
             }
         }
@@ -162,8 +170,8 @@
             <!-- CONTENUTI OPERATIVI SEPARATI PER TAB -->
             <div id="main-content-area" class="hidden">
 
-                <!-- TAB 1: REGISTRA NUOVO ALLENAMENTO E PRESENZE -->
-                <div id="tab-attendance" class="tab-content bg-white p-6 rounded-lg shadow">
+                <!-- TAB 1: REGISTRA NUOVO ALLENAMENTO E PRESENZE (NASCOSTO IN STAMPA) -->
+                <div id="tab-attendance" class="tab-content print:hidden bg-white p-6 rounded-lg shadow">
                     <div class="flex justify-between items-center mb-4 border-b pb-3">
                         <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
                         <div class="flex items-center space-x-2">
@@ -254,7 +262,7 @@
                 </div>
 
                 <!-- TAB 3: ROSA GIOCATORI -->
-                <div id="tab-roster" class="tab-content hidden bg-white p-6 rounded-lg shadow">
+                <div id="tab-roster" class="tab-content hidden bg-white p-6 rounded-lg shadow print:hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
                         <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-1.5 rounded font-bold">🖨️ Stampa Rosa</button>
@@ -265,7 +273,7 @@
                 </div>
 
                 <!-- TAB 4: MODULO CONVOCAZIONI (SOLO COACH) -->
-                <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow">
+                <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow print:hidden">
                     <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione Partita</h3>
                     <form id="form-callup" onsubmit="saveCallup(event)" class="space-y-3">
                         <div class="grid grid-cols-2 gap-2">
