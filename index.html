@@ -416,8 +416,8 @@
 
         // --- SISTEMA DI CACHING (IN-MEMORY & SESSIONSTORAGE) ---
         const AppCache = {
-            players: {},      // { teamId: [playersArray] }
-            attendances: {},  // { teamId_year_month: [attendanceArray] }
+            players: {},
+            attendances: {},
 
             setPlayers(teamId, data) {
                 this.players[teamId] = data;
@@ -539,7 +539,7 @@
                 document.getElementById('main-content-area').classList.remove('hidden');
                 document.getElementById('dashboard-subtitle').innerText = `Gruppo Selezionato: ${activeTeamId}`;
                 
-                document.getElementById('btn-tab-callup').classList.add('hidden');
+                document.getElementById('btn-tab-callup').classList.remove('hidden');
                 switchTab('tab-attendance');
                 loadTeamData();
             } else {
@@ -555,14 +555,12 @@
             document.getElementById('display-active-team').innerText = activeTeamId;
             document.getElementById('print-report-team').innerText = `Squadra / Categoria: ${activeTeamId}`;
 
-            // USO DELLA CACHE PER I GIOCATORI
             let players = AppCache.getPlayers(activeTeamId);
 
             if (!players || forceRefresh) {
                 const snapshot = await db.collection('players').where('teamId', '==', activeTeamId).get();
                 players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                // ORDINAMENTO ALFABETICO ASCENDENTE PER COGNOME
                 players.sort((a, b) => {
                     const surnameA = (a.lastName || '').toLowerCase();
                     const surnameB = (b.lastName || '').toLowerCase();
@@ -597,7 +595,6 @@
                 return;
             }
 
-            // TABELLA VISTA SCHERMO
             activeTeamPlayers.forEach(player => {
                 const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
                 const canDelete = currentUserProfile.role === 'admin' ? 
@@ -611,7 +608,6 @@
                 `;
             });
 
-            // TABELLA VISTA STAMPA (3 COLONNE: #, COGNOME E NOME, NOTE/FIRMA)
             let printTableHtml = `
                 <table class="w-full border-collapse border border-black">
                     <thead>
@@ -826,7 +822,6 @@
             }
         }
 
-        // CARICAMENTO REGISTRO MENSILE CON CACHING
         async function loadMonthlyAttendances(forceRefresh = false) {
             if (!activeTeamId) return;
 
@@ -954,7 +949,7 @@
             }
         }
 
-        // GESTIONE CONVOCAZIONI
+        // GESTIONE CONVOCAZIONI (CON CONTROLLO DUPLICATI E INTESTAZIONE FISSA)
         async function loadCallups() {
             const container = document.getElementById('callups-list-container');
             if (!container || !activeTeamId) return;
@@ -962,7 +957,6 @@
             try {
                 const snapshot = await db.collection('callups')
                     .where('teamId', '==', activeTeamId)
-                    .orderBy('createdAt', 'desc')
                     .get();
 
                 if (snapshot.empty) {
@@ -970,9 +964,11 @@
                     return;
                 }
 
+                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                docs.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+
                 container.innerHTML = '';
-                snapshot.docs.forEach(doc => {
-                    const data = doc.data();
+                docs.forEach(data => {
                     let formattedDate = '--/--/----';
                     if (data.datetime) {
                         const dateObj = new Date(data.datetime);
@@ -984,13 +980,13 @@
                     const playersList = (data.players || []).join(', ');
 
                     container.innerHTML += `
-                        <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs">
+                        <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs mb-2">
                             <div class="space-y-1">
-                                <p class="font-bold text-sm text-indigo-900">🆚 vs ${data.opponent}</p>
+                                <p class="font-bold text-sm text-indigo-900">⚽ Spes Montesacro vs ${data.opponent}</p>
                                 <p class="text-gray-600">📅 <strong>Data:</strong> ${formattedDate} | 📍 <strong>Campo:</strong> ${data.location}</p>
                                 <p class="text-gray-500">👥 <strong>Convocati (${data.players ? data.players.length : 0}):</strong> ${playersList}</p>
                             </div>
-                            <button onclick="deleteCallup('${doc.id}')" class="bg-red-500 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] ml-2">
+                            <button onclick="deleteCallup('${data.id}')" class="bg-red-500 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] ml-2">
                                 🗑️ Elimina
                             </button>
                         </div>
@@ -998,37 +994,74 @@
                 });
             } catch (err) {
                 console.error("Errore caricamento convocazioni:", err);
+                container.innerHTML = `<p class="text-xs text-red-500">Errore: ${err.message}</p>`;
             }
         }
 
         async function saveCallup(e) {
             e.preventDefault();
-            const opponent = document.getElementById('match-opponent').value;
+            if (!activeTeamId) return alert("Seleziona prima una squadra!");
+
+            const opponent = document.getElementById('match-opponent').value.trim();
             const datetime = document.getElementById('match-datetime').value;
-            const location = document.getElementById('match-location').value;
+            const location = document.getElementById('match-location').value.trim();
             
             const selectedPlayers = [];
             document.querySelectorAll('input[name="callup_player"]:checked').forEach(cb => {
                 selectedPlayers.push(cb.value);
             });
 
+            if (selectedPlayers.length === 0) {
+                return alert("Seleziona almeno un giocatore da convocare!");
+            }
+
             try {
-                await db.collection('callups').add({
+                const existingCallup = await db.collection('callups')
+                    .where('teamId', '==', activeTeamId)
+                    .where('datetime', '==', datetime)
+                    .get();
+
+                let docToUpdateId = null;
+
+                if (!existingCallup.empty) {
+                    const dateObj = new Date(datetime);
+                    const formattedDate = dateObj.toLocaleDateString('it-IT', {
+                        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
+
+                    const confirmUpdate = confirm(
+                        `⚠️ Esiste già una convocazione per il ${formattedDate}.\n\nVuoi aggiornare e sovrascrivere la convocazione esistente?`
+                    );
+
+                    if (!confirmUpdate) return;
+                    docToUpdateId = existingCallup.docs[0].id;
+                }
+
+                const callupData = {
                     teamId: activeTeamId,
                     opponent: opponent,
                     datetime: datetime,
                     location: location,
                     players: selectedPlayers,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
 
-                alert(`Convocazione creata con ${selectedPlayers.length} giocatori!`);
+                if (docToUpdateId) {
+                    await db.collection('callups').doc(docToUpdateId).update(callupData);
+                    alert(`Convocazione aggiornata con successo (${selectedPlayers.length} convocati)!`);
+                } else {
+                    callupData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('callups').add(callupData);
+                    alert(`Convocazione creata con successo (${selectedPlayers.length} convocati)!`);
+                }
+
                 document.getElementById('form-callup').reset();
                 renderCallupCheckboxes();
                 loadCallups();
+
             } catch (err) {
                 console.error("Errore salvataggio convocazione:", err);
-                alert("Errore durante la creazione: " + err.message);
+                alert("Errore durante il salvataggio: " + err.message);
             }
         }
 
@@ -1045,7 +1078,6 @@
             }
         }
 
-        // GESTIONE STAMPE DEDICATE
         function printRosterReport() {
             document.body.classList.remove('print-landscape', 'print-monthly');
             document.body.classList.add('print-roster');
