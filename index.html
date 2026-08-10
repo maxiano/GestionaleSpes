@@ -103,42 +103,42 @@
                 </div>
             </div>
 
-            <!-- FILTRO SQUADRE (SOLO PER ADMIN/RT) -->
+            <!-- FILTRO SQUADRE (CON DENOMINAZIONE COLORI) -->
             <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex items-center space-x-3 print:hidden hidden">
                 <label class="text-sm font-bold text-gray-600">Seleziona Categoria/Gruppo:</label>
                 <select id="admin-team-filter" onchange="handleTeamChange()" class="border p-2 rounded text-sm flex-1">
                     <option value="ALL">Seleziona un gruppo...</option>
                     <optgroup label="2014 (Esordienti)">
-                        <option value="2014 - Gruppo A">2014 - Gruppo A</option>
-                        <option value="2014 - Gruppo B">2014 - Gruppo B</option>
+                        <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
+                        <option value="2014 - Gruppo Verde">2014 - Gruppo Verde</option>
                     </optgroup>
                     <optgroup label="2015 (Pulcini)">
-                        <option value="2015 - Gruppo A">2015 - Gruppo A</option>
-                        <option value="2015 - Gruppo B">2015 - Gruppo B</option>
+                        <option value="2015 - Gruppo Nero">2015 - Gruppo Nero</option>
+                        <option value="2015 - Gruppo Verde">2015 - Gruppo Verde</option>
                     </optgroup>
                     <optgroup label="2016 (Pulcini)">
-                        <option value="2016 - Gruppo A">2016 - Gruppo A</option>
-                        <option value="2016 - Gruppo B">2016 - Gruppo B</option>
-                        <option value="2016 - Gruppo C">2016 - Gruppo C</option>
+                        <option value="2016 - Gruppo Nero">2016 - Gruppo Nero</option>
+                        <option value="2016 - Gruppo Verde">2016 - Gruppo Verde</option>
+                        <option value="2016 - Gruppo Giallo">2016 - Gruppo Giallo</option>
                     </optgroup>
                     <optgroup label="2017 (Primi Calci)">
-                        <option value="2017 - Gruppo A">2017 - Gruppo A</option>
-                        <option value="2017 - Gruppo B">2017 - Gruppo B</option>
-                        <option value="2017 - Gruppo C">2017 - Gruppo C</option>
+                        <option value="2017 - Gruppo Nero">2017 - Gruppo Nero</option>
+                        <option value="2017 - Gruppo Verde">2017 - Gruppo Verde</option>
+                        <option value="2017 - Gruppo Giallo">2017 - Gruppo Giallo</option>
                     </optgroup>
                     <optgroup label="2018 (Primi Calci)">
-                        <option value="2018 - Gruppo A">2018 - Gruppo A</option>
-                        <option value="2018 - Gruppo B">2018 - Gruppo B</option>
-                        <option value="2018 - Gruppo C">2018 - Gruppo C</option>
+                        <option value="2018 - Gruppo Nero">2018 - Gruppo Nero</option>
+                        <option value="2018 - Gruppo Verde">2018 - Gruppo Verde</option>
+                        <option value="2018 - Gruppo Giallo">2018 - Gruppo Giallo</option>
                     </optgroup>
                     <optgroup label="2019 (Piccoli Amici)">
-                        <option value="2019 - Gruppo A">2019 - Gruppo A</option>
-                        <option value="2019 - Gruppo B">2019 - Gruppo B</option>
-                        <option value="2019 - Gruppo C">2019 - Gruppo C</option>
+                        <option value="2019 - Gruppo Nero">2019 - Gruppo Nero</option>
+                        <option value="2019 - Gruppo Verde">2019 - Gruppo Verde</option>
+                        <option value="2019 - Gruppo Giallo">2019 - Gruppo Giallo</option>
                     </optgroup>
                     <optgroup label="2020-2021 (Piccoli Amici)">
-                        <option value="2020-21 - Gruppo A">2020-21 - Gruppo A</option>
-                        <option value="2020-21 - Gruppo B">2020-21 - Gruppo B</option>
+                        <option value="2020-21 - Gruppo Nero">2020-21 - Gruppo Nero</option>
+                        <option value="2020-21 - Gruppo Verde">2020-21 - Gruppo Verde</option>
                     </optgroup>
                 </select>
             </div>
@@ -345,18 +345,14 @@
 
         // GESTIONE NAVIGAZIONE A TAB / MENU
         function switchTab(tabId) {
-            // Nasconde tutti i contenuti dei tab
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             
-            // Ripristina lo stile di tutti i pulsanti menu
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
             });
 
-            // Mostra il tab selezionato
             document.getElementById(tabId).classList.remove('hidden');
 
-            // Evidenzia il pulsante attivo
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
                 activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100";
@@ -388,7 +384,6 @@
                         document.getElementById('navigation-tabs').classList.remove('hidden');
                         document.getElementById('main-content-area').classList.remove('hidden');
                         
-                        // Sblocca anche il tab Convocazioni per i coach
                         document.getElementById('btn-tab-callup').classList.remove('hidden');
                         loadTeamData();
                     }
@@ -423,9 +418,8 @@
                 document.getElementById('main-content-area').classList.remove('hidden');
                 document.getElementById('dashboard-subtitle').innerText = `Gruppo Selezionato: ${activeTeamId}`;
                 
-                // Nascondi il tab convocazioni per l'admin se gestito solo dai coach
                 document.getElementById('btn-tab-callup').classList.add('hidden');
-                switchTab('tab-attendance'); // Torna al tab presenze predefinito
+                switchTab('tab-attendance');
                 loadTeamData();
             } else {
                 activeTeamId = null;
