@@ -1,46 +1,371 @@
-<!-- FILTRO SQUADRE COMPLETO -->
-<div class="bg-white p-4 rounded-lg shadow flex items-center space-x-3">
-    <label class="text-sm font-bold text-gray-600">Seleziona Categoria/Gruppo:</label>
-    <select id="admin-team-filter" onchange="loadAdminData()" class="border p-2 rounded text-sm flex-1">
-        <option value="ALL">Tutte le Squadre (Tutti i 18 gruppi)</option>
-        
-        <optgroup label="2014 (Esordienti)">
-            <option value="2014 - Gruppo A">2014 - Gruppo A</option>
-            <option value="2014 - Gruppo B">2014 - Gruppo B</option>
-        </optgroup>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Scuola Calcio</title>
+    <!-- Tailwind CSS via CDN per interfaccia responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase App & Firestore SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
 
-        <optgroup label="2015 (Pulcini)">
-            <option value="2015 - Gruppo A">2015 - Gruppo A</option>
-            <option value="2015 - Gruppo B">2015 - Gruppo B</option>
-        </optgroup>
+    <!-- BARRA DI NAVIGAZIONE SUPERIORE -->
+    <nav class="bg-blue-800 text-white p-4 flex justify-between items-center shadow-md">
+        <div>
+            <h1 class="text-xl font-bold">Scuola Calcio Hub</h1>
+            <p id="user-info" class="text-xs text-blue-200">Caricamento utente...</p>
+        </div>
+        <button onclick="logout()" id="btn-logout" class="hidden bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-2 rounded font-semibold">
+            Esci
+        </button>
+    </nav>
 
-        <optgroup label="2016 (Pulcini)">
-            <option value="2016 - Gruppo A">2016 - Gruppo A</option>
-            <option value="2016 - Gruppo B">2016 - Gruppo B</option>
-            <option value="2016 - Gruppo C">2016 - Gruppo C</option>
-        </optgroup>
+    <div class="max-w-4xl mx-auto p-4">
 
-        <optgroup label="2017 (Primi Calci)">
-            <option value="2017 - Gruppo A">2017 - Gruppo A</option>
-            <option value="2017 - Gruppo B">2017 - Gruppo B</option>
-            <option value="2017 - Gruppo C">2017 - Gruppo C</option>
-        </optgroup>
+        <!-- SECTION: LOGIN -->
+        <div id="section-login" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mt-10">
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">Accedi alla Piattaforma</h2>
+            <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600">Email</label>
+                    <input type="email" id="login-email" required class="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600">Password</label>
+                    <input type="password" id="login-password" required class="w-full border p-2 rounded mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-bold">
+                    Accedi
+                </button>
+            </form>
+        </div>
 
-        <optgroup label="2018 (Primi Calci)">
-            <option value="2018 - Gruppo A">2018 - Gruppo A</option>
-            <option value="2018 - Gruppo B">2018 - Gruppo B</option>
-            <option value="2018 - Gruppo C">2018 - Gruppo C</option>
-        </optgroup>
+        <!-- SECTION: DASHBOARD ALLENATORE -->
+        <div id="section-coach" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-lg shadow flex justify-between items-center border-l-4 border-blue-600">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-800">Pannello Tecnico</h2>
+                    <p id="coach-team-name" class="text-sm text-gray-500">Squadra: --</p>
+                </div>
+                <button onclick="showModalAddPlayer()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">+ Giocatore</button>
+            </div>
 
-        <optgroup label="2019 (Piccoli Amici)">
-            <option value="2019 - Gruppo A">2019 - Gruppo A</option>
-            <option value="2019 - Gruppo B">2019 - Gruppo B</option>
-            <option value="2019 - Gruppo C">2019 - Gruppo C</option>
-        </optgroup>
+            <!-- REGISTRO PRESENZE -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-700">📋 Presenze del Giorno</h3>
+                    <input type="date" id="attendance-date" class="border p-1 rounded text-sm">
+                </div>
+                <form id="form-attendance" onsubmit="saveAttendance(event)">
+                    <div id="players-list-attendance" class="divide-y space-y-2 mb-4">
+                        <!-- Giocatori caricati dinamicamente -->
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-bold">
+                        Salva Presenze
+                    </button>
+                </form>
+            </div>
 
-        <optgroup label="2020-2021 (Piccoli Amici)">
-            <option value="2020-21 - Gruppo A">2020-21 - Gruppo A</option>
-            <option value="2020-21 - Gruppo B">2020-21 - Gruppo B</option>
-        </optgroup>
-    </select>
-</div>
+            <!-- MODULO CONVOCAZIONI -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-bold text-gray-700 mb-4">📩 Nuova Convocazione</h3>
+                <form id="form-callup" onsubmit="saveCallup(event)" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="match-opponent" placeholder="Avversario" required class="border p-2 rounded text-sm w-full">
+                        <input type="datetime-local" id="match-datetime" required class="border p-2 rounded text-sm w-full">
+                    </div>
+                    <input type="text" id="match-location" placeholder="Luogo / Campo" required class="border p-2 rounded text-sm w-full">
+                    
+                    <p class="text-xs font-bold text-gray-500 mt-2">Seleziona Convocati:</p>
+                    <div id="players-list-callup" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded">
+                        <!-- Checkbox giocatori caricate dinamicamente -->
+                    </div>
+
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded font-bold">
+                        Genera Convocazione
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- SECTION: DASHBOARD RESPONSABILE TECNICO (ADMIN) -->
+        <div id="section-admin" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-purple-600">
+                <h2 class="text-lg font-bold text-gray-800">Panoramica Responsabile Tecnico</h2>
+                <p class="text-sm text-gray-500">Monitoraggio globale di tutti i 18 gruppi societari</p>
+            </div>
+
+            <!-- FILTRO SQUADRE COMPLETO -->
+            <div class="bg-white p-4 rounded-lg shadow flex items-center space-x-3">
+                <label class="text-sm font-bold text-gray-600">Seleziona Categoria/Gruppo:</label>
+                <select id="admin-team-filter" onchange="loadAdminData()" class="border p-2 rounded text-sm flex-1">
+                    <option value="ALL">Tutte le Squadre (Tutti i 18 gruppi)</option>
+                    
+                    <optgroup label="2014 (Esordienti)">
+                        <option value="2014 - Gruppo A">2014 - Gruppo A</option>
+                        <option value="2014 - Gruppo B">2014 - Gruppo B</option>
+                    </optgroup>
+
+                    <optgroup label="2015 (Pulcini)">
+                        <option value="2015 - Gruppo A">2015 - Gruppo A</option>
+                        <option value="2015 - Gruppo B">2015 - Gruppo B</option>
+                    </optgroup>
+
+                    <optgroup label="2016 (Pulcini)">
+                        <option value="2016 - Gruppo A">2016 - Gruppo A</option>
+                        <option value="2016 - Gruppo B">2016 - Gruppo B</option>
+                        <option value="2016 - Gruppo C">2016 - Gruppo C</option>
+                    </optgroup>
+
+                    <optgroup label="2017 (Primi Calci)">
+                        <option value="2017 - Gruppo A">2017 - Gruppo A</option>
+                        <option value="2017 - Gruppo B">2017 - Gruppo B</option>
+                        <option value="2017 - Gruppo C">2017 - Gruppo C</option>
+                    </optgroup>
+
+                    <optgroup label="2018 (Primi Calci)">
+                        <option value="2018 - Gruppo A">2018 - Gruppo A</option>
+                        <option value="2018 - Gruppo B">2018 - Gruppo B</option>
+                        <option value="2018 - Gruppo C">2018 - Gruppo C</option>
+                    </optgroup>
+
+                    <optgroup label="2019 (Piccoli Amici)">
+                        <option value="2019 - Gruppo A">2019 - Gruppo A</option>
+                        <option value="2019 - Gruppo B">2019 - Gruppo B</option>
+                        <option value="2019 - Gruppo C">2019 - Gruppo C</option>
+                    </optgroup>
+
+                    <optgroup label="2020-2021 (Piccoli Amici)">
+                        <option value="2020-21 - Gruppo A">2020-21 - Gruppo A</option>
+                        <option value="2020-21 - Gruppo B">2020-21 - Gruppo B</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- FEED RECENTI / REGISTRO -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-bold text-gray-700 mb-4">📊 Ultimi Eventi & Presenze Registrate</h3>
+                <div id="admin-logs" class="space-y-3">
+                    <p class="text-gray-400 text-sm">Seleziona una squadra o carica i dati...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT LOGICA APPLICATIVA -->
+    <script>
+        // 1. CONFIGURAZIONE FIREBASE (Inserisci le tue chiavi ottenute dalla console Firebase)
+        const firebaseConfig = {
+            apiKey: "TUO_API_KEY",
+            authDomain: "TUO_PROJECT.firebaseapp.com",
+            projectId: "TUO_PROJECT_ID",
+            storageBucket: "TUO_PROJECT.appspot.com",
+            messagingSenderId: "TUO_SENDER_ID",
+            appId: "TUO_APP_ID"
+        };
+
+        // Inizializzazione
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUserProfile = null;
+        let currentTeamPlayers = [];
+
+        // Imposta la data odierna nell'input presenze
+        document.getElementById('attendance-date').valueAsDate = new Date();
+
+        // 2. GESTIONE AUTENTICAZIONE E RUOLI
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                // Utente Loggato: recupero profilo e ruolo dal DB
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    currentUserProfile = userDoc.data();
+                    document.getElementById('user-info').innerText = `${currentUserProfile.name} (${currentUserProfile.role})`;
+                    document.getElementById('btn-logout').classList.remove('hidden');
+                    document.getElementById('section-login').classList.add('hidden');
+
+                    if (currentUserProfile.role === 'admin') {
+                        document.getElementById('section-admin').classList.remove('hidden');
+                        loadAdminData();
+                    } else if (currentUserProfile.role === 'coach') {
+                        document.getElementById('section-coach').classList.remove('hidden');
+                        document.getElementById('coach-team-name').innerText = `Squadra: ${currentUserProfile.teamId}`;
+                        loadCoachData(currentUserProfile.teamId);
+                    }
+                }
+            } else {
+                // Utente Sloggato
+                document.getElementById('user-info').innerText = 'Non connesso';
+                document.getElementById('btn-logout').classList.add('hidden');
+                document.getElementById('section-login').classList.remove('hidden');
+                document.getElementById('section-coach').classList.add('hidden');
+                document.getElementById('section-admin').classList.add('hidden');
+            }
+        });
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (err) {
+                alert("Errore di accesso: " + err.message);
+            }
+        }
+
+        function logout() {
+            auth.signOut();
+        }
+
+        // 3. LOGICA ALLENATORE (CARICAMENTO GIOCATORI E PRESENZE)
+        async function loadCoachData(teamId) {
+            const snapshot = await db.collection('players').where('teamId', '==', teamId).get();
+            currentTeamPlayers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const attendanceContainer = document.getElementById('players-list-attendance');
+            const callupContainer = document.getElementById('players-list-callup');
+            
+            attendanceContainer.innerHTML = '';
+            callupContainer.innerHTML = '';
+
+            if (currentTeamPlayers.length === 0) {
+                attendanceContainer.innerHTML = '<p class="text-sm text-gray-400 py-2">Nessun giocatore inserito in rosa. Clicca su "+ Giocatore".</p>';
+                callupContainer.innerHTML = '<p class="text-sm text-gray-400 p-1">Nessun giocatore in rosa.</p>';
+                return;
+            }
+
+            currentTeamPlayers.forEach(player => {
+                // Item Presenza
+                attendanceContainer.innerHTML += `
+                    <div class="flex justify-between items-center py-2">
+                        <span class="font-medium text-sm text-gray-700">${player.name}</span>
+                        <div class="space-x-2">
+                            <label class="inline-flex items-center text-xs">
+                                <input type="radio" name="att_${player.id}" value="present" checked class="text-green-600">
+                                <span class="ml-1 text-green-700 font-bold">P</span>
+                            </label>
+                            <label class="inline-flex items-center text-xs">
+                                <input type="radio" name="att_${player.id}" value="absent" class="text-red-600">
+                                <span class="ml-1 text-red-700 font-bold">A</span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+
+                // Item Convocazione
+                callupContainer.innerHTML += `
+                    <label class="flex items-center space-x-2 text-xs p-1 border rounded bg-gray-50">
+                        <input type="checkbox" name="callup_player" value="${player.name}" checked class="rounded text-indigo-600">
+                        <span>${player.name}</span>
+                    </label>
+                `;
+            });
+        }
+
+        async function saveAttendance(e) {
+            e.preventDefault();
+            if (currentTeamPlayers.length === 0) return alert('Aggiungi prima i giocatori alla rosa!');
+
+            const date = document.getElementById('attendance-date').value;
+            const records = [];
+
+            currentTeamPlayers.forEach(player => {
+                const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
+                if (radio) {
+                    records.push({ playerId: player.id, name: player.name, status: radio.value });
+                }
+            });
+
+            await db.collection('attendances').add({
+                teamId: currentUserProfile.teamId,
+                date: date,
+                records: records,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            alert('Presenze salvate con successo!');
+        }
+
+        async function saveCallup(e) {
+            e.preventDefault();
+            const opponent = document.getElementById('match-opponent').value;
+            const datetime = document.getElementById('match-datetime').value;
+            const location = document.getElementById('match-location').value;
+            
+            const selectedPlayers = [];
+            document.querySelectorAll('input[name="callup_player"]:checked').forEach(cb => {
+                selectedPlayers.push(cb.value);
+            });
+
+            await db.collection('callups').add({
+                teamId: currentUserProfile.teamId,
+                opponent: opponent,
+                datetime: datetime,
+                location: location,
+                players: selectedPlayers,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            alert(`Convocazione creata con ${selectedPlayers.length} giocatori!`);
+        }
+
+        async function showModalAddPlayer() {
+            const name = prompt("Nome e Cognome del Giocatore:");
+            if (name && name.trim() !== "") {
+                await db.collection('players').add({
+                    name: name.trim(),
+                    teamId: currentUserProfile.teamId
+                });
+                loadCoachData(currentUserProfile.teamId);
+            }
+        }
+
+        // 4. LOGICA RESPONSABILE TECNICO (SUPERVISIONE)
+        async function loadAdminData() {
+            const selectedTeam = document.getElementById('admin-team-filter').value;
+            const logsContainer = document.getElementById('admin-logs');
+            logsContainer.innerHTML = 'Caricamento dati in corso...';
+
+            let query = db.collection('attendances');
+
+            if (selectedTeam !== 'ALL') {
+                query = query.where('teamId', '==', selectedTeam);
+            }
+
+            const snapshot = await query.get();
+            logsContainer.innerHTML = '';
+
+            if (snapshot.empty) {
+                logsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessun registro presenze trovato per la selezione attuale.</p>';
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const presents = data.records ? data.records.filter(r => r.status === 'present').length : 0;
+                const total = data.records ? data.records.length : 0;
+
+                logsContainer.innerHTML += `
+                    <div class="p-3 border rounded bg-gray-50 flex justify-between items-center text-sm">
+                        <div>
+                            <span class="font-bold text-blue-800">${data.teamId}</span>
+                            <span class="text-gray-500 text-xs ml-2">Data: ${data.date}</span>
+                        </div>
+                        <div class="font-bold text-gray-700">
+                            Presenti: <span class="text-green-600">${presents}</span> / ${total}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
