@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Scuola Calcio</title>
-    <!-- Tailwind CSS via CDN per interfaccia responsive -->
+    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase App & Firestore SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -146,11 +146,22 @@
                 </select>
             </div>
 
-            <!-- FEED RECENTI / REGISTRO -->
+            <!-- SEZIONE GIOCATORI GRUPPO SELEZIONATO -->
+            <div id="admin-players-section" class="bg-white p-6 rounded-lg shadow hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="admin-team-title">--</span>)</h3>
+                    <button onclick="adminAddPlayer()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded font-bold">+ Aggiungi Giocatore</button>
+                </div>
+                <div id="admin-players-list" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <!-- Giocatori caricati dinamicamente -->
+                </div>
+            </div>
+
+            <!-- FEED RECENTI / REGISTRO PRESENZE -->
             <div class="bg-white p-6 rounded-lg shadow">
-                <h3 class="text-lg font-bold text-gray-700 mb-4">📊 Ultimi Eventi & Presenze Registrate</h3>
+                <h3 class="text-lg font-bold text-gray-700 mb-4">📊 Registro Presenze & Allenamenti</h3>
                 <div id="admin-logs" class="space-y-3">
-                    <p class="text-gray-400 text-sm">Seleziona una squadra o carica i dati...</p>
+                    <p class="text-gray-400 text-sm">Seleziona una squadra per caricare i dati...</p>
                 </div>
             </div>
         </div>
@@ -159,15 +170,15 @@
 
     <!-- SCRIPT LOGICA APPLICATIVA -->
     <script>
-        // 1. CONFIGURAZIONE FIREBASE (Inserisci le tue chiavi ottenute dalla console Firebase)
-       const firebaseConfig = {
-          apiKey: "AIzaSyBv0g2gejMRNsD4INV80ODkYS2QPyCLj30",
-          authDomain: "gestione-scuola-calcio-43987.firebaseapp.com",
-          projectId: "gestione-scuola-calcio-43987",
-          storageBucket: "gestione-scuola-calcio-43987.firebasestorage.app",
-          messagingSenderId: "625497921694",
-          appId: "1:625497921694:web:0e883838e8108a6ced438f",
-          measurementId: "G-N1FSZNKS7N"
+        // 1. CONFIGURAZIONE FIREBASE REALE
+        const firebaseConfig = {
+            apiKey: "AIzaSyBv0g2gejMRNsD4INV80ODkYS2QPyCLj30",
+            authDomain: "gestione-scuola-calcio-43987.firebaseapp.com",
+            projectId: "gestione-scuola-calcio-43987",
+            storageBucket: "gestione-scuola-calcio-43987.firebasestorage.app",
+            messagingSenderId: "625497921694",
+            appId: "1:625497921694:web:0e883838e8108a6ced438f",
+            measurementId: "G-N1FSZNKS7N"
         };
 
         // Inizializzazione
@@ -178,13 +189,12 @@
         let currentUserProfile = null;
         let currentTeamPlayers = [];
 
-        // Imposta la data odierna nell'input presenze
+        // Imposta la data odierna
         document.getElementById('attendance-date').valueAsDate = new Date();
 
-        // 2. GESTIONE AUTENTICAZIONE E RUOLI
+        // 2. AUTENTICAZIONE E RUOLI
         auth.onAuthStateChanged(async (user) => {
             if (user) {
-                // Utente Loggato: recupero profilo e ruolo dal DB
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (userDoc.exists) {
                     currentUserProfile = userDoc.data();
@@ -202,7 +212,6 @@
                     }
                 }
             } else {
-                // Utente Sloggato
                 document.getElementById('user-info').innerText = 'Non connesso';
                 document.getElementById('btn-logout').classList.add('hidden');
                 document.getElementById('section-login').classList.remove('hidden');
@@ -226,7 +235,7 @@
             auth.signOut();
         }
 
-        // 3. LOGICA ALLENATORE (CARICAMENTO GIOCATORI E PRESENZE)
+        // 3. LOGICA ALLENATORE
         async function loadCoachData(teamId) {
             const snapshot = await db.collection('players').where('teamId', '==', teamId).get();
             currentTeamPlayers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -238,13 +247,12 @@
             callupContainer.innerHTML = '';
 
             if (currentTeamPlayers.length === 0) {
-                attendanceContainer.innerHTML = '<p class="text-sm text-gray-400 py-2">Nessun giocatore inserito in rosa. Clicca su "+ Giocatore".</p>';
+                attendanceContainer.innerHTML = '<p class="text-sm text-gray-400 py-2">Nessun giocatore in rosa. Clicca su "+ Giocatore".</p>';
                 callupContainer.innerHTML = '<p class="text-sm text-gray-400 p-1">Nessun giocatore in rosa.</p>';
                 return;
             }
 
             currentTeamPlayers.forEach(player => {
-                // Item Presenza
                 attendanceContainer.innerHTML += `
                     <div class="flex justify-between items-center py-2">
                         <span class="font-medium text-sm text-gray-700">${player.name}</span>
@@ -261,7 +269,6 @@
                     </div>
                 `;
 
-                // Item Convocazione
                 callupContainer.innerHTML += `
                     <label class="flex items-center space-x-2 text-xs p-1 border rounded bg-gray-50">
                         <input type="checkbox" name="callup_player" value="${player.name}" checked class="rounded text-indigo-600">
@@ -329,14 +336,45 @@
             }
         }
 
-        // 4. LOGICA RESPONSABILE TECNICO (SUPERVISIONE)
+        // 4. LOGICA RESPONSABILE TECNICO
         async function loadAdminData() {
             const selectedTeam = document.getElementById('admin-team-filter').value;
             const logsContainer = document.getElementById('admin-logs');
+            const playersSection = document.getElementById('admin-players-section');
+            const playersListContainer = document.getElementById('admin-players-list');
+            const teamTitle = document.getElementById('admin-team-title');
+
             logsContainer.innerHTML = 'Caricamento dati in corso...';
 
-            let query = db.collection('attendances');
+            // GESTIONE SEZIONE GIOCATORI PER SQUADRA
+            if (selectedTeam !== 'ALL') {
+                playersSection.classList.remove('hidden');
+                teamTitle.innerText = selectedTeam;
+                playersListContainer.innerHTML = 'Caricamento giocatori...';
 
+                // Carica rosa del gruppo
+                const playersSnapshot = await db.collection('players').where('teamId', '==', selectedTeam).get();
+                playersListContainer.innerHTML = '';
+
+                if (playersSnapshot.empty) {
+                    playersListContainer.innerHTML = '<p class="text-sm text-gray-400 col-span-2 py-2">Nessun giocatore tesserato per questo gruppo.</p>';
+                } else {
+                    playersSnapshot.forEach(doc => {
+                        const player = doc.data();
+                        playersListContainer.innerHTML += `
+                            <div class="p-2 border rounded bg-gray-50 flex justify-between items-center text-sm">
+                                <span class="font-semibold text-gray-700">⚽ ${player.name}</span>
+                                <button onclick="deletePlayer('${doc.id}')" class="text-xs text-red-500 hover:text-red-700 font-bold">Rimuovi</button>
+                            </div>
+                        `;
+                    });
+                }
+            } else {
+                playersSection.classList.add('hidden');
+            }
+
+            // CARICAMENTO REGISTRO PRESENZE
+            let query = db.collection('attendances');
             if (selectedTeam !== 'ALL') {
                 query = query.where('teamId', '==', selectedTeam);
             }
@@ -345,7 +383,7 @@
             logsContainer.innerHTML = '';
 
             if (snapshot.empty) {
-                logsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessun registro presenze trovato per la selezione attuale.</p>';
+                logsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessun registro presenze trovato.</p>';
                 return;
             }
 
@@ -366,6 +404,27 @@
                     </div>
                 `;
             });
+        }
+
+        async function adminAddPlayer() {
+            const selectedTeam = document.getElementById('admin-team-filter').value;
+            if (selectedTeam === 'ALL') return;
+
+            const name = prompt(`Nome e Cognome del Giocatore da aggiungere a "${selectedTeam}":`);
+            if (name && name.trim() !== "") {
+                await db.collection('players').add({
+                    name: name.trim(),
+                    teamId: selectedTeam
+                });
+                loadAdminData();
+            }
+        }
+
+        async function deletePlayer(playerId) {
+            if (confirm("Sei sicuro di voler rimuovere questo giocatore dalla rosa?")) {
+                await db.collection('players').doc(playerId).delete();
+                loadAdminData();
+            }
         }
     </script>
 </body>
