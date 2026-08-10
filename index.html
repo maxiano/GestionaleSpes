@@ -104,8 +104,8 @@
         </button>
     </nav>
 
-    <!-- INTESTAZIONE REPORT DI STAMPA GENERICA -->
-    <div id="generic-print-header" class="hidden print:block p-2 border-b-2 border-black mb-3">
+    <!-- INTESTAZIONE UNICA REPORT DI STAMPA -->
+    <div id="generic-print-header" class="hidden print:block p-2 border-b-2 border-black mb-4">
         <div class="flex justify-between items-center">
             <div>
                 <h1 class="text-xl font-bold uppercase tracking-wide">Scuola Calcio Spes Montesacro</h1>
@@ -973,9 +973,9 @@
 
             const opponent = document.getElementById('match-opponent').value.trim();
             const location = document.getElementById('match-location').value.trim();
-            const matchDate = document.getElementById('match-date').value; // YYYY-MM-DD
-            const matchTime = document.getElementById('match-time').value; // HH:MM
-            const gatheringTime = document.getElementById('gathering-time').value; // HH:MM
+            const matchDate = document.getElementById('match-date').value;
+            const matchTime = document.getElementById('match-time').value;
+            const gatheringTime = document.getElementById('gathering-time').value;
 
             if (!matchDate || !matchTime || !gatheringTime) {
                 return alert("Compila il giorno, l'orario della partita e l'orario di convocazione al campo!");
@@ -1119,6 +1119,9 @@
             let matchTimeStr = callup.matchTime || '--:--';
             let gatheringTimeStr = callup.gatheringTime || '--:--';
 
+            // Impostiamo la dicitura del documento nell'intestazione unica di stampa
+            document.getElementById('print-report-period').innerText = 'Modulo Convocazione Gara Ufficiale';
+
             // Ordinamento alfabetico per Cognome dei giocatori convocati
             const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
 
@@ -1133,20 +1136,8 @@
                 `;
             });
 
+            // Inserimento dettagli partita ed elenco senza riprodurre l'intestazione generale della società
             printContainer.innerHTML = `
-                <div class="border-b-2 border-black pb-3 mb-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h1 class="text-2xl font-black uppercase tracking-wider">SCUOLA CALCIO SPES MONTESACRO</h1>
-                            <h2 class="text-lg font-bold text-gray-800 mt-1">SQUADRA: ${activeTeamId}</h2>
-                        </div>
-                        <div class="text-right text-xs">
-                            <p class="font-bold">Stagione Sportiva 2026/2027</p>
-                            <p class="text-gray-600">Modulo Convocazione Gara</p>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="bg-gray-100 border border-black p-3 mb-4 rounded space-y-1 text-sm">
                     <p class="text-base font-extrabold text-black">⚽ PARTITA: Spes Montesacro vs ${callup.opponent}</p>
                     <div class="grid grid-cols-2 gap-2 pt-1 font-semibold">
@@ -1175,14 +1166,8 @@
 
             document.body.classList.remove('print-landscape', 'print-monthly', 'print-roster');
             document.body.classList.add('print-callup');
-            
-            // Nascondiamo l'intestazione generica solo per la stampa delle convocazioni per evitare sovrapposizioni
-            document.getElementById('generic-print-header').classList.add('print:hidden');
 
             window.print();
-
-            // Ripristiniamo la visibilità dopo il comando di stampa
-            document.getElementById('generic-print-header').classList.remove('print:hidden');
         }
 
         async function deleteCallup(callupId) {
