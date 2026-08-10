@@ -31,7 +31,7 @@
             .print\:hidden { display: none !important; }
             .print\:block { display: block !important; }
 
-            #tab-attendance { display: none !important; }
+            #tab-attendance, #tab-staff { display: none !important; }
             body:not(.print-roster) #tab-roster { display: none !important; }
             body:not(.print-monthly) #tab-monthly { display: none !important; }
             body:not(.print-callup) #tab-callup { display: none !important; }
@@ -155,7 +155,7 @@
             </div>
 
             <!-- BARRA MENU A TAB -->
-            <div id="navigation-tabs" class="bg-white rounded-lg shadow p-1 flex space-x-1 border-b print:hidden hidden">
+            <div id="navigation-tabs" class="bg-white rounded-lg shadow p-1 flex flex-wrap space-x-1 border-b print:hidden hidden">
                 <button id="btn-tab-attendance" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100">
                     ⚽ Registra Presenze
                 </button>
@@ -167,6 +167,10 @@
                 </button>
                 <button id="btn-tab-callup" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
                     📩 Convocazioni
+                </button>
+                <!-- TAB RISERVATA ESCLUSIVAMENTE ALL'ADMIN -->
+                <button id="btn-tab-staff" class="tab-btn hidden flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 transition border border-purple-200">
+                    ⚙️ Gestione Staff/Coach
                 </button>
             </div>
 
@@ -199,7 +203,7 @@
                         </div>
                         
                         <div id="attendance-players-inputs" class="divide-y space-y-2 mb-4 border rounded p-3 bg-white max-h-96 overflow-y-auto">
-                            <!-- Caricato dinamicamente con supporti estesi: P, A, AG, INF, R -->
+                            <!-- Caricato dinamicamente -->
                         </div>
 
                         <div class="flex justify-between items-center pt-2">
@@ -354,6 +358,94 @@
                     </div>
                 </div>
 
+                <!-- TAB 5: ESCLUSIVA ADMIN - GESTIONE STAFF/COACH -->
+                <div id="tab-staff" class="tab-content hidden print:hidden bg-white p-6 rounded-lg shadow space-y-6">
+                    <div class="border-b pb-3">
+                        <h3 class="text-lg font-bold text-purple-900">⚙️ Pannello Amministrazione: Gestione Staff & Coach</h3>
+                        <p class="text-xs text-gray-500">Crea o rimuovi le credenziali di accesso per gli allenatori e la direzione della Scuola Calcio Spes Montesacro.</p>
+                    </div>
+
+                    <!-- FORM CREAZIONE NUOVO COACH/UTENTE -->
+                    <form id="form-create-staff" class="bg-purple-50 p-4 border border-purple-200 rounded-lg space-y-3">
+                        <h4 class="text-sm font-bold text-purple-800">➕ Registra Nuovo Utente / Coach</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Nome e Cognome *</label>
+                                <input type="text" id="staff-name" placeholder="es. Mister Mario Rossi" required class="w-full border p-2 rounded text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Email di Accesso *</label>
+                                <input type="email" id="staff-email" placeholder="mister.rossi@spesmontesacro.it" required class="w-full border p-2 rounded text-xs bg-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Password Iniziale *</label>
+                                <input type="password" id="staff-password" minlength="6" placeholder="minimo 6 caratteri" required class="w-full border p-2 rounded text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Ruolo / Permessi *</label>
+                                <select id="staff-role" required class="w-full border p-2 rounded text-xs bg-white">
+                                    <option value="coach">Coach / Allenatore</option>
+                                    <option value="admin">Responsabile Tecnico (Admin)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Squadra / Gruppo Assegnato</label>
+                                <select id="staff-team" class="w-full border p-2 rounded text-xs bg-white">
+                                    <option value="">Tutte le squadre (Solo per Admin)</option>
+                                    <optgroup label="2014 (Esordienti)">
+                                        <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
+                                        <option value="2014 - Gruppo Verde">2014 - Gruppo Verde</option>
+                                    </optgroup>
+                                    <optgroup label="2015 (Pulcini)">
+                                        <option value="2015 - Gruppo Nero">2015 - Gruppo Nero</option>
+                                        <option value="2015 - Gruppo Verde">2015 - Gruppo Verde</option>
+                                    </optgroup>
+                                    <optgroup label="2016 (Pulcini)">
+                                        <option value="2016 - Gruppo Nero">2016 - Gruppo Nero</option>
+                                        <option value="2016 - Gruppo Verde">2016 - Gruppo Verde</option>
+                                        <option value="2016 - Gruppo Giallo">2016 - Gruppo Giallo</option>
+                                    </optgroup>
+                                    <optgroup label="2017 (Primi Calci)">
+                                        <option value="2017 - Gruppo Nero">2017 - Gruppo Nero</option>
+                                        <option value="2017 - Gruppo Verde">2017 - Gruppo Verde</option>
+                                        <option value="2017 - Gruppo Giallo">2017 - Gruppo Giallo</option>
+                                    </optgroup>
+                                    <optgroup label="2018 (Primi Calci)">
+                                        <option value="2018 - Gruppo Nero">2018 - Gruppo Nero</option>
+                                        <option value="2018 - Gruppo Verde">2018 - Gruppo Verde</option>
+                                        <option value="2018 - Gruppo Giallo">2018 - Gruppo Giallo</option>
+                                    </optgroup>
+                                    <optgroup label="2019 (Piccoli Amici)">
+                                        <option value="2019 - Gruppo Nero">2019 - Gruppo Nero</option>
+                                        <option value="2019 - Gruppo Verde">2019 - Gruppo Verde</option>
+                                        <option value="2019 - Gruppo Giallo">2019 - Gruppo Giallo</option>
+                                    </optgroup>
+                                    <optgroup label="2020-2021 (Piccoli Amici)">
+                                        <option value="2020-21 - Gruppo Nero">2020-21 - Gruppo Nero</option>
+                                        <option value="2020-21 - Gruppo Verde">2020-21 - Gruppo Verde</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-4 py-2 rounded transition">
+                            🚀 Crea Account Coach
+                        </button>
+                    </form>
+
+                    <!-- LISTA UTENTI STAFF ATTUALI -->
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-700 mb-3">📋 Staff Tecnico Registrato</h4>
+                        <div id="staff-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <!-- Caricato via JS -->
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -430,6 +522,7 @@
             doc, 
             getDoc, 
             getDocs, 
+            setDoc,
             addDoc, 
             updateDoc, 
             deleteDoc, 
@@ -559,16 +652,25 @@
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
+                if (btn.id === 'btn-tab-staff') {
+                    btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 transition border border-purple-200";
+                } else {
+                    btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
+                }
             });
 
             document.getElementById(tabId).classList.remove('hidden');
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
-                activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100";
+                if (tabId === 'tab-staff') {
+                    activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-purple-700 shadow";
+                } else {
+                    activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100";
+                }
             }
 
             if (tabId === 'tab-callup') loadCallups();
+            if (tabId === 'tab-staff') loadStaffList();
         }
 
         // GESTIONE AUTENTICAZIONE UTENTE
@@ -579,7 +681,7 @@
                 
                 if (userDoc.exists()) {
                     currentUserProfile = userDoc.data();
-                    document.getElementById('user-info').innerText = `${currentUserProfile.name} (${currentUserProfile.role})`;
+                    document.getElementById('user-info').innerText = `${currentUserProfile.name} (${currentUserProfile.role.toUpperCase()})`;
                     document.getElementById('btn-logout').classList.remove('hidden');
                     document.getElementById('section-login').classList.add('hidden');
                     document.getElementById('app-dashboard').classList.remove('hidden');
@@ -588,6 +690,7 @@
                         document.getElementById('dashboard-role-title').innerText = "Panoramica Responsabile Tecnico";
                         document.getElementById('dashboard-subtitle').innerText = "Seleziona un gruppo per iniziare";
                         document.getElementById('admin-team-selector').classList.remove('hidden');
+                        document.getElementById('btn-tab-staff').classList.remove('hidden');
                         document.getElementById('navigation-tabs').classList.add('hidden');
                         document.getElementById('main-content-area').classList.add('hidden');
                     } else {
@@ -595,6 +698,7 @@
                         document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach";
                         document.getElementById('dashboard-subtitle').innerText = `Squadra: ${activeTeamId}`;
                         document.getElementById('admin-team-selector').classList.add('hidden');
+                        document.getElementById('btn-tab-staff').classList.add('hidden');
                         document.getElementById('navigation-tabs').classList.remove('hidden');
                         document.getElementById('main-content-area').classList.remove('hidden');
                         loadTeamData();
@@ -635,6 +739,121 @@
                 document.getElementById('main-content-area').classList.add('hidden');
             }
         });
+
+        // GESTIONE CREAZIONE ED ELIMINAZIONE UTENTI STAFF/COACH (SOLO ADMIN)
+        document.getElementById('form-create-staff').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUserProfile || currentUserProfile.role !== 'admin') {
+                return alert("Azione riservata unicamente agli Admin!");
+            }
+
+            const name = document.getElementById('staff-name').value.trim();
+            const email = document.getElementById('staff-email').value.trim();
+            const password = document.getElementById('staff-password').value;
+            const role = document.getElementById('staff-role').value;
+            const teamId = document.getElementById('staff-team').value;
+
+            if (role === 'coach' && !teamId) {
+                return alert("Seleziona una squadra di competenza per il Coach!");
+            }
+
+            try {
+                // Utilizzo dell'endpoint REST Firebase Auth per registrare l'utente senza disconnettere l'Admin corrente
+                const signUpUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`;
+                const response = await fetch(signUpUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        returnSecureToken: true
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error ? data.error.message : "Errore durante la creazione dell'account");
+                }
+
+                const newUid = data.localId;
+
+                // Salva il profilo utente su Firestore nella collezione `users`
+                await setDoc(doc(db, 'users', newUid), {
+                    uid: newUid,
+                    name: name,
+                    email: email,
+                    role: role,
+                    teamId: teamId || 'ALL',
+                    createdAt: serverTimestamp()
+                });
+
+                alert(`Account ${role.toUpperCase()} creato con successo per ${name}!`);
+                document.getElementById('form-create-staff').reset();
+                loadStaffList();
+
+            } catch (err) {
+                alert("Errore creazione account: " + err.message);
+            }
+        });
+
+        async function loadStaffList() {
+            const container = document.getElementById('staff-list-container');
+            if (!container) return;
+
+            try {
+                const snapshot = await getDocs(collection(db, 'users'));
+                if (snapshot.empty) {
+                    container.innerHTML = '<p class="text-xs text-gray-400">Nessun utente staff trovato.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                snapshot.forEach(docSnap => {
+                    const user = docSnap.data();
+                    const userId = docSnap.id;
+                    const isSelf = auth.currentUser && auth.currentUser.uid === userId;
+
+                    container.innerHTML += `
+                        <div class="border p-3 rounded bg-white flex justify-between items-center text-xs shadow-sm">
+                            <div class="space-y-1">
+                                <p class="font-bold text-sm text-gray-800">${user.name} ${isSelf ? '<span class="text-xs text-blue-600">(Tu)</span>' : ''}</p>
+                                <p class="text-gray-600">📧 <strong>Email:</strong> ${user.email}</p>
+                                <p class="text-gray-600">
+                                    🛡️ <strong>Ruolo:</strong> <span class="uppercase font-bold ${user.role === 'admin' ? 'text-purple-700' : 'text-blue-700'}">${user.role}</span> | 
+                                    🏆 <strong>Squadra:</strong> ${user.teamId || 'Tutte'}
+                                </p>
+                            </div>
+                            <div>
+                                ${!isSelf ? `
+                                    <button data-id="${userId}" class="btn-delete-staff text-xs bg-red-100 hover:bg-red-200 text-red-700 font-bold px-2 py-1 rounded transition">
+                                        🗑️ Elimina
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.querySelectorAll('.btn-delete-staff').forEach(btn => {
+                    btn.addEventListener('click', (e) => deleteStaffUser(e.target.getAttribute('data-id')));
+                });
+
+            } catch (err) {
+                container.innerHTML = `<p class="text-xs text-red-500">Errore: ${err.message}</p>`;
+            }
+        }
+
+        async function deleteStaffUser(userId) {
+            if (!confirm("Sei sicuro di voler eliminare questo utente dallo staff? L'utente non potrà più accedere.")) return;
+            try {
+                await deleteDoc(doc(db, 'users', userId));
+                alert("Profilo utente rimosso da Firestore!");
+                loadStaffList();
+            } catch (err) {
+                alert("Errore eliminazione utente: " + err.message);
+            }
+        }
 
         // CARICAMENTO ED ELABORAZIONE DATI SQUADRA
         async function loadTeamData(forceRefresh = false) {
@@ -1364,6 +1583,7 @@
         document.getElementById('btn-tab-monthly').addEventListener('click', () => switchTab('tab-monthly'));
         document.getElementById('btn-tab-roster').addEventListener('click', () => switchTab('tab-roster'));
         document.getElementById('btn-tab-callup').addEventListener('click', () => switchTab('tab-callup'));
+        document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-staff'));
 
     </script>
 </body>
