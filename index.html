@@ -114,11 +114,30 @@
                 </div>
             </div>
 
-            <!-- FILTRO SQUADRE -->
-            <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex items-center space-x-3 print:hidden hidden">
+            <!-- BARRA MENU A TAB (STAFF PER PRIMA) -->
+            <div id="navigation-tabs" class="bg-white rounded-lg shadow p-1 flex flex-wrap space-x-1 border-b print:hidden hidden">
+                <button id="btn-tab-staff" class="tab-btn hidden flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 transition border border-purple-200">
+                    ⚙️ Gestione Staff/Coach
+                </button>
+                <button id="btn-tab-attendance" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100">
+                    ⚽ Registra Presenze
+                </button>
+                <button id="btn-tab-monthly" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                    📊 Registro Mensile
+                </button>
+                <button id="btn-tab-roster" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                    👥 Rosa Giocatori
+                </button>
+                <button id="btn-tab-callup" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                    📩 Convocazioni
+                </button>
+            </div>
+
+            <!-- FILTRO SQUADRE (POSIZIONATO SOTTO LE TAB) -->
+            <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex items-center space-x-3 print:hidden hidden border-l-4 border-indigo-500">
                 <label class="text-sm font-bold text-gray-600">Seleziona Categoria/Gruppo:</label>
                 <select id="admin-team-filter" class="border p-2 rounded text-sm flex-1 bg-white">
-                    <option value="ALL">Seleziona un gruppo...</option>
+                    <option value="ALL">-- Scegli un gruppo per vedere presenze e rosa --</option>
                     <optgroup label="2014 (Esordienti)">
                         <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
                         <option value="2014 - Gruppo Verde">2014 - Gruppo Verde</option>
@@ -154,28 +173,96 @@
                 </select>
             </div>
 
-            <!-- BARRA MENU A TAB -->
-            <div id="navigation-tabs" class="bg-white rounded-lg shadow p-1 flex flex-wrap space-x-1 border-b print:hidden hidden">
-                <button id="btn-tab-attendance" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-blue-700 bg-blue-100">
-                    ⚽ Registra Presenze
-                </button>
-                <button id="btn-tab-monthly" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
-                    📊 Registro Mensile
-                </button>
-                <button id="btn-tab-roster" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
-                    👥 Rosa Giocatori
-                </button>
-                <button id="btn-tab-callup" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
-                    📩 Convocazioni
-                </button>
-                <!-- TAB RISERVATA ESCLUSIVAMENTE ALL'ADMIN -->
-                <button id="btn-tab-staff" class="tab-btn hidden flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 transition border border-purple-200">
-                    ⚙️ Gestione Staff/Coach
-                </button>
-            </div>
-
             <!-- CONTENUTI OPERATIVI SEPARATI PER TAB -->
             <div id="main-content-area" class="hidden">
+
+                <!-- TAB ESCLUSIVA ADMIN - GESTIONE STAFF/COACH (ORA PRIMA SEZIONE) -->
+                <div id="tab-staff" class="tab-content hidden print:hidden bg-white p-6 rounded-lg shadow space-y-6">
+                    <div class="border-b pb-3">
+                        <h3 class="text-lg font-bold text-purple-900">⚙️ Pannello Amministrazione: Gestione Staff & Coach</h3>
+                        <p class="text-xs text-gray-500">Crea o rimuovi le credenziali di accesso per gli allenatori e la direzione della Scuola Calcio Spes Montesacro.</p>
+                    </div>
+
+                    <!-- FORM CREAZIONE NUOVO COACH/UTENTE -->
+                    <form id="form-create-staff" class="bg-purple-50 p-4 border border-purple-200 rounded-lg space-y-3">
+                        <h4 class="text-sm font-bold text-purple-800">➕ Registra Nuovo Utente / Coach</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Nome e Cognome *</label>
+                                <input type="text" id="staff-name" placeholder="es. Mister Mario Rossi" required class="w-full border p-2 rounded text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Email di Accesso *</label>
+                                <input type="email" id="staff-email" placeholder="mister.rossi@spesmontesacro.it" required class="w-full border p-2 rounded text-xs bg-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Password Iniziale *</label>
+                                <input type="password" id="staff-password" minlength="6" placeholder="minimo 6 caratteri" required class="w-full border p-2 rounded text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Ruolo / Permessi *</label>
+                                <select id="staff-role" required class="w-full border p-2 rounded text-xs bg-white">
+                                    <option value="coach">Coach / Allenatore</option>
+                                    <option value="admin">Responsabile Tecnico (Admin)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Squadra / Gruppo Assegnato</label>
+                                <select id="staff-team" class="w-full border p-2 rounded text-xs bg-white">
+                                    <option value="">Tutte le squadre (Solo per Admin)</option>
+                                    <optgroup label="2014 (Esordienti)">
+                                        <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
+                                        <option value="2014 - Gruppo Verde">2014 - Gruppo Verde</option>
+                                    </optgroup>
+                                    <optgroup label="2015 (Pulcini)">
+                                        <option value="2015 - Gruppo Nero">2015 - Gruppo Nero</option>
+                                        <option value="2015 - Gruppo Verde">2015 - Gruppo Verde</option>
+                                    </optgroup>
+                                    <optgroup label="2016 (Pulcini)">
+                                        <option value="2016 - Gruppo Nero">2016 - Gruppo Nero</option>
+                                        <option value="2016 - Gruppo Verde">2016 - Gruppo Verde</option>
+                                        <option value="2016 - Gruppo Giallo">2016 - Gruppo Giallo</option>
+                                    </optgroup>
+                                    <optgroup label="2017 (Primi Calci)">
+                                        <option value="2017 - Gruppo Nero">2017 - Gruppo Nero</option>
+                                        <option value="2017 - Gruppo Verde">2017 - Gruppo Verde</option>
+                                        <option value="2017 - Gruppo Giallo">2017 - Gruppo Giallo</option>
+                                    </optgroup>
+                                    <optgroup label="2018 (Primi Calci)">
+                                        <option value="2018 - Gruppo Nero">2018 - Gruppo Nero</option>
+                                        <option value="2018 - Gruppo Verde">2018 - Gruppo Verde</option>
+                                        <option value="2018 - Gruppo Giallo">2018 - Gruppo Giallo</option>
+                                    </optgroup>
+                                    <optgroup label="2019 (Piccoli Amici)">
+                                        <option value="2019 - Gruppo Nero">2019 - Gruppo Nero</option>
+                                        <option value="2019 - Gruppo Verde">2019 - Gruppo Verde</option>
+                                        <option value="2019 - Gruppo Giallo">2019 - Gruppo Giallo</option>
+                                    </optgroup>
+                                    <optgroup label="2020-2021 (Piccoli Amici)">
+                                        <option value="2020-21 - Gruppo Nero">2020-21 - Gruppo Nero</option>
+                                        <option value="2020-21 - Gruppo Verde">2020-21 - Gruppo Verde</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-4 py-2 rounded transition">
+                            🚀 Crea Account Coach
+                        </button>
+                    </form>
+
+                    <!-- LISTA UTENTI STAFF ATTUALI -->
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-700 mb-3">📋 Staff Tecnico Registrato</h4>
+                        <div id="staff-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <!-- Caricato via JS -->
+                        </div>
+                    </div>
+                </div>
 
                 <!-- TAB 1: REGISTRA NUOVO ALLENAMENTO E PRESENZE -->
                 <div id="tab-attendance" class="tab-content print:hidden bg-white p-6 rounded-lg shadow">
@@ -359,94 +446,6 @@
                     <!-- CONTENITORE STAMPA CONVOCAZIONE DEDICATO -->
                     <div id="callup-print-container" class="hidden print:block">
                         <!-- Generato dinamicamente per la stampa -->
-                    </div>
-                </div>
-
-                <!-- TAB 5: ESCLUSIVA ADMIN - GESTIONE STAFF/COACH -->
-                <div id="tab-staff" class="tab-content hidden print:hidden bg-white p-6 rounded-lg shadow space-y-6">
-                    <div class="border-b pb-3">
-                        <h3 class="text-lg font-bold text-purple-900">⚙️ Pannello Amministrazione: Gestione Staff & Coach</h3>
-                        <p class="text-xs text-gray-500">Crea o rimuovi le credenziali di accesso per gli allenatori e la direzione della Scuola Calcio Spes Montesacro.</p>
-                    </div>
-
-                    <!-- FORM CREAZIONE NUOVO COACH/UTENTE -->
-                    <form id="form-create-staff" class="bg-purple-50 p-4 border border-purple-200 rounded-lg space-y-3">
-                        <h4 class="text-sm font-bold text-purple-800">➕ Registra Nuovo Utente / Coach</h4>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-700 mb-1">Nome e Cognome *</label>
-                                <input type="text" id="staff-name" placeholder="es. Mister Mario Rossi" required class="w-full border p-2 rounded text-xs bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-700 mb-1">Email di Accesso *</label>
-                                <input type="email" id="staff-email" placeholder="mister.rossi@spesmontesacro.it" required class="w-full border p-2 rounded text-xs bg-white">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-700 mb-1">Password Iniziale *</label>
-                                <input type="password" id="staff-password" minlength="6" placeholder="minimo 6 caratteri" required class="w-full border p-2 rounded text-xs bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-700 mb-1">Ruolo / Permessi *</label>
-                                <select id="staff-role" required class="w-full border p-2 rounded text-xs bg-white">
-                                    <option value="coach">Coach / Allenatore</option>
-                                    <option value="admin">Responsabile Tecnico (Admin)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-700 mb-1">Squadra / Gruppo Assegnato</label>
-                                <select id="staff-team" class="w-full border p-2 rounded text-xs bg-white">
-                                    <option value="">Tutte le squadre (Solo per Admin)</option>
-                                    <optgroup label="2014 (Esordienti)">
-                                        <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
-                                        <option value="2014 - Gruppo Verde">2014 - Gruppo Verde</option>
-                                    </optgroup>
-                                    <optgroup label="2015 (Pulcini)">
-                                        <option value="2015 - Gruppo Nero">2015 - Gruppo Nero</option>
-                                        <option value="2015 - Gruppo Verde">2015 - Gruppo Verde</option>
-                                    </optgroup>
-                                    <optgroup label="2016 (Pulcini)">
-                                        <option value="2016 - Gruppo Nero">2016 - Gruppo Nero</option>
-                                        <option value="2016 - Gruppo Verde">2016 - Gruppo Verde</option>
-                                        <option value="2016 - Gruppo Giallo">2016 - Gruppo Giallo</option>
-                                    </optgroup>
-                                    <optgroup label="2017 (Primi Calci)">
-                                        <option value="2017 - Gruppo Nero">2017 - Gruppo Nero</option>
-                                        <option value="2017 - Gruppo Verde">2017 - Gruppo Verde</option>
-                                        <option value="2017 - Gruppo Giallo">2017 - Gruppo Giallo</option>
-                                    </optgroup>
-                                    <optgroup label="2018 (Primi Calci)">
-                                        <option value="2018 - Gruppo Nero">2018 - Gruppo Nero</option>
-                                        <option value="2018 - Gruppo Verde">2018 - Gruppo Verde</option>
-                                        <option value="2018 - Gruppo Giallo">2018 - Gruppo Giallo</option>
-                                    </optgroup>
-                                    <optgroup label="2019 (Piccoli Amici)">
-                                        <option value="2019 - Gruppo Nero">2019 - Gruppo Nero</option>
-                                        <option value="2019 - Gruppo Verde">2019 - Gruppo Verde</option>
-                                        <option value="2019 - Gruppo Giallo">2019 - Gruppo Giallo</option>
-                                    </optgroup>
-                                    <optgroup label="2020-2021 (Piccoli Amici)">
-                                        <option value="2020-21 - Gruppo Nero">2020-21 - Gruppo Nero</option>
-                                        <option value="2020-21 - Gruppo Verde">2020-21 - Gruppo Verde</option>
-                                    </optgroup>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-4 py-2 rounded transition">
-                            🚀 Crea Account Coach
-                        </button>
-                    </form>
-
-                    <!-- LISTA UTENTI STAFF ATTUALI -->
-                    <div>
-                        <h4 class="text-sm font-bold text-gray-700 mb-3">📋 Staff Tecnico Registrato</h4>
-                        <div id="staff-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <!-- Caricato via JS -->
-                        </div>
                     </div>
                 </div>
 
@@ -665,6 +664,16 @@
                 }
             });
 
+            // MOSTRA O NASCONDE IL FILTRO SQUADRA IN BASE ALLA TAB ATTIVA (PER GLI ADMIN)
+            const teamSelector = document.getElementById('admin-team-selector');
+            if (currentUserProfile && currentUserProfile.role === 'admin') {
+                if (tabId === 'tab-staff') {
+                    teamSelector.classList.add('hidden');
+                } else {
+                    teamSelector.classList.remove('hidden');
+                }
+            }
+
             document.getElementById(tabId).classList.remove('hidden');
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
@@ -694,11 +703,14 @@
 
                     if (currentUserProfile.role === 'admin') {
                         document.getElementById('dashboard-role-title').innerText = "Panoramica Responsabile Tecnico";
-                        document.getElementById('dashboard-subtitle').innerText = "Seleziona un gruppo per iniziare";
-                        document.getElementById('admin-team-selector').classList.remove('hidden');
+                        document.getElementById('dashboard-subtitle').innerText = "Gestisci lo Staff o seleziona un gruppo squadra";
+                        document.getElementById('admin-team-selector').classList.add('hidden');
                         document.getElementById('btn-tab-staff').classList.remove('hidden');
-                        document.getElementById('navigation-tabs').classList.add('hidden');
-                        document.getElementById('main-content-area').classList.add('hidden');
+                        document.getElementById('navigation-tabs').classList.remove('hidden');
+                        document.getElementById('main-content-area').classList.remove('hidden');
+                        
+                        // Default all'accesso Admin: direttamente alla gestione Staff
+                        switchTab('tab-staff');
                     } else {
                         activeTeamId = currentUserProfile.teamId;
                         document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach";
@@ -707,6 +719,7 @@
                         document.getElementById('btn-tab-staff').classList.add('hidden');
                         document.getElementById('navigation-tabs').classList.remove('hidden');
                         document.getElementById('main-content-area').classList.remove('hidden');
+                        switchTab('tab-attendance');
                         loadTeamData();
                     }
                 }
@@ -734,15 +747,11 @@
             const selected = document.getElementById('admin-team-filter').value;
             if (selected !== 'ALL') {
                 activeTeamId = selected;
-                document.getElementById('navigation-tabs').classList.remove('hidden');
-                document.getElementById('main-content-area').classList.remove('hidden');
                 document.getElementById('dashboard-subtitle').innerText = `Gruppo Selezionato: ${activeTeamId}`;
-                switchTab('tab-attendance');
                 loadTeamData();
             } else {
                 activeTeamId = null;
-                document.getElementById('navigation-tabs').classList.add('hidden');
-                document.getElementById('main-content-area').classList.add('hidden');
+                document.getElementById('dashboard-subtitle').innerText = "Seleziona un gruppo squadra";
             }
         });
 
@@ -764,7 +773,7 @@
             }
 
             try {
-                // Utilizzo dell'endpoint REST Firebase Auth per registrare l'utente senza disconnettere l'Admin corrente
+                // REST API Firebase Auth per creare l'account senza disconnettere l'Admin
                 const signUpUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`;
                 const response = await fetch(signUpUrl, {
                     method: 'POST',
@@ -784,7 +793,7 @@
 
                 const newUid = data.localId;
 
-                // Salva il profilo utente su Firestore nella collezione `users`
+                // Salva il profilo su Firestore
                 await setDoc(doc(db, 'users', newUid), {
                     uid: newUid,
                     name: name,
@@ -893,7 +902,7 @@
             renderCallupCheckboxes();
             checkAndLoadExistingAttendance();
             
-            // CARICAMENTO IN BACKGROUND DELLE PRESENZE MENSILI (CACHE WARMING)
+            // CARICAMENTO IN BACKGROUND DELLE PRESENZE MENSILI
             loadMonthlyAttendances(forceRefresh);
         }
 
@@ -904,7 +913,7 @@
             printContainer.innerHTML = '';
 
             if (activeTeamPlayers.length === 0) {
-                container.innerHTML = '<p class="text-sm text-gray-400 col-span-2">Nessun giocatore in rosa.</p>';
+                container.innerHTML = '<p class="text-sm text-gray-400 col-span-2">Nessun giocatore in rosa per la squadra selezionata.</p>';
                 printContainer.innerHTML = '<p class="text-sm text-gray-400">Nessun giocatore in rosa.</p>';
                 return;
             }
@@ -943,7 +952,6 @@
                 `;
             });
 
-            // GESTIONE DELEGA EVENTI PER MODIFICA ED ELIMINAZIONE GIOCATORI
             container.querySelectorAll('.btn-edit-player').forEach(btn => {
                 btn.addEventListener('click', (e) => openEditPlayerModal(e.target.getAttribute('data-id')));
             });
@@ -988,7 +996,7 @@
             container.innerHTML = '';
 
             if (activeTeamPlayers.length === 0) {
-                container.innerHTML = '<p class="text-sm text-gray-400">Nessun giocatore in rosa.</p>';
+                container.innerHTML = '<p class="text-sm text-gray-400">Seleziona una squadra per registrare le presenze.</p>';
                 return;
             }
 
@@ -1099,7 +1107,7 @@
 
         document.getElementById('form-attendance').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!activeTeamId || activeTeamPlayers.length === 0) return alert('Nessuna squadra o giocatore presente!');
+            if (!activeTeamId || activeTeamPlayers.length === 0) return alert('Seleziona un gruppo squadra prima di salvare!');
 
             const date = document.getElementById('attendance-date').value;
             if (!date) return alert('Seleziona una data valida!');
@@ -1431,7 +1439,6 @@
                     `;
                 });
 
-                // ASSEGNAZIONE EVENTI DINAMICI
                 container.querySelectorAll('.btn-share-callup-wa').forEach(b => {
                     b.addEventListener('click', (e) => shareCallupWhatsApp(e.target.getAttribute('data-id')));
                 });
@@ -1536,9 +1543,9 @@
             window.print();
         });
 
-        // MODALE E GESTIONE GIOCATORE (CREAZIONE E MODIFICA)
+        // MODALE E GESTIONE GIOCATORE
         document.getElementById('btn-open-add-player').addEventListener('click', () => {
-            if (!activeTeamId) return alert('Seleziona prima una squadra!');
+            if (!activeTeamId) return alert('Seleziona prima un gruppo squadra dal menu!');
             document.getElementById('player-edit-id').value = '';
             document.getElementById('modal-player-title').innerText = 'Aggiungi Nuovo Giocatore';
             document.getElementById('player-first-name').value = '';
@@ -1597,12 +1604,10 @@
                 };
 
                 if (playerId) {
-                    // Aggiornamento giocatore esistente
                     const docRef = doc(db, 'players', playerId);
                     await updateDoc(docRef, playerData);
                     alert("Dati giocatore aggiornati con successo!");
                 } else {
-                    // Creazione nuovo giocatore
                     await addDoc(collection(db, 'players'), playerData);
                     alert("Nuovo giocatore aggiunto con successo!");
                 }
@@ -1632,11 +1637,11 @@
         document.getElementById('btn-reset-attendance-radios').addEventListener('click', resetAttendanceRadios);
 
         // GESTIONE NAVIGAZIONE A TAB
+        document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-staff'));
         document.getElementById('btn-tab-attendance').addEventListener('click', () => switchTab('tab-attendance'));
         document.getElementById('btn-tab-monthly').addEventListener('click', () => switchTab('tab-monthly'));
         document.getElementById('btn-tab-roster').addEventListener('click', () => switchTab('tab-roster'));
         document.getElementById('btn-tab-callup').addEventListener('click', () => switchTab('tab-callup'));
-        document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-staff'));
 
     </script>
 </body>
