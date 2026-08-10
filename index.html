@@ -61,7 +61,7 @@
             <p id="user-info" class="text-xs text-blue-200">Caricamento utente...</p>
         </div>
         <div class="flex items-center space-x-3">
-            <!-- VOCE MENU STAFF NELLA BARRA SUPERIORE (VISIBILE SOLO ADMIN) -->
+            <!-- VOCE MENU STAFF NELLA BARRA SUPERIORE (NASCOSTA DI DEFAULT, VISIBILE SOLO PER ADMIN) -->
             <button id="nav-btn-staff" class="hidden bg-purple-700 hover:bg-purple-800 text-white text-xs px-3 py-2 rounded font-semibold transition border border-purple-400">
                 ⚙️ Gestione Staff/Coach
             </button>
@@ -157,7 +157,6 @@
                         </optgroup>
                     </select>
                 </div>
-                <!-- SPOSTATO DOPO LA SELEZIONE DEL GRUPPO -->
                 <button id="btn-open-add-player" class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded font-bold transition whitespace-nowrap">
                     + Aggiungi Giocatore
                 </button>
@@ -177,7 +176,7 @@
                 <button id="btn-tab-callup" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
                     📩 Convocazioni
                 </button>
-                <!-- TAB RISERVATA ESCLUSIVAMENTE ALL'ADMIN -->
+                <!-- TAB ESCLUSIVA ADMIN (NASCOSTA DI DEFAULT) -->
                 <button id="btn-tab-staff" class="tab-btn hidden flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 transition border border-purple-200">
                     ⚙️ Gestione Staff/Coach
                 </button>
@@ -659,6 +658,11 @@
         }
 
         function switchTab(tabId) {
+            // Se l'utente non è admin e tenta di entrare nello staff, blocca l'accesso
+            if (tabId === 'tab-staff' && (!currentUserProfile || currentUserProfile.role !== 'admin')) {
+                return alert("Accesso non autorizzato alla Gestione Staff.");
+            }
+
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 if (btn.id === 'btn-tab-staff') {
@@ -699,8 +703,11 @@
                         document.getElementById('dashboard-role-title').innerText = "Panoramica Responsabile Tecnico";
                         document.getElementById('dashboard-subtitle').innerText = "Seleziona un gruppo per iniziare";
                         document.getElementById('admin-team-selector').classList.remove('hidden');
+                        
+                        // MOSTRA OPZIONI STAFF SOLO PER ADMIN
                         document.getElementById('btn-tab-staff').classList.remove('hidden');
                         document.getElementById('nav-btn-staff').classList.remove('hidden');
+                        
                         document.getElementById('navigation-tabs').classList.add('hidden');
                         document.getElementById('main-content-area').classList.add('hidden');
                     } else {
@@ -708,8 +715,11 @@
                         document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach";
                         document.getElementById('dashboard-subtitle').innerText = `Squadra: ${activeTeamId}`;
                         document.getElementById('admin-team-selector').classList.add('hidden');
+                        
+                        // NASCONDE GARANTITO ED ESPLICITO PER IL COACH
                         document.getElementById('btn-tab-staff').classList.add('hidden');
                         document.getElementById('nav-btn-staff').classList.add('hidden');
+                        
                         document.getElementById('navigation-tabs').classList.remove('hidden');
                         document.getElementById('main-content-area').classList.remove('hidden');
                         loadTeamData();
@@ -718,6 +728,7 @@
             } else {
                 document.getElementById('btn-logout').classList.add('hidden');
                 document.getElementById('nav-btn-staff').classList.add('hidden');
+                document.getElementById('btn-tab-staff').classList.add('hidden');
                 document.getElementById('section-login').classList.remove('hidden');
                 document.getElementById('app-dashboard').classList.add('hidden');
             }
@@ -738,9 +749,11 @@
 
         // EVENTO PULSANTE STAFF NELLA NAV BAR SUPERIORE
         document.getElementById('nav-btn-staff').addEventListener('click', () => {
-            document.getElementById('navigation-tabs').classList.remove('hidden');
-            document.getElementById('main-content-area').classList.remove('hidden');
-            switchTab('tab-staff');
+            if (currentUserProfile && currentUserProfile.role === 'admin') {
+                document.getElementById('navigation-tabs').classList.remove('hidden');
+                document.getElementById('main-content-area').classList.remove('hidden');
+                switchTab('tab-staff');
+            }
         });
 
         document.getElementById('admin-team-filter').addEventListener('change', () => {
@@ -777,7 +790,6 @@
             }
 
             try {
-                // Utilizzo dell'endpoint REST Firebase Auth per registrare l'utente senza disconnettere l'Admin corrente
                 const signUpUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`;
                 const response = await fetch(signUpUrl, {
                     method: 'POST',
@@ -797,7 +809,6 @@
 
                 const newUid = data.localId;
 
-                // Salva il profilo utente su Firestore nella collezione `users`
                 await setDoc(doc(db, 'users', newUid), {
                     uid: newUid,
                     name: name,
@@ -906,7 +917,6 @@
             renderCallupCheckboxes();
             checkAndLoadExistingAttendance();
             
-            // CARICAMENTO IN BACKGROUND DELLE PRESENZE MENSILI (CACHE WARMING)
             loadMonthlyAttendances(forceRefresh);
         }
 
@@ -953,7 +963,6 @@
                 `;
             });
 
-            // GESTIONE DELEGA EVENTI PER ELIMINAZIONE GIOCATORI
             container.querySelectorAll('.btn-delete-player').forEach(btn => {
                 btn.addEventListener('click', (e) => deletePlayer(e.target.getAttribute('data-id')));
             });
@@ -1433,7 +1442,6 @@
                     `;
                 });
 
-                // ASSEGNAZIONE EVENTI DINAMICI
                 container.querySelectorAll('.btn-share-callup-wa').forEach(b => {
                     b.addEventListener('click', (e) => shareCallupWhatsApp(e.target.getAttribute('data-id')));
                 });
