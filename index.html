@@ -1866,6 +1866,14 @@
         document.getElementById('btn-tab-callup').addEventListener('click', () => switchTab('tab-callup'));
         document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-staff'));
 
+	if ('serviceWorker' in navigator) {
+  		window.addEventListener('load', () => {
+    		navigator.serviceWorker.register('/sw.js')
+      		.then((reg) => console.log('Service Worker registrato con successo'))
+      		.catch((err) => console.log('Registrazione fallita', err));
+  		});
+	}
+
     </script>
 </body>
 </html>
