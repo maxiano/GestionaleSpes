@@ -1,7 +1,7 @@
 {
   "name": "Spes Montesacro Gestionale",
   "short_name": "SpesApp",
-  "start_url": "/",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#01411C",
@@ -15,6 +15,21 @@
       "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Schermata Desktop del Gestionale"
+    },
+    {
+      "src": "./screenshot-mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "label": "Schermata Mobile del Gestionale"
     }
   ]
 }
