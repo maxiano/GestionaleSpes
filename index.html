@@ -163,7 +163,7 @@
                 </select>
             </div>
 
-            <!-- 1. SEZIONE ROSA GIOCATORI GRUPPO SELEZIONATO (PRIMA DEL REGISTRO) -->
+            <!-- 1. SEZIONE ROSA GIOCATORI GRUPPO SELEZIONATO -->
             <div id="admin-players-section" class="bg-white p-6 rounded-lg shadow hidden">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-bold text-gray-700">👥 Rosa Giocatori (<span id="admin-team-title">--</span>)</h3>
@@ -177,9 +177,14 @@
                 </div>
             </div>
 
-            <!-- 2. REGISTRA ALLENAMENTO DA PARTE DEL RESPONSABILE TECNICO -->
-            <div id="admin-add-session-section" class="bg-white p-6 rounded-lg shadow hidden print:hidden">
-                <h3 class="text-lg font-bold text-gray-700 mb-3">⚽ Registra Allenamento e Presenze</h3>
+            <!-- 2. REGISTRA ALLENAMENTO E PRESENZE DA PARTE DEL RESPONSABILE TECNICO (CON PULSANTE DI STAMPA REPORT) -->
+            <div id="admin-add-session-section" class="bg-white p-6 rounded-lg shadow hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-bold text-gray-700">⚽ Registra Allenamento e Presenze</h3>
+                    <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold print:hidden">
+                        🖨️ Stampa Report Presenze
+                    </button>
+                </div>
                 <form id="form-admin-attendance" onsubmit="saveAdminAttendance(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-1">Data Allenamento</label>
@@ -191,23 +196,12 @@
                         <!-- Giocatori in rosa caricati dinamicamente -->
                     </div>
 
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded font-bold">
-                        Salva Allenamento & Presenze
-                    </button>
+                    <div class="pt-2 print:hidden">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded font-bold">
+                            Salva Allenamento & Presenze
+                        </button>
+                    </div>
                 </form>
-            </div>
-
-            <!-- 3. FEED RECENTI / REGISTRO PRESENZE E ALLENAMENTI CON REPORT STAMPA -->
-            <div class="bg-white p-6 rounded-lg shadow">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-gray-700">📊 Registro Allenamenti & Presenze Effettuate</h3>
-                    <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white text-xs px-3 py-2 rounded font-bold print:hidden">
-                        🖨️ Stampa Report Allenamenti
-                    </button>
-                </div>
-                <div id="admin-logs" class="space-y-3">
-                    <p class="text-gray-400 text-sm">Seleziona una squadra per caricare i dati...</p>
-                </div>
             </div>
         </div>
 
@@ -458,14 +452,11 @@
         // 5. LOGICA RESPONSABILE TECNICO (ADMIN)
         async function loadAdminData() {
             const selectedTeam = document.getElementById('admin-team-filter').value;
-            const logsContainer = document.getElementById('admin-logs');
             const playersSection = document.getElementById('admin-players-section');
             const addSessionSection = document.getElementById('admin-add-session-section');
             const playersListContainer = document.getElementById('admin-players-list');
             const adminAttListContainer = document.getElementById('admin-players-attendance-list');
             const teamTitle = document.getElementById('admin-team-title');
-
-            logsContainer.innerHTML = 'Caricamento dati in corso...';
 
             // GESTIONE SEZIONE GIOCATORI E REGISTRAZIONE ALLENAMENTO PER SQUADRA SELEZIONATA
             if (selectedTeam !== 'ALL') {
@@ -519,38 +510,6 @@
                 playersSection.classList.add('hidden');
                 addSessionSection.classList.add('hidden');
             }
-
-            // CARICAMENTO REGISTRO PRESENZE E ALLENAMENTI
-            let query = db.collection('attendances');
-            if (selectedTeam !== 'ALL') {
-                query = query.where('teamId', '==', selectedTeam);
-            }
-
-            const snapshot = await query.get();
-            logsContainer.innerHTML = '';
-
-            if (snapshot.empty) {
-                logsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessun allenamento o registro presenze trovato.</p>';
-                return;
-            }
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const presents = data.records ? data.records.filter(r => r.status === 'present').length : 0;
-                const total = data.records ? data.records.length : 0;
-
-                logsContainer.innerHTML += `
-                    <div class="p-3 border rounded bg-gray-50 flex justify-between items-center text-sm">
-                        <div>
-                            <span class="font-bold text-blue-800">${data.teamId}</span>
-                            <span class="text-gray-500 text-xs ml-2">Data: ${data.date}</span>
-                        </div>
-                        <div class="font-bold text-gray-700 text-right">
-                            Presenti: <span class="text-green-600">${presents}</span> / ${total}
-                        </div>
-                    </div>
-                `;
-            });
         }
 
         async function saveAdminAttendance(e) {
@@ -579,7 +538,6 @@
             });
 
             alert('Allenamento e presenze registrati con successo!');
-            loadAdminData();
         }
 
         async function deletePlayer(playerId) {
