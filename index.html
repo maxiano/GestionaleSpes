@@ -555,25 +555,6 @@
         </div>
     </div>
 
-    <!-- MODALE CAMBIO PASSWORD -->
-    <div id="modal-change-password" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 print:hidden">
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full border-t-4 border-black">
-            <h3 class="text-lg font-bold text-gray-800 mb-2">🔑 Cambia Password</h3>
-            <p id="modal-pwd-user-email" class="text-xs text-gray-500 mb-4">Aggiorna le credenziali di accesso.</p>
-            <form id="form-change-password" class="space-y-3">
-                <input type="hidden" id="pwd-target-uid">
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Nuova Password *</label>
-                    <input type="password" id="new-password" minlength="6" placeholder="minimo 6 caratteri" required class="w-full border p-2 rounded text-xs bg-white">
-                </div>
-                <div class="flex justify-end space-x-2 pt-2">
-                    <button type="button" id="btn-close-modal-pwd" class="bg-gray-300 hover:bg-gray-400 text-gray-800 text-xs px-3 py-2 rounded font-bold transition">Annulla</button>
-                    <button type="submit" class="bg-black hover:bg-gray-800 text-white text-xs px-4 py-2 rounded font-bold transition shadow">Aggiorna Password</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- LOGICA APPLICATIVA IN JAVASCRIPT MODULARE (FIREBASE V10 SDK) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1000,10 +981,7 @@
                                     🏆 <strong>Squadre:</strong> ${teamsDisplay}
                                 </p>
                             </div>
-                            <div class="flex items-center space-x-1">
-                                <button data-id="${userId}" data-email="${user.email}" class="btn-open-change-pwd text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-2 py-1 rounded transition border border-gray-300">
-                                    🔑 Password
-                                </button>
+                            <div>
                                 ${!isSelf ? `
                                     <button data-id="${userId}" class="btn-delete-staff text-xs bg-red-100 hover:bg-red-200 text-red-700 font-bold px-2 py-1 rounded transition">
                                         🗑️ Elimina
@@ -1014,14 +992,6 @@
                     `;
                 });
 
-                container.querySelectorAll('.btn-open-change-pwd').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const uid = e.currentTarget.getAttribute('data-id');
-                        const email = e.currentTarget.getAttribute('data-email');
-                        openChangePasswordModal(uid, email);
-                    });
-                });
-
                 container.querySelectorAll('.btn-delete-staff').forEach(btn => {
                     btn.addEventListener('click', (e) => deleteStaffUser(e.target.getAttribute('data-id')));
                 });
@@ -1030,55 +1000,6 @@
                 container.innerHTML = `<p class="text-xs text-red-500">Errore: ${err.message}</p>`;
             }
         }
-
-        // GESTIONE MODALE CAMBIO PASSWORD
-        function openChangePasswordModal(uid, email) {
-            document.getElementById('pwd-target-uid').value = uid;
-            document.getElementById('modal-pwd-user-email').innerText = `Modifica credenziali per: ${email}`;
-            document.getElementById('new-password').value = '';
-            document.getElementById('modal-change-password').classList.remove('hidden');
-        }
-
-        document.getElementById('btn-close-modal-pwd').addEventListener('click', () => {
-            document.getElementById('modal-change-password').classList.add('hidden');
-        });
-
-        document.getElementById('form-change-password').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const targetUid = document.getElementById('pwd-target-uid').value;
-            const newPassword = document.getElementById('new-password').value;
-
-            if (!targetUid || !newPassword) return;
-
-            try {
-                // Utilizzo delle REST APIs di Firebase Identity Toolkit per aggiornare la password dell'utente tramite Admin/Account
-                const changePwdUrl = `https://identitytoolkit.googleapis.com/v1/accounts:update?key=${firebaseConfig.apiKey}`;
-                
-                // Per eseguire l'aggiornamento tramite token di sessione corrente dell'admin o utente
-                const currentUserToken = await auth.currentUser.getIdToken();
-
-                const response = await fetch(changePwdUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        idToken: currentUserToken,
-                        password: newPassword,
-                        returnSecureToken: false
-                    })
-                });
-
-                // Se l'utente sta aggiornando la propria password o l'admin interviene:
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error ? errData.error.message : "Errore durante l'aggiornamento della password");
-                }
-
-                alert("Password aggiornata con successo!");
-                document.getElementById('modal-change-password').classList.add('hidden');
-            } catch (err) {
-                alert("Errore cambio password: " + err.message + "\nNota: Per motivi di sicurezza Firebase richiede che il cambio password diretto richieda una sessione recente o privilegi admin avanzati.");
-            }
-        });
 
         async function deleteStaffUser(userId) {
             if (!confirm("Sei sicuro di voler eliminare questo utente dallo staff? L'utente non potrà più accedere.")) return;
@@ -1177,6 +1098,44 @@
                     </div>
                 `;
             });
+
+            container.querySelectorAll('.btn-edit-player').forEach(btn => {
+                btn.addEventListener('click', (e) => openEditPlayerModal(e.currentTarget.getAttribute('data-id')));
+            });
+
+            container.querySelectorAll('.btn-delete-player').forEach(btn => {
+                btn.addEventListener('click', (e) => deletePlayer(e.target.getAttribute('data-id')));
+            });
+
+            let printTableHtml = `
+                <table class="w-full border-collapse border border-black">
+                    <thead>
+                        <tr class="bg-gray-200 text-black">
+                            <th class="border border-black p-2 text-center w-10">#</th>
+                            <th class="border border-black p-2 text-left">Cognome e Nome</th>
+                            <th class="border border-black p-2 text-center w-16">Maglia</th>
+                            <th class="border border-black p-2 text-center w-24">Data Nascita</th>
+                            <th class="border border-black p-2 text-center w-28">Certificato</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            activeTeamPlayers.forEach((player, index) => {
+                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                printTableHtml += `
+                    <tr>
+                        <td class="border border-black p-1 text-center font-bold">${index + 1}</td>
+                        <td class="border border-black p-1 font-semibold">${displayName}</td>
+                        <td class="border border-black p-1 text-center">${player.jersey || '-'}</td>
+                        <td class="border border-black p-1 text-center">${formatDateIT(player.dob)}</td>
+                        <td class="border border-black p-1 text-center">${formatDateIT(player.medicalExp)}</td>
+                    </tr>
+                `;
+            });
+
+            printTableHtml += `</tbody></table>`;
+            printContainer.innerHTML = printTableHtml;
         }
 
         function renderAttendanceInputs() {
@@ -1203,12 +1162,12 @@
                                 <span class="ml-1 text-red-700 font-bold">Assente (A)</span>
                             </label>
                             <label class="inline-flex items-center text-xs cursor-pointer">
-                                <input type="radio" name="att_${player.id}" value="justified" class="text-yellow-600 focus:ring-black">
-                                <span class="ml-1 text-yellow-700 font-bold">Giustificato (AG)</span>
+                                <input type="radio" name="att_${player.id}" value="justified" class="text-amber-600 focus:ring-black">
+                                <span class="ml-1 text-amber-700 font-bold">Giustificato (AG)</span>
                             </label>
                             <label class="inline-flex items-center text-xs cursor-pointer">
-                                <input type="radio" name="att_${player.id}" value="injured" class="text-orange-600 focus:ring-black">
-                                <span class="ml-1 text-orange-700 font-bold">Infortunato (INF)</span>
+                                <input type="radio" name="att_${player.id}" value="injured" class="text-purple-600 focus:ring-black">
+                                <span class="ml-1 text-purple-700 font-bold">Infortunato (INF)</span>
                             </label>
                             <label class="inline-flex items-center text-xs cursor-pointer">
                                 <input type="radio" name="att_${player.id}" value="late" class="text-blue-600 focus:ring-black">
@@ -1220,21 +1179,703 @@
             });
         }
 
-        async function checkAndLoadExistingAttendance() {
-            // Logica di caricamento presenze giornaliere esistenti
-        }
-        
-        async function loadMonthlyAttendances() {
-            // Logica di caricamento registro mensile
-        }
-        
         function renderCallupCheckboxes() {
-            // Logica convocazioni
+            const container = document.getElementById('players-list-callup');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (!activeTeamPlayers || activeTeamPlayers.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 col-span-2">Nessun giocatore disponibile.</p>';
+                return;
+            }
+
+            activeTeamPlayers.forEach(player => {
+                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                container.innerHTML += `
+                    <label class="flex items-center space-x-2 text-xs p-1 border rounded bg-gray-50 cursor-pointer">
+                        <input type="checkbox" name="callup_player" value="${displayName}" checked class="rounded text-black focus:ring-black">
+                        <span>${displayName}</span>
+                    </label>
+                `;
+            });
         }
 
-        function loadCallups() {
-            // Caricamento storico convocazioni
+        async function checkAndLoadExistingAttendance() {
+            const dateInput = document.getElementById('attendance-date');
+            const container = document.getElementById('attendance-status-container');
+            const badge = document.getElementById('attendance-status-badge');
+            const deleteBtn = document.getElementById('btn-delete-session');
+            
+            if (!dateInput || !dateInput.value || !activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') {
+                if (container) container.classList.add('hidden');
+                currentSessionDocId = null;
+                return;
+            }
+
+            const date = dateInput.value;
+
+            try {
+                const q = query(
+                    collection(db, 'attendances'),
+                    where('teamId', '==', activeTeamId),
+                    where('date', '==', date)
+                );
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    const docSnap = snapshot.docs[0];
+                    currentSessionDocId = docSnap.id;
+                    const records = docSnap.data().records || [];
+
+                    records.forEach(rec => {
+                        const radio = document.querySelector(`input[name="att_${rec.playerId}"][value="${rec.status}"]`);
+                        if (radio) radio.checked = true;
+                    });
+
+                    if (container) container.classList.remove('hidden');
+                    if (badge) {
+                        badge.className = "text-xs font-bold text-amber-800";
+                        badge.innerHTML = `⚠️ Presenze per il <strong>${formatDateIT(date)}</strong> già salvate. Salvando ora sovrascriverai i dati.`;
+                    }
+                    if (deleteBtn) deleteBtn.classList.remove('hidden');
+
+                } else {
+                    currentSessionDocId = null;
+                    resetAttendanceRadios();
+
+                    if (container) container.classList.remove('hidden');
+                    if (badge) {
+                        badge.className = "text-xs font-bold text-emerald-800";
+                        badge.innerHTML = `✨ Nuova giornata del <strong>${formatDateIT(date)}</strong> (nessun dato salvato).`;
+                    }
+                    if (deleteBtn) deleteBtn.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error("Errore controllo presenze:", err);
+            }
         }
+
+        document.getElementById('attendance-date').addEventListener('change', checkAndLoadExistingAttendance);
+
+        document.getElementById('form-attendance').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!activeTeamId || activeTeamPlayers.length === 0) return alert('Nessuna squadra o giocatore presente!');
+
+            const date = document.getElementById('attendance-date').value;
+            if (!date) return alert('Seleziona una data valida!');
+
+            try {
+                const q = query(
+                    collection(db, 'attendances'),
+                    where('teamId', '==', activeTeamId),
+                    where('date', '==', date)
+                );
+                const existingCheck = await getDocs(q);
+
+                let docToUpdateId = null;
+                if (!existingCheck.empty) {
+                    if (!confirm(`⚠️ Hai già salvato le presenze per il ${formatDateIT(date)}.\nVuoi sovrascriverle?`)) return;
+                    docToUpdateId = existingCheck.docs[0].id;
+                }
+
+                const records = [];
+                activeTeamPlayers.forEach(player => {
+                    const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
+                    if (radio) {
+                        const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                        records.push({ playerId: player.id, name: displayName, status: radio.value });
+                    }
+                });
+
+                if (docToUpdateId) {
+                    const docRef = doc(db, 'attendances', docToUpdateId);
+                    await updateDoc(docRef, {
+                        records: records,
+                        updatedAt: serverTimestamp()
+                    });
+                    alert('Presenze aggiornate con successo!');
+                } else {
+                    await addDoc(collection(db, 'attendances'), {
+                        teamId: activeTeamId,
+                        date: date,
+                        records: records,
+                        createdAt: serverTimestamp()
+                    });
+                    alert('Presenze salvate con successo!');
+                }
+                
+                AppCache.clearAttendances(activeTeamId);
+                const savedDateObj = new Date(date + 'T00:00:00');
+                document.getElementById('filter-month').value = savedDateObj.getMonth();
+                document.getElementById('filter-year').value = savedDateObj.getFullYear();
+
+                checkAndLoadExistingAttendance();
+                loadMonthlyAttendances(true);
+
+            } catch (err) {
+                alert("Errore salvataggio presenze: " + err.message);
+            }
+        });
+
+        document.getElementById('btn-delete-session').addEventListener('click', async () => {
+            if (!currentSessionDocId) return;
+            const dateStr = document.getElementById('attendance-date').value;
+            if (!confirm(`Eliminare definitivamente l'allenamento del ${formatDateIT(dateStr)}?`)) return;
+
+            try {
+                await deleteDoc(doc(db, 'attendances', currentSessionDocId));
+                alert('Giornata eliminata con successo!');
+                AppCache.clearAttendances(activeTeamId);
+                currentSessionDocId = null;
+                checkAndLoadExistingAttendance();
+                loadMonthlyAttendances(true);
+            } catch (err) {
+                alert("Errore eliminazione: " + err.message);
+            }
+        });
+
+        async function loadMonthlyAttendances(forceRefresh = false) {
+            if (!activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') return;
+
+            const selectedMonth = parseInt(document.getElementById('filter-month').value);
+            const selectedYear = parseInt(document.getElementById('filter-year').value);
+            const container = document.getElementById('monthly-sessions-container');
+
+            document.getElementById('print-report-period').innerText = `Periodo: ${monthNamesIT[selectedMonth]} ${selectedYear}`;
+
+            const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+            const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+            const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(totalDaysInMonth).padStart(2, '0')}`;
+
+            try {
+                let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth);
+
+                if (!sessions || forceRefresh) {
+                    container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
+                    const q = query(
+                        collection(db, 'attendances'),
+                        where('teamId', '==', activeTeamId),
+                        where('date', '>=', startOfMonth),
+                        where('date', '<=', endOfMonth)
+                    );
+                    const snapshot = await getDocs(q);
+
+                    sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    AppCache.setAttendances(activeTeamId, selectedYear, selectedMonth, sessions);
+                }
+
+                const sessionsByDay = {};
+                let totalPresentsCount = 0;
+
+                sessions.forEach(s => {
+                    const dayNum = parseInt(s.date.split('-')[2], 10);
+                    sessionsByDay[dayNum] = s;
+                    if (s.records) {
+                        totalPresentsCount += s.records.filter(r => r.status === 'present' || r.status === 'late').length;
+                    }
+                });
+
+                document.getElementById('stat-total-sessions').innerText = sessions.length;
+                document.getElementById('stat-total-presents').innerText = totalPresentsCount;
+                document.getElementById('stat-avg-presents').innerText = sessions.length > 0 ? (totalPresentsCount / sessions.length).toFixed(1) : '0';
+
+                let tableHtml = `
+                    <table class="w-full text-xs border-collapse border border-gray-400 bg-white">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-700">
+                                <th class="border border-gray-400 p-1 text-left">Giocatore</th>
+                `;
+
+                for (let d = 1; d <= totalDaysInMonth; d++) {
+                    const dateObj = new Date(selectedYear, selectedMonth, d);
+                    const dayName = daysOfWeekIT[dateObj.getDay()];
+                    const isSession = !!sessionsByDay[d];
+                    const bgClass = isSession ? 'bg-gray-200 text-black font-bold' : '';
+                    tableHtml += `<th class="border border-gray-400 p-1 text-center capitalize ${bgClass}">${dayName}</th>`;
+                }
+
+                tableHtml += `</tr><tr class="bg-gray-200 text-gray-800"><th class="border border-gray-400 p-1 text-left">Cognome e Nome</th>`;
+
+                for (let d = 1; d <= totalDaysInMonth; d++) {
+                    const isSession = !!sessionsByDay[d];
+                    const bgClass = isSession ? 'bg-gray-300 text-black font-bold' : '';
+                    tableHtml += `<th class="border border-gray-400 p-1 text-center ${bgClass}">${d}</th>`;
+                }
+
+                tableHtml += `</tr></thead><tbody>`;
+
+                if (!activeTeamPlayers || activeTeamPlayers.length === 0) {
+                    tableHtml += `<tr><td colspan="${totalDaysInMonth + 1}" class="text-center p-4 text-gray-400">Nessun giocatore in rosa.</td></tr>`;
+                } else {
+                    activeTeamPlayers.forEach(player => {
+                        const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                        tableHtml += `<tr class="hover:bg-gray-50"><td class="border border-gray-400 p-1.5 font-bold text-gray-800 whitespace-nowrap">${displayName}</td>`;
+
+                        for (let d = 1; d <= totalDaysInMonth; d++) {
+                            const session = sessionsByDay[d];
+                            let statusSymbol = '-';
+                            let statusColor = 'text-gray-300';
+
+                            if (session && session.records) {
+                                const rec = session.records.find(r => r.playerId === player.id);
+                                if (rec) {
+                                    switch(rec.status) {
+                                        case 'present': statusSymbol = 'P'; statusColor = 'text-emerald-700 font-bold bg-emerald-50'; break;
+                                        case 'absent': statusSymbol = 'A'; statusColor = 'text-red-600 font-bold bg-red-50'; break;
+                                        case 'justified': statusSymbol = 'AG'; statusColor = 'text-amber-600 font-bold bg-amber-50'; break;
+                                        case 'injured': statusSymbol = 'INF'; statusColor = 'text-purple-600 font-bold bg-purple-50'; break;
+                                        case 'late': statusSymbol = 'R'; statusColor = 'text-blue-600 font-bold bg-blue-50'; break;
+                                    }
+                                }
+                            }
+                            tableHtml += `<td class="border border-gray-400 p-1 text-center ${statusColor}">${statusSymbol}</td>`;
+                        }
+                        tableHtml += `</tr>`;
+                    });
+                }
+                tableHtml += `</tbody></table>`;
+                container.innerHTML = tableHtml;
+
+            } catch (err) {
+                console.error("Errore caricamento allenamenti:", err);
+                container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore durante il caricamento dei dati.</p>`;
+            }
+        }
+
+        document.getElementById('filter-month').addEventListener('change', () => loadMonthlyAttendances());
+        document.getElementById('filter-year').addEventListener('change', () => loadMonthlyAttendances());
+
+        // ESPORTAZIONE E CONDIVISIONE MENSILE
+        document.getElementById('btn-export-monthly-csv').addEventListener('click', () => {
+            if (!activeTeamId) return alert("Seleziona prima una squadra!");
+            const selectedMonth = parseInt(document.getElementById('filter-month').value);
+            const selectedYear = parseInt(document.getElementById('filter-year').value);
+            const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+
+            let csv = `Registro Presenze - ${activeTeamId} - ${monthNamesIT[selectedMonth]} ${selectedYear}\n\nGiocatore;`;
+            for (let d = 1; d <= totalDaysInMonth; d++) csv += `${d};`;
+            csv += "\n";
+
+            let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth) || [];
+            const sessionsByDay = {};
+            sessions.forEach(s => { sessionsByDay[parseInt(s.date.split('-')[2], 10)] = s; });
+
+            activeTeamPlayers.forEach(player => {
+                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                csv += `"${displayName}";`;
+                for (let d = 1; d <= totalDaysInMonth; d++) {
+                    const session = sessionsByDay[d];
+                    let val = "-";
+                    if (session && session.records) {
+                        const rec = session.records.find(r => r.playerId === player.id);
+                        if (rec) {
+                            const map = { present: 'P', absent: 'A', justified: 'AG', injured: 'INF', late: 'R' };
+                            val = map[rec.status] || '-';
+                        }
+                    }
+                    csv += `${val};`;
+                }
+                csv += "\n";
+            });
+
+            downloadCSV(`Presenze_${activeTeamId}_${monthNamesIT[selectedMonth]}_${selectedYear}.csv`, csv);
+        });
+
+        document.getElementById('btn-export-roster-csv').addEventListener('click', () => {
+            if (!activeTeamId || activeTeamPlayers.length === 0) return alert("Nessun giocatore in rosa!");
+            let csv = `Cognome;Nome;Numero Maglia;Data Nascita;Ruolo;Scadenza Certificato;Tel. Genitore\n`;
+            activeTeamPlayers.forEach(p => {
+                csv += `"${p.lastName || ''}";"${p.firstName || ''}";"${p.jersey || ''}";"${p.dob || ''}";"${p.role || ''}";"${p.medicalExp || ''}";"${p.parentPhone || ''}"\n`;
+            });
+            downloadCSV(`Rosa_${activeTeamId}.csv`, csv);
+        });
+
+        // IMPORTAZIONE GIOCATORI DA FILE CSV
+        const btnImportCsv = document.getElementById('btn-import-roster-csv');
+        const inputImportCsv = document.getElementById('input-import-roster-csv');
+
+        btnImportCsv.addEventListener('click', () => {
+            if (!activeTeamId) return alert('Seleziona prima una squadra per poter importare i giocatori!');
+            inputImportCsv.click();
+        });
+
+        inputImportCsv.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: async function(results) {
+                    const rows = results.data;
+                    if (!rows || rows.length === 0) {
+                        return alert("Il file CSV sembra vuoto o non formattato correttamente.");
+                    }
+
+                    if (!confirm(`Trovati ${rows.length} giocatori nel file CSV.\nConfermi l'importazione nel gruppo "${activeTeamId}"?`)) {
+                        inputImportCsv.value = '';
+                        return;
+                    }
+
+                    try {
+                        let count = 0;
+                        for (const row of rows) {
+                            const lastName = (row['Cognome'] || row['cognome'] || '').trim();
+                            const firstName = (row['Nome'] || row['nome'] || '').trim();
+
+                            if (lastName || firstName) {
+                                const playerData = {
+                                    lastName: lastName,
+                                    firstName: firstName,
+                                    name: `${lastName} ${firstName}`.trim(),
+                                    jersey: (row['Numero Maglia'] || row['Maglia'] || row['jersey'] || '').toString().trim(),
+                                    dob: (row['Data Nascita'] || row['dob'] || '').trim(),
+                                    role: (row['Ruolo'] || row['role'] || '').trim(),
+                                    medicalExp: (row['Scadenza Certificato'] || row['medicalExp'] || '').trim(),
+                                    parentPhone: (row['Tel. Genitore'] || row['parentPhone'] || '').toString().trim(),
+                                    teamId: activeTeamId,
+                                    createdAt: serverTimestamp()
+                                };
+
+                                await addDoc(collection(db, 'players'), playerData);
+                                count++;
+                            }
+                        }
+
+                        alert(`✅ Importazione completata! Aggiunti ${count} giocatori al gruppo ${activeTeamId}.`);
+                        AppCache.clearPlayers(activeTeamId);
+                        loadTeamData(true);
+
+                    } catch (err) {
+                        alert("Errore durante l'importazione dei dati: " + err.message);
+                    } finally {
+                        inputImportCsv.value = '';
+                    }
+                },
+                error: function(err) {
+                    alert("Errore nella lettura del file CSV: " + err.message);
+                    inputImportCsv.value = '';
+                }
+            });
+        });
+
+        // CONVOCAZIONI E GESTIONE
+        document.getElementById('form-callup').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!activeTeamId) return alert("Seleziona prima una squadra!");
+
+            const opponent = document.getElementById('match-opponent').value.trim();
+            const location = document.getElementById('match-location').value.trim();
+            const matchDate = document.getElementById('match-date').value;
+            const matchTime = document.getElementById('match-time').value;
+            const gatheringTime = document.getElementById('gathering-time').value;
+
+            const selectedPlayers = [];
+            document.querySelectorAll('input[name="callup_player"]:checked').forEach(cb => selectedPlayers.push(cb.value));
+
+            if (selectedPlayers.length === 0) return alert("Seleziona almeno un giocatore!");
+
+            try {
+                const q = query(
+                    collection(db, 'callups'),
+                    where('teamId', '==', activeTeamId),
+                    where('date', '==', matchDate)
+                );
+                const snapshot = await getDocs(q);
+
+                let docToUpdateId = !snapshot.empty ? snapshot.docs[0].id : null;
+
+                const callupData = {
+                    teamId: activeTeamId,
+                    opponent: opponent,
+                    location: location,
+                    date: matchDate,
+                    matchTime: matchTime,
+                    gatheringTime: gatheringTime,
+                    players: selectedPlayers,
+                    updatedAt: serverTimestamp()
+                };
+
+                if (docToUpdateId) {
+                    await updateDoc(doc(db, 'callups', docToUpdateId), callupData);
+                    alert(`Convocazione aggiornata per il ${formatDateIT(matchDate)}!`);
+                } else {
+                    callupData.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'callups'), callupData);
+                    alert(`Convocazione creata!`);
+                }
+
+                document.getElementById('form-callup').reset();
+                renderCallupCheckboxes();
+                loadCallups();
+            } catch (err) {
+                alert("Errore salvataggio convocazione: " + err.message);
+            }
+        });
+
+        async function loadCallups() {
+            const container = document.getElementById('callups-list-container');
+            if (!container || !activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') return;
+
+            try {
+                const q = query(collection(db, 'callups'), where('teamId', '==', activeTeamId));
+                const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    container.innerHTML = '<p class="text-xs text-gray-400">Nessuna convocazione presente.</p>';
+                    loadedCallupsList = [];
+                    return;
+                }
+
+                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                docs.sort((a, b) => new Date(`${b.date}T${b.matchTime}`) - new Date(`${a.date}T${a.matchTime}`));
+
+                loadedCallupsList = docs;
+                container.innerHTML = '';
+                
+                docs.forEach(data => {
+                    const playersList = (data.players || []).join(', ');
+                    container.innerHTML += `
+                        <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs mb-2 shadow-sm">
+                            <div class="space-y-1">
+                                <p class="font-bold text-sm text-black">⚽ Spes Montesacro vs ${data.opponent}</p>
+                                <p class="text-gray-700">
+                                    📅 <strong>Giorno:</strong> ${formatDateIT(data.date)} | 
+                                    🕒 <strong>Inizio:</strong> ${data.matchTime} | 
+                                    ⏰ <strong>Ritrovo:</strong> ${data.gatheringTime}
+                                </p>
+                                <p class="text-gray-600">📍 <strong>Campo:</strong> ${data.location}</p>
+                                <p class="text-gray-500 pt-1">👥 <strong>Convocati (${data.players ? data.players.length : 0}):</strong> ${playersList}</p>
+                            </div>
+                            <div class="flex flex-col space-y-1">
+                                <button data-id="${data.id}" class="btn-share-callup-wa bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-[10px] transition">📲 WhatsApp</button>
+                                <button data-id="${data.id}" class="btn-print-callup bg-black hover:bg-gray-800 text-white font-bold px-2 py-1 rounded text-[10px] transition">🖨️ Stampa</button>
+                                <button data-id="${data.id}" class="btn-delete-callup bg-red-600 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] transition">🗑️ Elimina</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.querySelectorAll('.btn-share-callup-wa').forEach(b => {
+                    b.addEventListener('click', (e) => shareCallupWhatsApp(e.target.getAttribute('data-id')));
+                });
+                container.querySelectorAll('.btn-print-callup').forEach(b => {
+                    b.addEventListener('click', (e) => printCallupReport(e.target.getAttribute('data-id')));
+                });
+                container.querySelectorAll('.btn-delete-callup').forEach(b => {
+                    b.addEventListener('click', (e) => deleteCallup(e.target.getAttribute('data-id')));
+                });
+
+            } catch (err) {
+                container.innerHTML = `<p class="text-xs text-red-500">Errore: ${err.message}</p>`;
+            }
+        }
+
+        function shareCallupWhatsApp(callupId) {
+            const callup = loadedCallupsList.find(c => c.id === callupId);
+            if (!callup) return;
+            const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
+            let text = `📢 *CONVOCAZIONE GARA UFFICIALE*\n⚽ *Spes Montesacro vs ${callup.opponent}*\n\n📅 *Giorno:* ${formatDateIT(callup.date)}\n🕒 *Inizio Partita:* ${callup.matchTime}\n⏰ *Ora Ritrovo:* ${callup.gatheringTime}\n📍 *Luogo:* ${callup.location}\n\n👥 *ELENCO CONVOCATI (${sortedPlayers.length}):*\n`;
+            sortedPlayers.forEach((p, i) => text += `${i + 1}. ${p}\n`);
+            text += `\n⚠️ *Massima puntualità!*`;
+            sendToWhatsApp(text, `Convocazione vs ${callup.opponent}`);
+        }
+
+        document.getElementById('btn-share-monthly-wa').addEventListener('click', () => {
+            if (!activeTeamId) return;
+            const m = parseInt(document.getElementById('filter-month').value);
+            const y = parseInt(document.getElementById('filter-year').value);
+            let text = `📊 *RIEPILOGO PRESENZE MENSILE*\n🏆 *Spes Montesacro - ${activeTeamId}*\n📅 *Mese:* ${monthNamesIT[m]} ${y}\n\n📌 *Sedute:* ${document.getElementById('stat-total-sessions').innerText}\n✅ *Presenze Totali:* ${document.getElementById('stat-total-presents').innerText}\n📈 *Media/Seduta:* ${document.getElementById('stat-avg-presents').innerText}\n\n_Report Registro Tecnico Spes Montesacro._`;
+            sendToWhatsApp(text, `Report Mensile ${monthNamesIT[m]}`);
+        });
+
+        document.getElementById('btn-share-roster-wa').addEventListener('click', () => {
+            if (!activeTeamId || activeTeamPlayers.length === 0) return;
+            let text = `👥 *ROSA UFFICIALE GIOCATORI*\n🏆 *Spes Montesacro - ${activeTeamId}*\n📊 *Totale Tesserati:* ${activeTeamPlayers.length}\n\n`;
+            activeTeamPlayers.forEach((p, i) => text += `${i + 1}. ${p.lastName ? `${p.lastName} ${p.firstName}` : p.name}\n`);
+            sendToWhatsApp(text, `Rosa ${activeTeamId}`);
+        });
+
+        function printCallupReport(callupId) {
+            const callup = loadedCallupsList.find(c => c.id === callupId);
+            if (!callup) return;
+            const printContainer = document.getElementById('callup-print-container');
+            document.getElementById('print-report-period').innerText = 'Modulo Convocazione Gara Ufficiale';
+            const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
+
+            let rows = '';
+            sortedPlayers.forEach((p, index) => {
+                rows += `<tr><td class="border border-black p-2 text-center font-bold" style="width: 40px;">${index + 1}</td><td class="border border-black p-2 font-bold text-sm">${p}</td><td class="border border-black p-2"></td></tr>`;
+            });
+
+            printContainer.innerHTML = `
+                <div class="bg-gray-100 border border-black p-3 mb-4 rounded space-y-1 text-sm">
+                    <p class="text-base font-extrabold text-black">⚽ PARTITA: Spes Montesacro vs ${callup.opponent}</p>
+                    <div class="grid grid-cols-2 gap-2 pt-1 font-semibold">
+                        <p>📅 <strong>Giorno:</strong> ${formatDateIT(callup.date)}</p>
+                        <p>📍 <strong>Luogo:</strong> ${callup.location}</p>
+                        <p>🕒 <strong>Inizio:</strong> ${callup.matchTime}</p>
+                        <p>⏰ <strong>Ritrovo Campo:</strong> ${callup.gatheringTime}</p>
+                    </div>
+                </div>
+                <h3 class="text-md font-bold mb-2 uppercase tracking-wide border-b border-black pb-1">Giocatori Convocati (${sortedPlayers.length})</h3>
+                <table class="w-full border-collapse border border-black text-left">
+                    <thead><tr class="bg-gray-200 text-black uppercase text-xs"><th class="border border-black p-2 text-center">#</th><th class="border border-black p-2">Cognome e Nome</th><th class="border border-black p-2 w-1/3">Note / Firma</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+
+            document.body.classList.remove('print-landscape', 'print-monthly', 'print-roster');
+            document.body.classList.add('print-callup');
+            window.print();
+        }
+
+        async function deleteCallup(callupId) {
+            if (!confirm("Eliminare questa convocazione?")) return;
+            try {
+                await deleteDoc(doc(db, 'callups', callupId));
+                alert("Convocazione eliminata!");
+                loadCallups();
+            } catch (err) { alert("Errore: " + err.message); }
+        }
+
+        document.getElementById('btn-print-roster').addEventListener('click', () => {
+            document.body.classList.remove('print-landscape', 'print-monthly', 'print-callup');
+            document.body.classList.add('print-roster');
+            document.getElementById('print-report-period').innerText = 'Documento: Rosa Giocatori Ufficiale';
+            window.print();
+        });
+
+        document.getElementById('btn-print-monthly').addEventListener('click', () => {
+            document.body.classList.remove('print-roster', 'print-callup');
+            document.body.classList.add('print-landscape', 'print-monthly');
+            const m = parseInt(document.getElementById('filter-month').value);
+            const y = parseInt(document.getElementById('filter-year').value);
+            document.getElementById('print-report-period').innerText = `Periodo: ${monthNamesIT[m]} ${y}`;
+            window.print();
+        });
+
+        // MODALE E GESTIONE GIOCATORE
+        document.getElementById('btn-open-add-player').addEventListener('click', () => {
+            if (!activeTeamId) return alert('Seleziona prima una squadra!');
+            editingPlayerId = null;
+            document.getElementById('modal-player-title').innerText = "Aggiungi Nuovo Giocatore";
+            document.getElementById('btn-submit-player').innerText = "Salva Giocatore";
+            
+            document.getElementById('player-first-name').value = '';
+            document.getElementById('player-last-name').value = '';
+            document.getElementById('player-dob').value = '';
+            document.getElementById('player-jersey').value = '';
+            document.getElementById('player-role').value = '';
+            document.getElementById('player-medical-exp').value = '';
+            document.getElementById('player-parent-phone').value = '';
+            document.getElementById('modal-add-player').classList.remove('hidden');
+        });
+
+        function openEditPlayerModal(playerId) {
+            const player = activeTeamPlayers.find(p => p.id === playerId);
+            if (!player) return;
+
+            editingPlayerId = playerId;
+            document.getElementById('modal-player-title').innerText = "Modifica Giocatore";
+            document.getElementById('btn-submit-player').innerText = "Aggiorna Giocatore";
+
+            document.getElementById('player-first-name').value = player.firstName || '';
+            document.getElementById('player-last-name').value = player.lastName || '';
+            document.getElementById('player-dob').value = player.dob || '';
+            document.getElementById('player-jersey').value = player.jersey || '';
+            document.getElementById('player-role').value = player.role || '';
+            document.getElementById('player-medical-exp').value = player.medicalExp || '';
+            document.getElementById('player-parent-phone').value = player.parentPhone || '';
+
+            document.getElementById('modal-add-player').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-close-modal-player').addEventListener('click', () => {
+            document.getElementById('modal-add-player').classList.add('hidden');
+        });
+
+        document.getElementById('form-add-player').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!activeTeamId) return;
+
+            const firstName = document.getElementById('player-first-name').value.trim();
+            const lastName = document.getElementById('player-last-name').value.trim();
+            const dob = document.getElementById('player-dob').value;
+            const jersey = document.getElementById('player-jersey').value.trim();
+            const role = document.getElementById('player-role').value;
+            const medicalExp = document.getElementById('player-medical-exp').value;
+            const parentPhone = document.getElementById('player-parent-phone').value.trim();
+
+            const playerData = {
+                firstName: firstName,
+                lastName: lastName,
+                name: `${lastName} ${firstName}`.trim(),
+                dob: dob,
+                jersey: jersey,
+                role: role,
+                medicalExp: medicalExp,
+                parentPhone: parentPhone,
+                teamId: activeTeamId
+            };
+
+            try {
+                if (editingPlayerId) {
+                    await updateDoc(doc(db, 'players', editingPlayerId), playerData);
+                    alert("Giocatore aggiornato con successo!");
+                } else {
+                    playerData.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'players'), playerData);
+                    alert("Nuovo giocatore aggiunto con successo!");
+                }
+
+                document.getElementById('modal-add-player').classList.add('hidden');
+                AppCache.clearPlayers(activeTeamId);
+                loadTeamData(true);
+            } catch (err) {
+                alert("Errore salvataggio giocatore: " + err.message);
+            }
+        });
+
+        async function deletePlayer(playerId) {
+            if (!confirm("Sei sicuro di voler rimuovere questo giocatore dalla rosa?")) return;
+            try {
+                await deleteDoc(doc(db, 'players', playerId));
+                alert("Giocatore eliminato!");
+                AppCache.clearPlayers(activeTeamId);
+                loadTeamData(true);
+            } catch (err) {
+                alert("Errore eliminazione: " + err.message);
+            }
+        }
+
+        function resetAttendanceRadios() {
+            if (!activeTeamPlayers) return;
+            activeTeamPlayers.forEach(player => {
+                const radio = document.querySelector(`input[name="att_${player.id}"][value="present"]`);
+                if (radio) radio.checked = true;
+            });
+        }
+
+        document.getElementById('btn-reset-attendance-radios').addEventListener('click', () => {
+            resetAttendanceRadios();
+        });
+
+        // GESTIONE CAMBIO TAB CLICK
+        document.getElementById('btn-tab-roster').addEventListener('click', () => switchTab('tab-roster'));
+        document.getElementById('btn-tab-attendance').addEventListener('click', () => switchTab('tab-attendance'));
+        document.getElementById('btn-tab-monthly').addEventListener('click', () => switchTab('tab-monthly'));
+        document.getElementById('btn-tab-callup').addEventListener('click', () => switchTab('tab-callup'));
+        document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-staff'));
+
+	if ('serviceWorker' in navigator) {
+  		window.addEventListener('load', () => {
+    		navigator.serviceWorker.register('/sw.js')
+      		.then((reg) => console.log('Service Worker registrato con successo'))
+      		.catch((err) => console.log('Registrazione fallita', err));
+  		});
+	}
+
     </script>
 </body>
 </html>
