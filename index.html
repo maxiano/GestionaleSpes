@@ -58,25 +58,24 @@
 </head>
 <body class="bg-gray-100 font-sans text-gray-800">
 
-    <!-- BARRA DI NAVIGAZIONE SUPERIORE (RESPONSIVE PER SMARTPHONE) -->
-    <nav class="bg-black text-white p-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md border-b-2 border-gray-800 print:hidden">
-        <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-start">
-            <div class="flex items-center space-x-3">
-                <!-- LOGO SPES MONTESACRO -->
-                <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center p-1 shadow overflow-hidden flex-shrink-0">
-                    <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 225 225">
-                        <g>
-                            <path d="M 124.88 191.25 C119.40,202.11 114.74,211.00 114.53,211.00 C114.32,211.00 101.76,186.02 86.61,155.50 C71.46,124.97 58.72,100.00 58.28,100.01 C57.85,100.01 54.62,117.45 51.09,138.76 C47.57,160.07 44.30,177.94 43.83,178.47 C43.30,179.06 41.22,177.69 38.45,174.92 L 33.93 170.40 L 36.00 160.45 C38.03,150.67 44.57,117.23 51.11,83.24 C52.93,73.74 54.87,66.12 55.41,66.30 C55.95,66.48 61.92,78.08 68.67,92.07 C75.42,106.05 84.76,125.38 89.42,135.00 C94.08,144.62 101.52,160.06 105.97,169.29 C110.41,178.53 114.37,185.88 114.77,185.62 C115.17,185.37 129.22,157.67 145.99,124.08 C162.76,90.48 176.72,63.00 177.00,63.00 C177.28,63.00 178.55,69.86 179.83,78.25 C181.11,86.64 182.56,95.97 183.07,99.00 C183.57,102.03 184.87,110.12 185.96,117.00 C187.05,123.88 189.31,138.09 190.97,148.59 C192.64,159.09 193.98,168.76 193.95,170.09 C193.92,171.70 192.25,173.95 188.91,176.87 C186.16,179.28 183.74,181.07 183.52,180.85 C183.31,180.64 182.41,175.07 181.53,168.48 C179.84,155.86 174.46,114.18 173.37,105.25 C173.01,102.36 172.44,100.00 172.09,100.00 C171.74,100.00 168.90,105.06 165.76,111.25 C162.63,117.44 154.39,133.52 147.46,147.00 C140.53,160.48 130.37,180.39 124.88,191.25 ZM 141.01 98.00 C139.26,101.63 137.63,105.03 136.11,108.21 C117.89,146.23 114.82,152.63 113.84,152.32 C113.56,152.24 113.46,151.60 113.21,151.00 C112.66,149.62 104.74,133.45 95.61,115.06 C83.34,90.35 79.33,81.39 80.25,80.77 C83.32,78.70 87.23,76.90 87.68,77.35 C88.10,77.77 105.69,114.81 112.15,128.87 C113.26,131.27 114.49,132.85 114.90,132.37 C116.40,130.61 146.32,67.99 145.88,67.54 C143.97,65.63 131.58,63.71 118.39,63.27 C101.61,62.71 91.60,64.12 80.62,68.58 C77.32,69.92 74.31,70.67 73.95,70.26 C73.58,69.84 69.16,61.55 64.12,51.84 L 54.96 34.17 L 60.23 31.18 C88.84,14.95 124.34,12.03 153.00,23.54 C160.23,26.45 171.96,33.08 171.98,34.27 C171.99,34.70 170.85,36.78 169.44,38.91 L 166.88 42.78 L 161.57 39.58 C147.62,31.19 131.28,26.83 113.50,26.78 C100.19,26.74 92.68,28.14 80.26,33.00 C73.93,35.48 70.88,36.51 70.16,38.42 C69.52,40.11 70.73,42.51 73.12,47.25 C73.36,47.72 73.61,48.22 73.87,48.75 L 78.86 58.69 L 85.87 56.41 C106.55,49.67 133.77,51.04 152.24,59.77 L 158.03 62.50 Z" fill="rgb(21,21,22)"/>
-                            <path d="M 0.00 112.50 L 0.00 0.00 L 112.50 0.00 L 225.00 0.00 L 225.00 112.50 L 225.00 225.00 L 112.50 225.00 L 0.00 225.00 L 0.00 112.50 ZM 124.88 191.25 C130.37,180.39 140.53,160.48 147.46,147.00 C154.39,133.52 162.63,117.44 165.76,111.25 C168.90,105.06 171.74,100.00 172.09,100.00 C172.44,100.00 173.01,102.36 173.37,105.25 C174.46,114.18 179.84,155.86 181.53,168.48 C182.41,175.07 183.31,180.64 183.52,180.85 C183.74,181.07 186.16,179.28 188.91,176.87 C192.25,173.95 193.92,171.70 193.95,170.09 C193.98,168.76 192.64,159.09 190.97,148.59 C189.31,138.09 187.05,123.88 185.96,117.00 C184.87,110.12 183.57,102.03 183.07,99.00 C182.56,95.97 181.11,86.64 179.83,78.25 C178.55,69.86 177.28,63.00 177.00,63.00 C176.72,63.00 162.76,90.48 145.99,124.08 C129.22,157.67 115.17,185.37 114.77,185.62 C114.37,185.88 110.41,178.53 105.97,169.29 C101.52,160.06 94.08,144.62 89.42,135.00 C84.76,125.38 75.42,106.05 68.67,92.07 C61.92,78.08 55.95,66.48 55.41,66.30 C54.87,66.12 52.93,73.74 51.11,83.24 C44.57,117.23 38.03,150.67 36.00,160.45 L 33.93 170.40 L 38.45 174.92 C41.22,177.69 43.30,179.06 43.83,178.47 C44.30,177.94 47.57,160.07 51.09,138.76 C54.62,117.45 57.85,100.01 58.28,100.01 C58.72,100.00 71.46,124.97 86.61,155.50 C101.76,186.02 114.32,211.00 114.53,211.00 C114.74,211.00 119.40,202.11 124.88,191.25 ZM 141.01 98.00 L 158.03 62.50 L 152.24 59.77 C133.77,51.04 106.55,49.67 85.87,56.41 L 78.86 58.69 L 73.87 48.75 C68.04,37.13 67.73,37.91 80.26,33.00 C92.68,28.14 100.19,26.74 113.50,26.78 C131.28,26.83 147.62,31.19 161.57,39.58 L 166.88 42.78 L 169.44 38.91 C170.85,36.78 171.99,34.70 171.98,34.27 C171.96,33.08 160.23,26.45 153.00,23.54 C124.34,12.03 88.84,14.95 60.23,31.18 L 54.96 34.17 L 64.12 51.84 C69.16,61.55 73.58,69.84 73.95,70.26 C74.31,70.67 77.32,69.92 80.62,68.58 C91.60,64.12 101.61,62.71 118.39,63.27 C131.58,63.71 143.97,65.63 145.88,67.54 C146.32,67.99 116.40,130.61 114.90,132.37 C114.49,132.85 113.26,131.27 112.15,128.87 C105.69,114.81 88.10,77.77 87.68,77.35 C87.23,76.90 83.32,78.70 80.25,80.77 C79.33,81.39 83.34,90.35 95.61,115.06 C104.74,133.45 112.66,149.62 113.21,151.00 C114.37,153.88 112.45,157.55 141.01,98.00 Z" fill="rgb(254,254,254)"/>
+    <!-- BARRA DI NAVIGAZIONE SUPERIORE (TEMA BIANCO E NERO) -->
+    <nav class="bg-black text-white p-4 flex justify-between items-center shadow-md border-b-2 border-gray-800 print:hidden">
+        <div class="flex items-center space-x-3">
+            <!-- LOGO SPES MONTESACRO AGGIORNATO -->
+            <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center p-1 shadow overflow-hidden">
+                <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 225 225">
+                    <g>
+                        <path d="M 124.88 191.25 C119.40,202.11 114.74,211.00 114.53,211.00 C114.32,211.00 101.76,186.02 86.61,155.50 C71.46,124.97 58.72,100.00 58.28,100.01 C57.85,100.01 54.62,117.45 51.09,138.76 C47.57,160.07 44.30,177.94 43.83,178.47 C43.30,179.06 41.22,177.69 38.45,174.92 L 33.93 170.40 L 36.00 160.45 C38.03,150.67 44.57,117.23 51.11,83.24 C52.93,73.74 54.87,66.12 55.41,66.30 C55.95,66.48 61.92,78.08 68.67,92.07 C75.42,106.05 84.76,125.38 89.42,135.00 C94.08,144.62 101.52,160.06 105.97,169.29 C110.41,178.53 114.37,185.88 114.77,185.62 C115.17,185.37 129.22,157.67 145.99,124.08 C162.76,90.48 176.72,63.00 177.00,63.00 C177.28,63.00 178.55,69.86 179.83,78.25 C181.11,86.64 182.56,95.97 183.07,99.00 C183.57,102.03 184.87,110.12 185.96,117.00 C187.05,123.88 189.31,138.09 190.97,148.59 C192.64,159.09 193.98,168.76 193.95,170.09 C193.92,171.70 192.25,173.95 188.91,176.87 C186.16,179.28 183.74,181.07 183.52,180.85 C183.31,180.64 182.41,175.07 181.53,168.48 C179.84,155.86 174.46,114.18 173.37,105.25 C173.01,102.36 172.44,100.00 172.09,100.00 C171.74,100.00 168.90,105.06 165.76,111.25 C162.63,117.44 154.39,133.52 147.46,147.00 C140.53,160.48 130.37,180.39 124.88,191.25 ZM 141.01 98.00 C139.26,101.63 137.63,105.03 136.11,108.21 C117.89,146.23 114.82,152.63 113.84,152.32 C113.56,152.24 113.46,151.60 113.21,151.00 C112.66,149.62 104.74,133.45 95.61,115.06 C83.34,90.35 79.33,81.39 80.25,80.77 C83.32,78.70 87.23,76.90 87.68,77.35 C88.10,77.77 105.69,114.81 112.15,128.87 C113.26,131.27 114.49,132.85 114.90,132.37 C116.40,130.61 146.32,67.99 145.88,67.54 C143.97,65.63 131.58,63.71 118.39,63.27 C101.61,62.71 91.60,64.12 80.62,68.58 C77.32,69.92 74.31,70.67 73.95,70.26 C73.58,69.84 69.16,61.55 64.12,51.84 L 54.96 34.17 L 60.23 31.18 C88.84,14.95 124.34,12.03 153.00,23.54 C160.23,26.45 171.96,33.08 171.98,34.27 C171.99,34.70 170.85,36.78 169.44,38.91 L 166.88 42.78 L 161.57 39.58 C147.62,31.19 131.28,26.83 113.50,26.78 C100.19,26.74 92.68,28.14 80.26,33.00 C73.93,35.48 70.88,36.51 70.16,38.42 C69.52,40.11 70.73,42.51 73.12,47.25 C73.36,47.72 73.61,48.22 73.87,48.75 L 78.86 58.69 L 85.87 56.41 C106.55,49.67 133.77,51.04 152.24,59.77 L 158.03 62.50 Z" fill="rgb(21,21,22)"/>
+                        <path d="M 0.00 112.50 L 0.00 0.00 L 112.50 0.00 L 225.00 0.00 L 225.00 112.50 L 225.00 225.00 L 112.50 225.00 L 0.00 225.00 L 0.00 112.50 ZM 124.88 191.25 C130.37,180.39 140.53,160.48 147.46,147.00 C154.39,133.52 162.63,117.44 165.76,111.25 C168.90,105.06 171.74,100.00 172.09,100.00 C172.44,100.00 173.01,102.36 173.37,105.25 C174.46,114.18 179.84,155.86 181.53,168.48 C182.41,175.07 183.31,180.64 183.52,180.85 C183.74,181.07 186.16,179.28 188.91,176.87 C192.25,173.95 193.92,171.70 193.95,170.09 C193.98,168.76 192.64,159.09 190.97,148.59 C189.31,138.09 187.05,123.88 185.96,117.00 C184.87,110.12 183.57,102.03 183.07,99.00 C182.56,95.97 181.11,86.64 179.83,78.25 C178.55,69.86 177.28,63.00 177.00,63.00 C176.72,63.00 162.76,90.48 145.99,124.08 C129.22,157.67 115.17,185.37 114.77,185.62 C114.37,185.88 110.41,178.53 105.97,169.29 C101.52,160.06 94.08,144.62 89.42,135.00 C84.76,125.38 75.42,106.05 68.67,92.07 C61.92,78.08 55.95,66.48 55.41,66.30 C54.87,66.12 52.93,73.74 51.11,83.24 C44.57,117.23 38.03,150.67 36.00,160.45 L 33.93 170.40 L 38.45 174.92 C41.22,177.69 43.30,179.06 43.83,178.47 C44.30,177.94 47.57,160.07 51.09,138.76 C54.62,117.45 57.85,100.01 58.28,100.01 C58.72,100.00 71.46,124.97 86.61,155.50 C101.76,186.02 114.32,211.00 114.53,211.00 C114.74,211.00 119.40,202.11 124.88,191.25 ZM 141.01 98.00 L 158.03 62.50 L 152.24 59.77 C133.77,51.04 106.55,49.67 85.87,56.41 L 78.86 58.69 L 73.87 48.75 C68.04,37.13 67.73,37.91 80.26,33.00 C92.68,28.14 100.19,26.74 113.50,26.78 C131.28,26.83 147.62,31.19 161.57,39.58 L 166.88 42.78 L 169.44 38.91 C170.85,36.78 171.99,34.70 171.98,34.27 C171.96,33.08 160.23,26.45 153.00,23.54 C124.34,12.03 88.84,14.95 60.23,31.18 L 54.96 34.17 L 64.12 51.84 C69.16,61.55 73.58,69.84 73.95,70.26 C74.31,70.67 77.32,69.92 80.62,68.58 C91.60,64.12 101.61,62.71 118.39,63.27 C131.58,63.71 143.97,65.63 145.88,67.54 C146.32,67.99 116.40,130.61 114.90,132.37 C114.49,132.85 113.26,131.27 112.15,128.87 C105.69,114.81 88.10,77.77 87.68,77.35 C87.23,76.90 83.32,78.70 80.25,80.77 C79.33,81.39 83.34,90.35 95.61,115.06 C104.74,133.45 112.66,149.62 113.21,151.00 C114.37,153.88 112.45,157.55 141.01,98.00 Z" fill="rgb(254,254,254)"/>
                     </g>
-                </div>
-                <div>
-                    <h1 class="text-base sm:text-xl font-bold tracking-wide uppercase">Spes Montesacro</h1>
-                    <p id="user-info" class="text-xs text-gray-300">Caricamento utente...</p>
-                </div>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-wide uppercase">Spes Montesacro</h1>
+                <p id="user-info" class="text-xs text-gray-300">Caricamento utente...</p>
             </div>
         </div>
-        <div class="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
+        <div class="flex items-center space-x-3">
             <!-- VOCE MENU STAFF NELLA BARRA SUPERIORE -->
             <button id="nav-btn-staff" class="hidden bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded font-semibold transition border border-gray-600">
                 ⚙️ Gestione Staff/Coach
@@ -112,7 +111,7 @@
         </div>
     </div>
 
-    <div class="max-w-6xl mx-auto p-3 sm:p-4 print:p-0">
+    <div class="max-w-6xl mx-auto p-4 print:p-0">
 
         <!-- SECTION: LOGIN -->
         <div id="section-login" class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-black max-w-md mx-auto mt-10 print:hidden">
@@ -149,16 +148,16 @@
             <!-- HEADER DASHBOARD -->
             <div id="dashboard-header" class="bg-white p-4 rounded-lg shadow flex justify-between items-center border-l-4 border-black print:hidden">
                 <div>
-                    <h2 id="dashboard-role-title" class="text-base sm:text-lg font-bold text-gray-900">Pannello Tecnico</h2>
-                    <p id="dashboard-subtitle" class="text-xs sm:text-sm text-gray-500">Squadra: --</p>
+                    <h2 id="dashboard-role-title" class="text-lg font-bold text-gray-900">Pannello Tecnico</h2>
+                    <p id="dashboard-subtitle" class="text-sm text-gray-500">Squadra: --</p>
                 </div>
             </div>
 
             <!-- FILTRO SQUADRE + BOTTONE AGGIUNGI GIOCATORE -->
             <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex flex-col md:flex-row md:items-center justify-between gap-3 print:hidden hidden border border-gray-200">
-                <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 flex-1">
+                <div class="flex items-center space-x-3 flex-1">
                     <label class="text-sm font-bold text-gray-700 whitespace-nowrap">Seleziona Categoria/Gruppo:</label>
-                    <select id="admin-team-filter" class="border p-2 rounded text-sm w-full sm:flex-1 bg-white focus:ring-2 focus:ring-black">
+                    <select id="admin-team-filter" class="border p-2 rounded text-sm flex-1 bg-white focus:ring-2 focus:ring-black">
                         <option value="ALL">Seleziona un gruppo...</option>
                         <optgroup label="2014 (Esordienti)">
                             <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
@@ -194,27 +193,27 @@
                         </optgroup>
                     </select>
                 </div>
-                <button id="btn-open-add-player" class="bg-black hover:bg-gray-800 text-white text-xs px-4 py-2.5 rounded font-bold transition w-full sm:w-auto whitespace-nowrap shadow">
+                <button id="btn-open-add-player" class="bg-black hover:bg-gray-800 text-white text-xs px-4 py-2 rounded font-bold transition whitespace-nowrap shadow">
                     + Aggiungi Giocatore
                 </button>
             </div>
 
-            <!-- BARRA MENU A TAB (OTTIMIZZATA PER MOBILE) -->
-            <div id="navigation-tabs" class="bg-white rounded-lg shadow p-2 flex flex-wrap gap-2 border border-gray-200 print:hidden hidden">
-                <button id="btn-tab-roster" class="tab-btn flex-1 min-w-[130px] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black">
+            <!-- BARRA MENU A TAB -->
+            <div id="navigation-tabs" class="bg-white rounded-lg shadow p-1 flex flex-wrap space-x-1 border border-gray-200 print:hidden hidden">
+                <button id="btn-tab-roster" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black">
                     👥 Rosa Giocatori
                 </button>
-                <button id="btn-tab-attendance" class="tab-btn flex-1 min-w-[130px] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                <button id="btn-tab-attendance" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
                     ⚽ Registra Presenze
                 </button>
-                <button id="btn-tab-monthly" class="tab-btn flex-1 min-w-[130px] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                <button id="btn-tab-monthly" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
                     📊 Registro Mensile
                 </button>
-                <button id="btn-tab-callup" class="tab-btn flex-1 min-w-[130px] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                <button id="btn-tab-callup" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
                     📩 Convocazioni
                 </button>
                 <!-- TAB ESCLUSIVA ADMIN -->
-                <button id="btn-tab-staff" class="tab-btn hidden flex-1 min-w-[130px] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300">
+                <button id="btn-tab-staff" class="tab-btn hidden flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300">
                     ⚙️ Gestione Staff/Coach
                 </button>
             </div>
@@ -223,13 +222,13 @@
             <div id="main-content-area" class="hidden">
 
                 <!-- TAB 1: ROSA GIOCATORI -->
-                <div id="tab-roster" class="tab-content bg-white p-4 sm:p-6 rounded-lg shadow print:shadow-none print:p-0">
-                    <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b pb-3 gap-3 print:hidden">
+                <div id="tab-roster" class="tab-content bg-white p-6 rounded-lg shadow print:shadow-none print:p-0">
+                    <div class="flex justify-between items-center mb-4 border-b pb-3 print:hidden">
                         <div>
-                            <h3 class="text-base sm:text-lg font-bold text-gray-800">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
+                            <h3 class="text-lg font-bold text-gray-800">👥 Rosa Giocatori (<span id="display-active-team">--</span>)</h3>
                             <p class="text-xs text-gray-500">Gestione Anagrafica e Certificati Medici</p>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2">
+                        <div class="flex items-center space-x-2">
                             <input type="file" id="input-import-roster-csv" accept=".csv" class="hidden">
                             <button id="btn-import-roster-csv" class="bg-gray-800 hover:bg-gray-900 text-white text-xs px-3 py-2 rounded font-bold transition">
                                 📥 Importa CSV
@@ -256,12 +255,12 @@
                 </div>
 
                 <!-- TAB 2: REGISTRA NUOVO ALLENAMENTO E PRESENZE -->
-                <div id="tab-attendance" class="tab-content hidden print:hidden bg-white p-4 sm:p-6 rounded-lg shadow">
-                    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 border-b pb-3 gap-2">
-                        <h3 class="text-base sm:text-lg font-bold text-gray-800">⚽ Registra Allenamento e Presenze</h3>
+                <div id="tab-attendance" class="tab-content hidden print:hidden bg-white p-6 rounded-lg shadow">
+                    <div class="flex justify-between items-center mb-4 border-b pb-3">
+                        <h3 class="text-lg font-bold text-gray-800">⚽ Registra Allenamento e Presenze</h3>
                         <div class="flex items-center space-x-2">
                             <label class="text-xs font-bold text-gray-600">Data:</label>
-                            <input type="date" id="attendance-date" class="border p-1.5 rounded text-sm font-semibold">
+                            <input type="date" id="attendance-date" class="border p-1 rounded text-sm font-semibold">
                         </div>
                     </div>
 
@@ -273,9 +272,9 @@
                     </div>
 
                     <form id="form-attendance" class="space-y-4">
-                        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                        <div class="flex justify-between items-center">
                             <p class="text-xs font-bold text-gray-600">Seleziona Stato Presenza:</p>
-                            <button id="btn-reset-attendance-radios" type="button" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-2 py-1.5 rounded transition">
+                            <button id="btn-reset-attendance-radios" type="button" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-2 py-1 rounded transition">
                                 🔄 Ripristina Tutti a Presenti
                             </button>
                         </div>
@@ -285,7 +284,7 @@
                         </div>
 
                         <div class="flex justify-between items-center pt-2">
-                            <button type="submit" class="w-full sm:w-auto bg-black hover:bg-gray-800 text-white p-2.5 rounded font-bold text-xs px-4 transition shadow">
+                            <button type="submit" class="bg-black hover:bg-gray-800 text-white p-2 rounded font-bold text-xs px-4 transition">
                                 Salva Allenamento e Presenze
                             </button>
                         </div>
@@ -293,10 +292,10 @@
                 </div>
 
                 <!-- TAB 3: REGISTRO STORICO MENSILE ALLENAMENTI A GRIGLIA -->
-                <div id="tab-monthly" class="tab-content hidden bg-white p-4 sm:p-6 rounded-lg shadow print:shadow-none print:p-0 overflow-x-auto">
+                <div id="tab-monthly" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0 overflow-x-auto">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b pb-3 gap-3 print:hidden">
                         <div>
-                            <h3 class="text-base sm:text-lg font-bold text-gray-800">📊 Registro Mensile Allenamenti Dettagliato</h3>
+                            <h3 class="text-lg font-bold text-gray-800">📊 Registro Mensile Allenamenti Dettagliato</h3>
                             <p class="text-xs text-gray-500">Griglia presenze del mese (P=Presente, A=Assente, AG=Giustificato, INF=Infortunato, R=Ritardo)</p>
                         </div>
                         
@@ -331,8 +330,7 @@
                         </div>
                     </div>
 
-                    <!-- STATS BAR RESPONSIVE -->
-                    <div id="monthly-stats-bar" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 text-center text-xs print:hidden">
+                    <div id="monthly-stats-bar" class="grid grid-cols-3 gap-3 mb-6 text-center text-xs print:hidden">
                         <div class="bg-gray-100 border border-gray-300 p-3 rounded">
                             <p class="text-gray-500 font-semibold">Sedute Mese</p>
                             <p id="stat-total-sessions" class="text-lg font-bold text-gray-900">0</p>
@@ -353,9 +351,9 @@
                 </div>
 
                 <!-- TAB 4: MODULO E STORICO CONVOCAZIONI -->
-                <div id="tab-callup" class="tab-content hidden bg-white p-4 sm:p-6 rounded-lg shadow print:shadow-none print:p-0 space-y-6">
+                <div id="tab-callup" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0 space-y-6">
                     <div class="print:hidden">
-                        <h3 class="text-base sm:text-lg font-bold text-gray-800 mb-4">📩 Nuova Convocazione Partita</h3>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">📩 Nuova Convocazione Partita</h3>
                         <form id="form-callup" class="space-y-3">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <div>
@@ -368,7 +366,7 @@
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1">
                                 <div>
                                     <label class="block text-[11px] font-bold text-gray-600 mb-1">📅 Giorno Partita</label>
                                     <input type="date" id="match-date" required class="border p-2 rounded text-sm w-full font-semibold">
@@ -384,11 +382,11 @@
                             </div>
                             
                             <p class="text-xs font-bold text-gray-500 pt-2">Seleziona Convocati:</p>
-                            <div id="players-list-callup" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50">
+                            <div id="players-list-callup" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50">
                                 <!-- Checkbox caricati dinamicamente -->
                             </div>
 
-                            <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white p-2.5 rounded font-bold text-sm transition shadow">
+                            <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white p-2 rounded font-bold text-sm transition shadow">
                                 Genera Convocazione
                             </button>
                         </form>
@@ -409,9 +407,9 @@
                 </div>
 
                 <!-- TAB 5: ESCLUSIVA ADMIN - GESTIONE STAFF/COACH -->
-                <div id="tab-staff" class="tab-content hidden print:hidden bg-white p-4 sm:p-6 rounded-lg shadow space-y-6">
+                <div id="tab-staff" class="tab-content hidden print:hidden bg-white p-6 rounded-lg shadow space-y-6">
                     <div class="border-b pb-3">
-                        <h3 class="text-base sm:text-lg font-bold text-gray-900">⚙️ Pannello Amministrazione: Gestione Staff & Coach</h3>
+                        <h3 class="text-lg font-bold text-gray-900">⚙️ Pannello Amministrazione: Gestione Staff & Coach</h3>
                         <p class="text-xs text-gray-500">Crea o rimuovi le credenziali di accesso per gli allenatori e la direzione della Scuola Calcio Spes Montesacro.</p>
                     </div>
 
@@ -482,7 +480,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="w-full sm:w-auto bg-black hover:bg-gray-800 text-white font-bold text-xs px-4 py-2.5 rounded transition shadow">
+                        <button type="submit" class="bg-black hover:bg-gray-800 text-white font-bold text-xs px-4 py-2 rounded transition shadow">
                             🚀 Crea Account Coach
                         </button>
                     </form>
@@ -506,7 +504,7 @@
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border-t-4 border-black">
             <h3 id="modal-player-title" class="text-lg font-bold text-gray-800 mb-4">Aggiungi Nuovo Giocatore</h3>
             <form id="form-add-player" class="space-y-3">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs font-bold text-gray-600">Cognome *</label>
                         <input type="text" id="player-last-name" required class="w-full border p-2 rounded text-sm">
@@ -517,7 +515,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="grid grid-cols-3 gap-2">
                     <div>
                         <label class="block text-xs font-bold text-gray-600">Data Nascita</label>
                         <input type="date" id="player-dob" class="w-full border p-2 rounded text-sm">
@@ -538,7 +536,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs font-bold text-gray-600">Scadenza Certificato Medico</label>
                         <input type="date" id="player-medical-exp" class="w-full border p-2 rounded text-sm">
@@ -549,9 +547,9 @@
                     </div>
                 </div>
 
-                <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
-                    <button type="button" id="btn-close-modal-player" class="bg-gray-300 hover:bg-gray-400 text-gray-800 text-xs px-4 py-2.5 rounded font-bold transition">Annulla</button>
-                    <button type="submit" id="btn-submit-player" class="bg-black hover:bg-gray-800 text-white text-xs px-4 py-2.5 rounded font-bold transition shadow">Salva Giocatore</button>
+                <div class="flex justify-end space-x-2 pt-4">
+                    <button type="button" id="btn-close-modal-player" class="bg-gray-300 hover:bg-gray-400 text-gray-800 text-xs px-4 py-2 rounded font-bold transition">Annulla</button>
+                    <button type="submit" id="btn-submit-player" class="bg-black hover:bg-gray-800 text-white text-xs px-4 py-2 rounded font-bold transition shadow">Salva Giocatore</button>
                 </div>
             </form>
         </div>
@@ -751,9 +749,9 @@
             
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 if (btn.id === 'btn-tab-staff') {
-                    btn.className = `tab-btn ${isAdmin ? '' : 'hidden'} flex-1 min-w-[130px] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300`;
+                    btn.className = `tab-btn ${isAdmin ? '' : 'hidden'} flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300`;
                 } else {
-                    btn.className = "tab-btn flex-1 min-w-[130px] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
+                    btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
                 }
             });
 
@@ -761,7 +759,7 @@
             
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
-                activeBtn.className = "tab-btn flex-1 min-w-[130px] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
+                activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
             }
 
             if (tabId === 'tab-callup') loadCallups();
@@ -974,7 +972,7 @@
                     const teamsDisplay = user.teams.length > 0 ? user.teams.join(', ') : 'Tutte';
 
                     container.innerHTML += `
-                        <div class="border p-3 rounded bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs shadow-sm">
+                        <div class="border p-3 rounded bg-white flex justify-between items-center text-xs shadow-sm">
                             <div class="space-y-1">
                                 <p class="font-bold text-sm text-gray-800">${user.name} ${isSelf ? '<span class="text-xs text-blue-600">(Tu)</span>' : ''}</p>
                                 <p class="text-gray-600">📧 <strong>Email:</strong> ${user.email}</p>
@@ -985,7 +983,7 @@
                             </div>
                             <div>
                                 ${!isSelf ? `
-                                    <button data-id="${userId}" class="btn-delete-staff text-xs bg-red-100 hover:bg-red-200 text-red-700 font-bold px-2.5 py-1.5 rounded transition">
+                                    <button data-id="${userId}" class="btn-delete-staff text-xs bg-red-100 hover:bg-red-200 text-red-700 font-bold px-2 py-1 rounded transition">
                                         🗑️ Elimina
                                     </button>
                                 ` : ''}
@@ -1152,7 +1150,7 @@
             activeTeamPlayers.forEach(player => {
                 const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
                 container.innerHTML += `
-                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 gap-2">
+                    <div class="flex flex-col md:flex-row md:justify-between md:items-center py-2 gap-1">
                         <span class="font-medium text-sm text-gray-800">${displayName}</span>
                         <div class="flex flex-wrap items-center gap-3">
                             <label class="inline-flex items-center text-xs cursor-pointer">
@@ -1187,20 +1185,697 @@
             container.innerHTML = '';
 
             if (!activeTeamPlayers || activeTeamPlayers.length === 0) {
-                container.innerHTML = '<p class="text-sm text-gray-400">Nessun giocatore disponibile.</p>';
+                container.innerHTML = '<p class="text-xs text-gray-400 col-span-2">Nessun giocatore disponibile.</p>';
                 return;
             }
 
             activeTeamPlayers.forEach(player => {
                 const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
                 container.innerHTML += `
-                    <label class="flex items-center space-x-2 text-xs p-1 bg-white border rounded cursor-pointer hover:bg-gray-100">
-                        <input type="checkbox" name="callup-player" value="${player.id}" checked class="rounded text-black focus:ring-black">
-                        <span class="font-medium text-gray-800">${displayName}</span>
+                    <label class="flex items-center space-x-2 text-xs p-1 border rounded bg-gray-50 cursor-pointer">
+                        <input type="checkbox" name="callup_player" value="${displayName}" checked class="rounded text-black focus:ring-black">
+                        <span>${displayName}</span>
                     </label>
                 `;
             });
         }
+
+        async function checkAndLoadExistingAttendance() {
+            const dateInput = document.getElementById('attendance-date');
+            const container = document.getElementById('attendance-status-container');
+            const badge = document.getElementById('attendance-status-badge');
+            const deleteBtn = document.getElementById('btn-delete-session');
+            
+            if (!dateInput || !dateInput.value || !activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') {
+                if (container) container.classList.add('hidden');
+                currentSessionDocId = null;
+                return;
+            }
+
+            const date = dateInput.value;
+
+            try {
+                const q = query(
+                    collection(db, 'attendances'),
+                    where('teamId', '==', activeTeamId),
+                    where('date', '==', date)
+                );
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    const docSnap = snapshot.docs[0];
+                    currentSessionDocId = docSnap.id;
+                    const records = docSnap.data().records || [];
+
+                    records.forEach(rec => {
+                        const radio = document.querySelector(`input[name="att_${rec.playerId}"][value="${rec.status}"]`);
+                        if (radio) radio.checked = true;
+                    });
+
+                    if (container) container.classList.remove('hidden');
+                    if (badge) {
+                        badge.className = "text-xs font-bold text-amber-800";
+                        badge.innerHTML = `⚠️ Presenze per il <strong>${formatDateIT(date)}</strong> già salvate. Salvando ora sovrascriverai i dati.`;
+                    }
+                    if (deleteBtn) deleteBtn.classList.remove('hidden');
+
+                } else {
+                    currentSessionDocId = null;
+                    resetAttendanceRadios();
+
+                    if (container) container.classList.remove('hidden');
+                    if (badge) {
+                        badge.className = "text-xs font-bold text-emerald-800";
+                        badge.innerHTML = `✨ Nuova giornata del <strong>${formatDateIT(date)}</strong> (nessun dato salvato).`;
+                    }
+                    if (deleteBtn) deleteBtn.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error("Errore controllo presenze:", err);
+            }
+        }
+
+        document.getElementById('attendance-date').addEventListener('change', checkAndLoadExistingAttendance);
+
+        document.getElementById('form-attendance').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!activeTeamId || activeTeamPlayers.length === 0) return alert('Nessuna squadra o giocatore presente!');
+
+            const date = document.getElementById('attendance-date').value;
+            if (!date) return alert('Seleziona una data valida!');
+
+            try {
+                const q = query(
+                    collection(db, 'attendances'),
+                    where('teamId', '==', activeTeamId),
+                    where('date', '==', date)
+                );
+                const existingCheck = await getDocs(q);
+
+                let docToUpdateId = null;
+                if (!existingCheck.empty) {
+                    if (!confirm(`⚠️ Hai già salvato le presenze per il ${formatDateIT(date)}.\nVuoi sovrascriverle?`)) return;
+                    docToUpdateId = existingCheck.docs[0].id;
+                }
+
+                const records = [];
+                activeTeamPlayers.forEach(player => {
+                    const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
+                    if (radio) {
+                        const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                        records.push({ playerId: player.id, name: displayName, status: radio.value });
+                    }
+                });
+
+                if (docToUpdateId) {
+                    const docRef = doc(db, 'attendances', docToUpdateId);
+                    await updateDoc(docRef, {
+                        records: records,
+                        updatedAt: serverTimestamp()
+                    });
+                    alert('Presenze aggiornate con successo!');
+                } else {
+                    await addDoc(collection(db, 'attendances'), {
+                        teamId: activeTeamId,
+                        date: date,
+                        records: records,
+                        createdAt: serverTimestamp()
+                    });
+                    alert('Presenze salvate con successo!');
+                }
+                
+                AppCache.clearAttendances(activeTeamId);
+                const savedDateObj = new Date(date + 'T00:00:00');
+                document.getElementById('filter-month').value = savedDateObj.getMonth();
+                document.getElementById('filter-year').value = savedDateObj.getFullYear();
+
+                checkAndLoadExistingAttendance();
+                loadMonthlyAttendances(true);
+
+            } catch (err) {
+                alert("Errore salvataggio presenze: " + err.message);
+            }
+        });
+
+        document.getElementById('btn-delete-session').addEventListener('click', async () => {
+            if (!currentSessionDocId) return;
+            const dateStr = document.getElementById('attendance-date').value;
+            if (!confirm(`Eliminare definitivamente l'allenamento del ${formatDateIT(dateStr)}?`)) return;
+
+            try {
+                await deleteDoc(doc(db, 'attendances', currentSessionDocId));
+                alert('Giornata eliminata con successo!');
+                AppCache.clearAttendances(activeTeamId);
+                currentSessionDocId = null;
+                checkAndLoadExistingAttendance();
+                loadMonthlyAttendances(true);
+            } catch (err) {
+                alert("Errore eliminazione: " + err.message);
+            }
+        });
+
+        async function loadMonthlyAttendances(forceRefresh = false) {
+            if (!activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') return;
+
+            const selectedMonth = parseInt(document.getElementById('filter-month').value);
+            const selectedYear = parseInt(document.getElementById('filter-year').value);
+            const container = document.getElementById('monthly-sessions-container');
+
+            document.getElementById('print-report-period').innerText = `Periodo: ${monthNamesIT[selectedMonth]} ${selectedYear}`;
+
+            const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+            const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+            const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(totalDaysInMonth).padStart(2, '0')}`;
+
+            try {
+                let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth);
+
+                if (!sessions || forceRefresh) {
+                    container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
+                    const q = query(
+                        collection(db, 'attendances'),
+                        where('teamId', '==', activeTeamId),
+                        where('date', '>=', startOfMonth),
+                        where('date', '<=', endOfMonth)
+                    );
+                    const snapshot = await getDocs(q);
+
+                    sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    AppCache.setAttendances(activeTeamId, selectedYear, selectedMonth, sessions);
+                }
+
+                const sessionsByDay = {};
+                let totalPresentsCount = 0;
+
+                sessions.forEach(s => {
+                    const dayNum = parseInt(s.date.split('-')[2], 10);
+                    sessionsByDay[dayNum] = s;
+                    if (s.records) {
+                        totalPresentsCount += s.records.filter(r => r.status === 'present' || r.status === 'late').length;
+                    }
+                });
+
+                document.getElementById('stat-total-sessions').innerText = sessions.length;
+                document.getElementById('stat-total-presents').innerText = totalPresentsCount;
+                document.getElementById('stat-avg-presents').innerText = sessions.length > 0 ? (totalPresentsCount / sessions.length).toFixed(1) : '0';
+
+                let tableHtml = `
+                    <table class="w-full text-xs border-collapse border border-gray-400 bg-white">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-700">
+                                <th class="border border-gray-400 p-1 text-left">Giocatore</th>
+                `;
+
+                for (let d = 1; d <= totalDaysInMonth; d++) {
+                    const dateObj = new Date(selectedYear, selectedMonth, d);
+                    const dayName = daysOfWeekIT[dateObj.getDay()];
+                    const isSession = !!sessionsByDay[d];
+                    const bgClass = isSession ? 'bg-gray-200 text-black font-bold' : '';
+                    tableHtml += `<th class="border border-gray-400 p-1 text-center capitalize ${bgClass}">${dayName}</th>`;
+                }
+
+                tableHtml += `</tr><tr class="bg-gray-200 text-gray-800"><th class="border border-gray-400 p-1 text-left">Cognome e Nome</th>`;
+
+                for (let d = 1; d <= totalDaysInMonth; d++) {
+                    const isSession = !!sessionsByDay[d];
+                    const bgClass = isSession ? 'bg-gray-300 text-black font-bold' : '';
+                    tableHtml += `<th class="border border-gray-400 p-1 text-center ${bgClass}">${d}</th>`;
+                }
+
+                tableHtml += `</tr></thead><tbody>`;
+
+                if (!activeTeamPlayers || activeTeamPlayers.length === 0) {
+                    tableHtml += `<tr><td colspan="${totalDaysInMonth + 1}" class="text-center p-4 text-gray-400">Nessun giocatore in rosa.</td></tr>`;
+                } else {
+                    activeTeamPlayers.forEach(player => {
+                        const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                        tableHtml += `<tr class="hover:bg-gray-50"><td class="border border-gray-400 p-1.5 font-bold text-gray-800 whitespace-nowrap">${displayName}</td>`;
+
+                        for (let d = 1; d <= totalDaysInMonth; d++) {
+                            const session = sessionsByDay[d];
+                            let statusSymbol = '-';
+                            let statusColor = 'text-gray-300';
+
+                            if (session && session.records) {
+                                const rec = session.records.find(r => r.playerId === player.id);
+                                if (rec) {
+                                    switch(rec.status) {
+                                        case 'present': statusSymbol = 'P'; statusColor = 'text-emerald-700 font-bold bg-emerald-50'; break;
+                                        case 'absent': statusSymbol = 'A'; statusColor = 'text-red-600 font-bold bg-red-50'; break;
+                                        case 'justified': statusSymbol = 'AG'; statusColor = 'text-amber-600 font-bold bg-amber-50'; break;
+                                        case 'injured': statusSymbol = 'INF'; statusColor = 'text-purple-600 font-bold bg-purple-50'; break;
+                                        case 'late': statusSymbol = 'R'; statusColor = 'text-blue-600 font-bold bg-blue-50'; break;
+                                    }
+                                }
+                            }
+                            tableHtml += `<td class="border border-gray-400 p-1 text-center ${statusColor}">${statusSymbol}</td>`;
+                        }
+                        tableHtml += `</tr>`;
+                    });
+                }
+                tableHtml += `</tbody></table>`;
+                container.innerHTML = tableHtml;
+
+            } catch (err) {
+                console.error("Errore caricamento allenamenti:", err);
+                container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore durante il caricamento dei dati.</p>`;
+            }
+        }
+
+        document.getElementById('filter-month').addEventListener('change', () => loadMonthlyAttendances());
+        document.getElementById('filter-year').addEventListener('change', () => loadMonthlyAttendances());
+
+        // ESPORTAZIONE E CONDIVISIONE MENSILE
+        document.getElementById('btn-export-monthly-csv').addEventListener('click', () => {
+            if (!activeTeamId) return alert("Seleziona prima una squadra!");
+            const selectedMonth = parseInt(document.getElementById('filter-month').value);
+            const selectedYear = parseInt(document.getElementById('filter-year').value);
+            const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+
+            let csv = `Registro Presenze - ${activeTeamId} - ${monthNamesIT[selectedMonth]} ${selectedYear}\n\nGiocatore;`;
+            for (let d = 1; d <= totalDaysInMonth; d++) csv += `${d};`;
+            csv += "\n";
+
+            let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth) || [];
+            const sessionsByDay = {};
+            sessions.forEach(s => { sessionsByDay[parseInt(s.date.split('-')[2], 10)] = s; });
+
+            activeTeamPlayers.forEach(player => {
+                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                csv += `"${displayName}";`;
+                for (let d = 1; d <= totalDaysInMonth; d++) {
+                    const session = sessionsByDay[d];
+                    let val = "-";
+                    if (session && session.records) {
+                        const rec = session.records.find(r => r.playerId === player.id);
+                        if (rec) {
+                            const map = { present: 'P', absent: 'A', justified: 'AG', injured: 'INF', late: 'R' };
+                            val = map[rec.status] || '-';
+                        }
+                    }
+                    csv += `${val};`;
+                }
+                csv += "\n";
+            });
+
+            downloadCSV(`Presenze_${activeTeamId}_${monthNamesIT[selectedMonth]}_${selectedYear}.csv`, csv);
+        });
+
+        document.getElementById('btn-export-roster-csv').addEventListener('click', () => {
+            if (!activeTeamId || activeTeamPlayers.length === 0) return alert("Nessun giocatore in rosa!");
+            let csv = `Cognome;Nome;Numero Maglia;Data Nascita;Ruolo;Scadenza Certificato;Tel. Genitore\n`;
+            activeTeamPlayers.forEach(p => {
+                csv += `"${p.lastName || ''}";"${p.firstName || ''}";"${p.jersey || ''}";"${p.dob || ''}";"${p.role || ''}";"${p.medicalExp || ''}";"${p.parentPhone || ''}"\n`;
+            });
+            downloadCSV(`Rosa_${activeTeamId}.csv`, csv);
+        });
+
+        // IMPORTAZIONE GIOCATORI DA FILE CSV
+        const btnImportCsv = document.getElementById('btn-import-roster-csv');
+        const inputImportCsv = document.getElementById('input-import-roster-csv');
+
+        btnImportCsv.addEventListener('click', () => {
+            if (!activeTeamId) return alert('Seleziona prima una squadra per poter importare i giocatori!');
+            inputImportCsv.click();
+        });
+
+        inputImportCsv.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: async function(results) {
+                    const rows = results.data;
+                    if (!rows || rows.length === 0) {
+                        return alert("Il file CSV sembra vuoto o non formattato correttamente.");
+                    }
+
+                    if (!confirm(`Trovati ${rows.length} giocatori nel file CSV.\nConfermi l'importazione nel gruppo "${activeTeamId}"?`)) {
+                        inputImportCsv.value = '';
+                        return;
+                    }
+
+                    try {
+                        let count = 0;
+                        for (const row of rows) {
+                            const lastName = (row['Cognome'] || row['cognome'] || '').trim();
+                            const firstName = (row['Nome'] || row['nome'] || '').trim();
+
+                            if (lastName || firstName) {
+                                const playerData = {
+                                    lastName: lastName,
+                                    firstName: firstName,
+                                    name: `${lastName} ${firstName}`.trim(),
+                                    jersey: (row['Numero Maglia'] || row['Maglia'] || row['jersey'] || '').toString().trim(),
+                                    dob: (row['Data Nascita'] || row['dob'] || '').trim(),
+                                    role: (row['Ruolo'] || row['role'] || '').trim(),
+                                    medicalExp: (row['Scadenza Certificato'] || row['medicalExp'] || '').trim(),
+                                    parentPhone: (row['Tel. Genitore'] || row['parentPhone'] || '').toString().trim(),
+                                    teamId: activeTeamId,
+                                    createdAt: serverTimestamp()
+                                };
+
+                                await addDoc(collection(db, 'players'), playerData);
+                                count++;
+                            }
+                        }
+
+                        alert(`✅ Importazione completata! Aggiunti ${count} giocatori al gruppo ${activeTeamId}.`);
+                        AppCache.clearPlayers(activeTeamId);
+                        loadTeamData(true);
+
+                    } catch (err) {
+                        alert("Errore durante l'importazione dei dati: " + err.message);
+                    } finally {
+                        inputImportCsv.value = '';
+                    }
+                },
+                error: function(err) {
+                    alert("Errore nella lettura del file CSV: " + err.message);
+                    inputImportCsv.value = '';
+                }
+            });
+        });
+
+        // CONVOCAZIONI E GESTIONE
+        document.getElementById('form-callup').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!activeTeamId) return alert("Seleziona prima una squadra!");
+
+            const opponent = document.getElementById('match-opponent').value.trim();
+            const location = document.getElementById('match-location').value.trim();
+            const matchDate = document.getElementById('match-date').value;
+            const matchTime = document.getElementById('match-time').value;
+            const gatheringTime = document.getElementById('gathering-time').value;
+
+            const selectedPlayers = [];
+            document.querySelectorAll('input[name="callup_player"]:checked').forEach(cb => selectedPlayers.push(cb.value));
+
+            if (selectedPlayers.length === 0) return alert("Seleziona almeno un giocatore!");
+
+            try {
+                const q = query(
+                    collection(db, 'callups'),
+                    where('teamId', '==', activeTeamId),
+                    where('date', '==', matchDate)
+                );
+                const snapshot = await getDocs(q);
+
+                let docToUpdateId = !snapshot.empty ? snapshot.docs[0].id : null;
+
+                const callupData = {
+                    teamId: activeTeamId,
+                    opponent: opponent,
+                    location: location,
+                    date: matchDate,
+                    matchTime: matchTime,
+                    gatheringTime: gatheringTime,
+                    players: selectedPlayers,
+                    updatedAt: serverTimestamp()
+                };
+
+                if (docToUpdateId) {
+                    await updateDoc(doc(db, 'callups', docToUpdateId), callupData);
+                    alert(`Convocazione aggiornata per il ${formatDateIT(matchDate)}!`);
+                } else {
+                    callupData.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'callups'), callupData);
+                    alert(`Convocazione creata!`);
+                }
+
+                document.getElementById('form-callup').reset();
+                renderCallupCheckboxes();
+                loadCallups();
+            } catch (err) {
+                alert("Errore salvataggio convocazione: " + err.message);
+            }
+        });
+
+        async function loadCallups() {
+            const container = document.getElementById('callups-list-container');
+            if (!container || !activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') return;
+
+            try {
+                const q = query(collection(db, 'callups'), where('teamId', '==', activeTeamId));
+                const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    container.innerHTML = '<p class="text-xs text-gray-400">Nessuna convocazione presente.</p>';
+                    loadedCallupsList = [];
+                    return;
+                }
+
+                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                docs.sort((a, b) => new Date(`${b.date}T${b.matchTime}`) - new Date(`${a.date}T${a.matchTime}`));
+
+                loadedCallupsList = docs;
+                container.innerHTML = '';
+                
+                docs.forEach(data => {
+                    const playersList = (data.players || []).join(', ');
+                    container.innerHTML += `
+                        <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs mb-2 shadow-sm">
+                            <div class="space-y-1">
+                                <p class="font-bold text-sm text-black">⚽ Spes Montesacro vs ${data.opponent}</p>
+                                <p class="text-gray-700">
+                                    📅 <strong>Giorno:</strong> ${formatDateIT(data.date)} | 
+                                    🕒 <strong>Inizio:</strong> ${data.matchTime} | 
+                                    ⏰ <strong>Ritrovo:</strong> ${data.gatheringTime}
+                                </p>
+                                <p class="text-gray-600">📍 <strong>Campo:</strong> ${data.location}</p>
+                                <p class="text-gray-500 pt-1">👥 <strong>Convocati (${data.players ? data.players.length : 0}):</strong> ${playersList}</p>
+                            </div>
+                            <div class="flex flex-col space-y-1">
+                                <button data-id="${data.id}" class="btn-share-callup-wa bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-[10px] transition">📲 WhatsApp</button>
+                                <button data-id="${data.id}" class="btn-print-callup bg-black hover:bg-gray-800 text-white font-bold px-2 py-1 rounded text-[10px] transition">🖨️ Stampa</button>
+                                <button data-id="${data.id}" class="btn-delete-callup bg-red-600 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] transition">🗑️ Elimina</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.querySelectorAll('.btn-share-callup-wa').forEach(b => {
+                    b.addEventListener('click', (e) => shareCallupWhatsApp(e.target.getAttribute('data-id')));
+                });
+                container.querySelectorAll('.btn-print-callup').forEach(b => {
+                    b.addEventListener('click', (e) => printCallupReport(e.target.getAttribute('data-id')));
+                });
+                container.querySelectorAll('.btn-delete-callup').forEach(b => {
+                    b.addEventListener('click', (e) => deleteCallup(e.target.getAttribute('data-id')));
+                });
+
+            } catch (err) {
+                container.innerHTML = `<p class="text-xs text-red-500">Errore: ${err.message}</p>`;
+            }
+        }
+
+        function shareCallupWhatsApp(callupId) {
+            const callup = loadedCallupsList.find(c => c.id === callupId);
+            if (!callup) return;
+            const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
+            let text = `📢 *CONVOCAZIONE GARA UFFICIALE*\n⚽ *Spes Montesacro vs ${callup.opponent}*\n\n📅 *Giorno:* ${formatDateIT(callup.date)}\n🕒 *Inizio Partita:* ${callup.matchTime}\n⏰ *Ora Ritrovo:* ${callup.gatheringTime}\n📍 *Luogo:* ${callup.location}\n\n👥 *ELENCO CONVOCATI (${sortedPlayers.length}):*\n`;
+            sortedPlayers.forEach((p, i) => text += `${i + 1}. ${p}\n`);
+            text += `\n⚠️ *Massima puntualità!*`;
+            sendToWhatsApp(text, `Convocazione vs ${callup.opponent}`);
+        }
+
+        document.getElementById('btn-share-monthly-wa').addEventListener('click', () => {
+            if (!activeTeamId) return;
+            const m = parseInt(document.getElementById('filter-month').value);
+            const y = parseInt(document.getElementById('filter-year').value);
+            let text = `📊 *RIEPILOGO PRESENZE MENSILE*\n🏆 *Spes Montesacro - ${activeTeamId}*\n📅 *Mese:* ${monthNamesIT[m]} ${y}\n\n📌 *Sedute:* ${document.getElementById('stat-total-sessions').innerText}\n✅ *Presenze Totali:* ${document.getElementById('stat-total-presents').innerText}\n📈 *Media/Seduta:* ${document.getElementById('stat-avg-presents').innerText}\n\n_Report Registro Tecnico Spes Montesacro._`;
+            sendToWhatsApp(text, `Report Mensile ${monthNamesIT[m]}`);
+        });
+
+        document.getElementById('btn-share-roster-wa').addEventListener('click', () => {
+            if (!activeTeamId || activeTeamPlayers.length === 0) return;
+            let text = `👥 *ROSA UFFICIALE GIOCATORI*\n🏆 *Spes Montesacro - ${activeTeamId}*\n📊 *Totale Tesserati:* ${activeTeamPlayers.length}\n\n`;
+            activeTeamPlayers.forEach((p, i) => text += `${i + 1}. ${p.lastName ? `${p.lastName} ${p.firstName}` : p.name}\n`);
+            sendToWhatsApp(text, `Rosa ${activeTeamId}`);
+        });
+
+        function printCallupReport(callupId) {
+            const callup = loadedCallupsList.find(c => c.id === callupId);
+            if (!callup) return;
+            const printContainer = document.getElementById('callup-print-container');
+            document.getElementById('print-report-period').innerText = 'Modulo Convocazione Gara Ufficiale';
+            const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
+
+            let rows = '';
+            sortedPlayers.forEach((p, index) => {
+                rows += `<tr><td class="border border-black p-2 text-center font-bold" style="width: 40px;">${index + 1}</td><td class="border border-black p-2 font-bold text-sm">${p}</td><td class="border border-black p-2"></td></tr>`;
+            });
+
+            printContainer.innerHTML = `
+                <div class="bg-gray-100 border border-black p-3 mb-4 rounded space-y-1 text-sm">
+                    <p class="text-base font-extrabold text-black">⚽ PARTITA: Spes Montesacro vs ${callup.opponent}</p>
+                    <div class="grid grid-cols-2 gap-2 pt-1 font-semibold">
+                        <p>📅 <strong>Giorno:</strong> ${formatDateIT(callup.date)}</p>
+                        <p>📍 <strong>Luogo:</strong> ${callup.location}</p>
+                        <p>🕒 <strong>Inizio:</strong> ${callup.matchTime}</p>
+                        <p>⏰ <strong>Ritrovo Campo:</strong> ${callup.gatheringTime}</p>
+                    </div>
+                </div>
+                <h3 class="text-md font-bold mb-2 uppercase tracking-wide border-b border-black pb-1">Giocatori Convocati (${sortedPlayers.length})</h3>
+                <table class="w-full border-collapse border border-black text-left">
+                    <thead><tr class="bg-gray-200 text-black uppercase text-xs"><th class="border border-black p-2 text-center">#</th><th class="border border-black p-2">Cognome e Nome</th><th class="border border-black p-2 w-1/3">Note / Firma</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+
+            document.body.classList.remove('print-landscape', 'print-monthly', 'print-roster');
+            document.body.classList.add('print-callup');
+            window.print();
+        }
+
+        async function deleteCallup(callupId) {
+            if (!confirm("Eliminare questa convocazione?")) return;
+            try {
+                await deleteDoc(doc(db, 'callups', callupId));
+                alert("Convocazione eliminata!");
+                loadCallups();
+            } catch (err) { alert("Errore: " + err.message); }
+        }
+
+        document.getElementById('btn-print-roster').addEventListener('click', () => {
+            document.body.classList.remove('print-landscape', 'print-monthly', 'print-callup');
+            document.body.classList.add('print-roster');
+            document.getElementById('print-report-period').innerText = 'Documento: Rosa Giocatori Ufficiale';
+            window.print();
+        });
+
+        document.getElementById('btn-print-monthly').addEventListener('click', () => {
+            document.body.classList.remove('print-roster', 'print-callup');
+            document.body.classList.add('print-landscape', 'print-monthly');
+            const m = parseInt(document.getElementById('filter-month').value);
+            const y = parseInt(document.getElementById('filter-year').value);
+            document.getElementById('print-report-period').innerText = `Periodo: ${monthNamesIT[m]} ${y}`;
+            window.print();
+        });
+
+        // MODALE E GESTIONE GIOCATORE
+        document.getElementById('btn-open-add-player').addEventListener('click', () => {
+            if (!activeTeamId) return alert('Seleziona prima una squadra!');
+            editingPlayerId = null;
+            document.getElementById('modal-player-title').innerText = "Aggiungi Nuovo Giocatore";
+            document.getElementById('btn-submit-player').innerText = "Salva Giocatore";
+            
+            document.getElementById('player-first-name').value = '';
+            document.getElementById('player-last-name').value = '';
+            document.getElementById('player-dob').value = '';
+            document.getElementById('player-jersey').value = '';
+            document.getElementById('player-role').value = '';
+            document.getElementById('player-medical-exp').value = '';
+            document.getElementById('player-parent-phone').value = '';
+            document.getElementById('modal-add-player').classList.remove('hidden');
+        });
+
+        function openEditPlayerModal(playerId) {
+            const player = activeTeamPlayers.find(p => p.id === playerId);
+            if (!player) return;
+
+            editingPlayerId = playerId;
+            document.getElementById('modal-player-title').innerText = "Modifica Giocatore";
+            document.getElementById('btn-submit-player').innerText = "Aggiorna Giocatore";
+
+            document.getElementById('player-first-name').value = player.firstName || '';
+            document.getElementById('player-last-name').value = player.lastName || '';
+            document.getElementById('player-dob').value = player.dob || '';
+            document.getElementById('player-jersey').value = player.jersey || '';
+            document.getElementById('player-role').value = player.role || '';
+            document.getElementById('player-medical-exp').value = player.medicalExp || '';
+            document.getElementById('player-parent-phone').value = player.parentPhone || '';
+
+            document.getElementById('modal-add-player').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-close-modal-player').addEventListener('click', () => {
+            document.getElementById('modal-add-player').classList.add('hidden');
+        });
+
+        document.getElementById('form-add-player').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!activeTeamId) return;
+
+            const firstName = document.getElementById('player-first-name').value.trim();
+            const lastName = document.getElementById('player-last-name').value.trim();
+            const dob = document.getElementById('player-dob').value;
+            const jersey = document.getElementById('player-jersey').value.trim();
+            const role = document.getElementById('player-role').value;
+            const medicalExp = document.getElementById('player-medical-exp').value;
+            const parentPhone = document.getElementById('player-parent-phone').value.trim();
+
+            const playerData = {
+                firstName: firstName,
+                lastName: lastName,
+                name: `${lastName} ${firstName}`.trim(),
+                dob: dob,
+                jersey: jersey,
+                role: role,
+                medicalExp: medicalExp,
+                parentPhone: parentPhone,
+                teamId: activeTeamId
+            };
+
+            try {
+                if (editingPlayerId) {
+                    await updateDoc(doc(db, 'players', editingPlayerId), playerData);
+                    alert("Giocatore aggiornato con successo!");
+                } else {
+                    playerData.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'players'), playerData);
+                    alert("Nuovo giocatore aggiunto con successo!");
+                }
+
+                document.getElementById('modal-add-player').classList.add('hidden');
+                AppCache.clearPlayers(activeTeamId);
+                loadTeamData(true);
+            } catch (err) {
+                alert("Errore salvataggio giocatore: " + err.message);
+            }
+        });
+
+        async function deletePlayer(playerId) {
+            if (!confirm("Sei sicuro di voler rimuovere questo giocatore dalla rosa?")) return;
+            try {
+                await deleteDoc(doc(db, 'players', playerId));
+                alert("Giocatore eliminato!");
+                AppCache.clearPlayers(activeTeamId);
+                loadTeamData(true);
+            } catch (err) {
+                alert("Errore eliminazione: " + err.message);
+            }
+        }
+
+        function resetAttendanceRadios() {
+            if (!activeTeamPlayers) return;
+            activeTeamPlayers.forEach(player => {
+                const radio = document.querySelector(`input[name="att_${player.id}"][value="present"]`);
+                if (radio) radio.checked = true;
+            });
+        }
+
+        document.getElementById('btn-reset-attendance-radios').addEventListener('click', () => {
+            resetAttendanceRadios();
+        });
+
+        // GESTIONE CAMBIO TAB CLICK
+        document.getElementById('btn-tab-roster').addEventListener('click', () => switchTab('tab-roster'));
+        document.getElementById('btn-tab-attendance').addEventListener('click', () => switchTab('tab-attendance'));
+        document.getElementById('btn-tab-monthly').addEventListener('click', () => switchTab('tab-monthly'));
+        document.getElementById('btn-tab-callup').addEventListener('click', () => switchTab('tab-callup'));
+        document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-staff'));
+
+	if ('serviceWorker' in navigator) {
+  		window.addEventListener('load', () => {
+    		navigator.serviceWorker.register('/sw.js')
+      		.then((reg) => console.log('Service Worker registrato con successo'))
+      		.catch((err) => console.log('Registrazione fallita', err));
+  		});
+	}
+
     </script>
 </body>
 </html>
