@@ -302,24 +302,6 @@
                 <!-- TAB 3: REGISTRO STORICO MENSILE ALLENAMENTI A GRIGLIA -->
                 <div id="tab-monthly" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0 overflow-x-auto">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b pb-3 gap-3 print:hidden">
-
-						<!-- GRAFICO STATISTICO MENSILE (Chart.js) -->
-						<div class="bg-gray-50 border border-gray-200 p-4 rounded-lg mb-6 print:hidden">
-						    <div class="flex justify-between items-center mb-3">
-						        <div>
-						            <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wide">📈 Trend Presenze Mensili</h4>
-						            <span class="text-[11px] text-gray-500 font-medium">Visualizzazione presenze per seduta</span>
-						        </div>
-						        <!-- Pulsante di controllo (es. cambia tipo di grafico o aggiorna) -->
-						        <button id="btn-toggle-chart-type" class="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded font-bold transition shadow-sm flex items-center gap-1.5">
-						            🔄 <span id="chart-type-label">Passa a Linea</span>
-						        </button>
-						    </div>
-						    <div class="relative h-48 w-full">
-						        <canvas id="monthly-attendance-chart"></canvas>
-						    </div>
-						</div>
-                        <div>
                             <h3 class="text-lg font-bold text-gray-800">📊 Registro Mensile Allenamenti Dettagliato</h3>
                             <p class="text-xs text-gray-500">Griglia presenze del mese (P=Presente, A=Assente, AG=Giustificato, INF=Infortunato, R=Ritardo)</p>
                         </div>
