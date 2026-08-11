@@ -76,6 +76,10 @@
             </div>
         </div>
         <div class="flex items-center space-x-3">
+			<!-- NUOVO PULSANTE CAMBIO PASSWORD (ACCESSIBILE A TUTTI) -->
+    		<button id="nav-btn-password" class="bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded font-semibold transition border border-gray-600">
+        		🔑 Cambia Password
+    		</button>
             <!-- VOCE MENU STAFF NELLA BARRA SUPERIORE -->
             <button id="nav-btn-staff" class="hidden bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-2 rounded font-semibold transition border border-gray-600">
                 ⚙️ Gestione Staff/Coach
@@ -484,25 +488,6 @@
                             🚀 Crea Account Coach
                         </button>
                     </form>
-					<!-- SEZIONE CAMBIO PASSWORD UTENTE CORRENTE -->
-                    <div class="bg-gray-50 p-4 border border-gray-300 rounded-lg space-y-3 mt-4">
-                        <h4 class="text-sm font-bold text-gray-800">🔒 Modifica Password Personale</h4>
-                        <form id="form-change-password" class="space-y-3">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 mb-1">Password Attuale *</label>
-                                    <input type="password" id="current-password" required placeholder="Inserisci la password attuale" class="w-full border p-2 rounded text-xs bg-white">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 mb-1">Nuova Password *</label>
-                                    <input type="password" id="new-password" minlength="6" required placeholder="Minimo 6 caratteri" class="w-full border p-2 rounded text-xs bg-white">
-                                </div>
-                            </div>
-                            <button type="submit" class="bg-gray-800 hover:bg-black text-white font-bold text-xs px-4 py-2 rounded transition shadow">
-                                🔄 Aggiorna Password
-                            </button>
-                        </form>
-                    </div>
                     <!-- LISTA UTENTI STAFF ATTUALI -->
                     <div>
                         <h4 class="text-sm font-bold text-gray-800 mb-3">📋 Staff Tecnico Registrato</h4>
@@ -572,6 +557,29 @@
             </form>
         </div>
     </div>
+	<!-- MODALE CAMBIO PASSWORD PERSONALE -->
+    <div id="modal-change-password" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 print:hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full border-t-4 border-black">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">🔒 Modifica Password Personale</h3>
+            <p class="text-xs text-gray-500 mb-4">Inserisci la tua password attuale e scegli una nuova password di almeno 6 caratteri.</p>
+            
+            <form id="form-change-password" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Password Attuale *</label>
+                    <input type="password" id="current-password" required placeholder="Inserisci la password attuale" class="w-full border p-2 rounded text-xs bg-white focus:ring-2 focus:ring-black outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Nuova Password *</label>
+                    <input type="password" id="new-password" minlength="6" required placeholder="Minimo 6 caratteri" class="w-full border p-2 rounded text-xs bg-white focus:ring-2 focus:ring-black outline-none">
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-3">
+                    <button type="button" id="btn-close-modal-password" class="bg-gray-300 hover:bg-gray-400 text-gray-800 text-xs px-4 py-2 rounded font-bold transition">Annulla</button>
+                    <button type="submit" class="bg-black hover:bg-gray-800 text-white text-xs px-4 py-2 rounded font-bold transition shadow">Aggiorna Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- LOGICA APPLICATIVA IN JAVASCRIPT MODULARE (FIREBASE V10 SDK) -->
     <script type="module">
@@ -620,8 +628,18 @@
         enableMultiTabIndexedDbPersistence(db).catch(err => {
             console.warn("Persistenza offline non abilitata:", err.code);
         });
+		// GESTIONE MODALE CAMBIO PASSWORD PERSONALE
+        const modalPassword = document.getElementById('modal-change-password');
+        
+        document.getElementById('nav-btn-password').addEventListener('click', () => {
+            modalPassword.classList.remove('hidden');
+        });
 
-		// GESTIONE CAMBIO PASSWORD UTENTE
+        document.getElementById('btn-close-modal-password').addEventListener('click', () => {
+            modalPassword.classList.add('hidden');
+            document.getElementById('form-change-password').reset();
+        });
+
         document.getElementById('form-change-password').addEventListener('submit', async (e) => {
             e.preventDefault();
             const currentPass = document.getElementById('current-password').value;
@@ -639,10 +657,12 @@
                 
                 alert("Password aggiornata con successo!");
                 document.getElementById('form-change-password').reset();
+                modalPassword.classList.add('hidden');
             } catch (err) {
                 alert("Errore durante il cambio password: " + err.message);
             }
         });
+
 
         // SALVATAGGIO OPZIONI PREDEFINITE ADMIN PER IL SELECTOR
         const adminTeamOptionsHTML = document.getElementById('admin-team-filter').innerHTML;
