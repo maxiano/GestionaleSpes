@@ -1462,9 +1462,9 @@
             const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
             const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
             const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(totalDaysInMonth).padStart(2, '0')}`;
-
+			let sessions = [];
             try {
-                let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth);
+                sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth);
 
                 if (!sessions || forceRefresh) {
                     container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
