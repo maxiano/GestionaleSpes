@@ -153,70 +153,70 @@
                 </div>
             </div>
 
-           <!-- FILTRO SQUADRE + BOTTONE AGGIUNGI GIOCATORE -->
-			<div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex flex-col md:flex-row md:items-center justify-between gap-3 print:hidden hidden border border-gray-200">
-			    <div class="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 flex-1 w-full">
-			        <label class="text-xs sm:text-sm font-bold text-gray-700 whitespace-nowrap">Seleziona Categoria/Gruppo:</label>
-			        <select id="admin-team-filter" class="border p-2 rounded text-xs sm:text-sm w-full bg-white focus:ring-2 focus:ring-black">
-			            <option value="ALL">Seleziona un gruppo...</option>
-			            <optgroup label="2014 (Esordienti)">
-			                <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
-			                <option value="2014 - Gruppo Verde">2014 - Gruppo Verde</option>
-			            </optgroup>
-			            <optgroup label="2015 (Pulcini)">
-			                <option value="2015 - Gruppo Nero">2015 - Gruppo Nero</option>
-			                <option value="2015 - Gruppo Verde">2015 - Gruppo Verde</option>
-			            </optgroup>
-			            <optgroup label="2016 (Pulcini)">
-			                <option value="2016 - Gruppo Nero">2016 - Gruppo Nero</option>
-			                <option value="2016 - Gruppo Verde">2016 - Gruppo Verde</option>
-			                <option value="2016 - Gruppo Giallo">2016 - Gruppo Giallo</option>
-			            </optgroup>
-			            <optgroup label="2017 (Primi Calci)">
-			                <option value="2017 - Gruppo Nero">2017 - Gruppo Nero</option>
-			                <option value="2017 - Gruppo Verde">2017 - Gruppo Verde</option>
-			                <option value="2017 - Gruppo Giallo">2017 - Gruppo Giallo</option>
-			            </optgroup>
-			            <optgroup label="2018 (Primi Calci)">
-			                <option value="2018 - Gruppo Nero">2018 - Gruppo Nero</option>
-			                <option value="2018 - Gruppo Verde">2018 - Gruppo Verde</option>
-			                <option value="2018 - Gruppo Giallo">2018 - Gruppo Giallo</option>
-			            </optgroup>
-			            <optgroup label="2019 (Piccoli Amici)">
-			                <option value="2019 - Gruppo Nero">2019 - Gruppo Nero</option>
-			                <option value="2019 - Gruppo Verde">2019 - Gruppo Verde</option>
-			                <option value="2019 - Gruppo Giallo">2019 - Gruppo Giallo</option>
-			            </optgroup>
-			            <optgroup label="2020-2021 (Piccoli Amici)">
-			                <option value="2020-21 - Gruppo Nero">2020-21 - Gruppo Nero</option>
-			                <option value="2020-21 - Gruppo Verde">2020-21 - Gruppo Verde</option>
-			            </optgroup>
-			        </select>
-			    </div>
-			    <button id="btn-open-add-player" class="bg-black hover:bg-gray-800 text-white text-xs px-4 py-2.5 rounded font-bold transition w-full md:w-auto text-center shadow">
-			        + Aggiungi Giocatore
-			    </button>
-			</div>
+            <!-- FILTRO SQUADRE + BOTTONE AGGIUNGI GIOCATORE -->
+            <div id="admin-team-selector" class="bg-white p-4 rounded-lg shadow flex flex-col md:flex-row md:items-center justify-between gap-3 print:hidden hidden border border-gray-200">
+                <div class="flex items-center space-x-3 flex-1">
+                    <label class="text-sm font-bold text-gray-700 whitespace-nowrap">Seleziona Categoria/Gruppo:</label>
+                    <select id="admin-team-filter" class="border p-2 rounded text-sm flex-1 bg-white focus:ring-2 focus:ring-black">
+                        <option value="ALL">Seleziona un gruppo...</option>
+                        <optgroup label="2014 (Esordienti)">
+                            <option value="2014 - Gruppo Nero">2014 - Gruppo Nero</option>
+                            <option value="2014 - Gruppo Verde">2014 - Gruppo Verde</option>
+                        </optgroup>
+                        <optgroup label="2015 (Pulcini)">
+                            <option value="2015 - Gruppo Nero">2015 - Gruppo Nero</option>
+                            <option value="2015 - Gruppo Verde">2015 - Gruppo Verde</option>
+                        </optgroup>
+                        <optgroup label="2016 (Pulcini)">
+                            <option value="2016 - Gruppo Nero">2016 - Gruppo Nero</option>
+                            <option value="2016 - Gruppo Verde">2016 - Gruppo Verde</option>
+                            <option value="2016 - Gruppo Giallo">2016 - Gruppo Giallo</option>
+                        </optgroup>
+                        <optgroup label="2017 (Primi Calci)">
+                            <option value="2017 - Gruppo Nero">2017 - Gruppo Nero</option>
+                            <option value="2017 - Gruppo Verde">2017 - Gruppo Verde</option>
+                            <option value="2017 - Gruppo Giallo">2017 - Gruppo Giallo</option>
+                        </optgroup>
+                        <optgroup label="2018 (Primi Calci)">
+                            <option value="2018 - Gruppo Nero">2018 - Gruppo Nero</option>
+                            <option value="2018 - Gruppo Verde">2018 - Gruppo Verde</option>
+                            <option value="2018 - Gruppo Giallo">2018 - Gruppo Giallo</option>
+                        </optgroup>
+                        <optgroup label="2019 (Piccoli Amici)">
+                            <option value="2019 - Gruppo Nero">2019 - Gruppo Nero</option>
+                            <option value="2019 - Gruppo Verde">2019 - Gruppo Verde</option>
+                            <option value="2019 - Gruppo Giallo">2019 - Gruppo Giallo</option>
+                        </optgroup>
+                        <optgroup label="2020-2021 (Piccoli Amici)">
+                            <option value="2020-21 - Gruppo Nero">2020-21 - Gruppo Nero</option>
+                            <option value="2020-21 - Gruppo Verde">2020-21 - Gruppo Verde</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <button id="btn-open-add-player" class="bg-black hover:bg-gray-800 text-white text-xs px-4 py-2 rounded font-bold transition whitespace-nowrap shadow">
+                    + Aggiungi Giocatore
+                </button>
+            </div>
 
-			<!-- BARRA MENU A TAB -->
-			<div id="navigation-tabs" class="bg-white rounded-lg shadow p-2 flex flex-wrap gap-1.5 border border-gray-200 print:hidden hidden">
-			    <button id="btn-tab-roster" class="tab-btn flex-auto min-w-[45%] md:min-w-[0] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black">
-			        👥 Rosa Giocatori
-			    </button>
-			    <button id="btn-tab-attendance" class="tab-btn flex-auto min-w-[45%] md:min-w-[0] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
-			        ⚽ Registra Presenze
-			    </button>
-			    <button id="btn-tab-monthly" class="tab-btn flex-auto min-w-[45%] md:min-w-[0] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
-			        📊 Registro Mensile
-			    </button>
-			    <button id="btn-tab-callup" class="tab-btn flex-auto min-w-[45%] md:min-w-[0] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
-			        📩 Convocazioni
-			    </button>
-			    <!-- TAB ESCLUSIVA ADMIN -->
-			    <button id="btn-tab-staff" class="tab-btn hidden flex-auto min-w-[100%] md:min-w-[0] py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300">
-			        ⚙️ Gestione Staff/Coach
-			    </button>
-			</div>
+            <!-- BARRA MENU A TAB -->
+            <div id="navigation-tabs" class="bg-white rounded-lg shadow p-1 flex flex-wrap space-x-1 border border-gray-200 print:hidden hidden">
+                <button id="btn-tab-roster" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black">
+                    👥 Rosa Giocatori
+                </button>
+                <button id="btn-tab-attendance" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                    ⚽ Registra Presenze
+                </button>
+                <button id="btn-tab-monthly" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                    📊 Registro Mensile
+                </button>
+                <button id="btn-tab-callup" class="tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition">
+                    📩 Convocazioni
+                </button>
+                <!-- TAB ESCLUSIVA ADMIN -->
+                <button id="btn-tab-staff" class="tab-btn hidden flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300">
+                    ⚙️ Gestione Staff/Coach
+                </button>
+            </div>
 
             <!-- CONTENUTI OPERATIVI SEPARATI PER TAB -->
             <div id="main-content-area" class="hidden">
