@@ -10,7 +10,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PapaParse per il Parsing dei file CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- STILI PER LA STAMPA OTTIMIZZATI -->
     <style>
@@ -286,7 +285,7 @@
                                 🔄 Ripristina Tutti a Presenti
                             </button>
                         </div>
-                        
+
                         <div id="attendance-players-inputs" class="divide-y space-y-2 mb-4 border rounded p-3 bg-white max-h-96 overflow-y-auto">
                             <!-- Caricato dinamicamente -->
                         </div>
@@ -302,10 +301,11 @@
                 <!-- TAB 3: REGISTRO STORICO MENSILE ALLENAMENTI A GRIGLIA -->
                 <div id="tab-monthly" class="tab-content hidden bg-white p-6 rounded-lg shadow print:shadow-none print:p-0 overflow-x-auto">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b pb-3 gap-3 print:hidden">
+                        <div>
                             <h3 class="text-lg font-bold text-gray-800">📊 Registro Mensile Allenamenti Dettagliato</h3>
                             <p class="text-xs text-gray-500">Griglia presenze del mese (P=Presente, A=Assente, AG=Giustificato, INF=Infortunato, R=Ritardo)</p>
                         </div>
-                        
+
                         <div class="flex flex-wrap items-center gap-2">
                             <select id="filter-month" class="border p-1.5 rounded text-sm font-semibold bg-gray-50">
                                 <option value="0">Gennaio</option>
@@ -352,8 +352,6 @@
                         </div>
                     </div>
 
-
-
                     <div id="monthly-sessions-container" class="overflow-x-auto">
                         <!-- Caricato dinamicamente -->
                     </div>
@@ -389,7 +387,7 @@
                                     <input type="time" id="gathering-time" required class="border p-2 rounded text-sm w-full font-semibold">
                                 </div>
                             </div>
-                            
+
                             <p class="text-xs font-bold text-gray-500 pt-2">Seleziona Convocati:</p>
                             <div id="players-list-callup" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50">
                                 <!-- Checkbox caricati dinamicamente -->
@@ -425,7 +423,7 @@
                     <!-- FORM CREAZIONE NUOVO COACH/UTENTE -->
                     <form id="form-create-staff" class="bg-gray-50 p-4 border border-gray-300 rounded-lg space-y-3">
                         <h4 class="text-sm font-bold text-gray-800">➕ Registra Nuovo Utente / Coach</h4>
-                        
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 mb-1">Nome e Cognome *</label>
@@ -570,7 +568,7 @@
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full border-t-4 border-black">
             <h3 class="text-lg font-bold text-gray-800 mb-2">🔒 Modifica Password Personale</h3>
             <p class="text-xs text-gray-500 mb-4">Inserisci la tua password attuale e scegli una nuova password di almeno 6 caratteri.</p>
-            
+
             <form id="form-change-password" class="space-y-3">
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">Password Attuale *</label>
@@ -592,29 +590,29 @@
     <!-- LOGICA APPLICATIVA IN JAVASCRIPT MODULARE (FIREBASE V10 SDK) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { 
-           getAuth, 
-            signInWithEmailAndPassword, 
-            signOut, 
+        import {
+           getAuth,
+            signInWithEmailAndPassword,
+            signOut,
             onAuthStateChanged,
             EmailAuthProvider,
             reauthenticateWithCredential,
             updatePassword
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { 
-            getFirestore, 
+        import {
+            getFirestore,
             enableMultiTabIndexedDbPersistence,
-            doc, 
-            getDoc, 
-            getDocs, 
+            doc,
+            getDoc,
+            getDocs,
             setDoc,
-            addDoc, 
-            updateDoc, 
-            deleteDoc, 
-            collection, 
-            query, 
-            where, 
-            serverTimestamp 
+            addDoc,
+            updateDoc,
+            deleteDoc,
+            collection,
+            query,
+            where,
+            serverTimestamp
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // CONFIGURAZIONE FIREBASE
@@ -638,7 +636,7 @@
         });
 		// GESTIONE MODALE CAMBIO PASSWORD PERSONALE
         const modalPassword = document.getElementById('modal-change-password');
-        
+
         document.getElementById('nav-btn-password').addEventListener('click', () => {
             modalPassword.classList.remove('hidden');
         });
@@ -662,7 +660,7 @@
                 const credential = EmailAuthProvider.credential(user.email, currentPass);
                 await reauthenticateWithCredential(user, credential);
                 await updatePassword(user, newPass);
-                
+
                 alert("Password aggiornata con successo!");
                 document.getElementById('form-change-password').reset();
                 modalPassword.classList.add('hidden');
@@ -818,7 +816,7 @@
             const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
 
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            
+
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 if (btn.id === 'btn-tab-staff') {
                     btn.className = `tab-btn ${isAdmin ? '' : 'hidden'} flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300`;
@@ -828,7 +826,7 @@
             });
 
             document.getElementById(tabId).classList.remove('hidden');
-            
+
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
                 activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
@@ -903,7 +901,7 @@
             if (user) {
                 const userDocRef = doc(db, 'users', user.uid);
                 const userDoc = await getDoc(userDocRef);
-                
+
                 if (userDoc.exists()) {
                     currentUserProfile = normalizeUserProfile(userDoc.data());
                 } else {
@@ -977,7 +975,7 @@
             const email = document.getElementById('staff-email').value.trim();
             const password = document.getElementById('staff-password').value;
             const role = document.getElementById('staff-role').value;
-            
+
             const teamSelect = document.getElementById('staff-team');
             const selectedTeams = Array.from(teamSelect.selectedOptions).map(opt => opt.value).filter(v => v !== '');
 
@@ -1049,7 +1047,7 @@
                                 <p class="font-bold text-sm text-gray-800">${user.name} ${isSelf ? '<span class="text-xs text-blue-600">(Tu)</span>' : ''}</p>
                                 <p class="text-gray-600">📧 <strong>Email:</strong> ${user.email}</p>
                                 <p class="text-gray-600">
-                                    🛡️ <strong>Ruolo:</strong> <span class="uppercase font-bold ${user.role === 'admin' ? 'text-black' : 'text-gray-700'}">${user.role}</span> | 
+                                    🛡️ <strong>Ruolo:</strong> <span class="uppercase font-bold ${user.role === 'admin' ? 'text-black' : 'text-gray-700'}">${user.role}</span> |
                                     🏆 <strong>Squadre:</strong> ${teamsDisplay}
                                 </p>
                             </div>
@@ -1121,7 +1119,7 @@
             renderAttendanceInputs();
             renderCallupCheckboxes();
             checkAndLoadExistingAttendance();
-            
+
             loadMonthlyAttendances(forceRefresh);
         }
 
@@ -1141,7 +1139,7 @@
 
             activeTeamPlayers.forEach(player => {
                 const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
-                const canDelete = currentUserProfile && currentUserProfile.role === 'admin' ? 
+                const canDelete = currentUserProfile && currentUserProfile.role === 'admin' ?
                     `<button data-id="${player.id}" class="btn-delete-player text-xs text-red-500 font-bold hover:text-red-700 ml-2">Rimuovi</button>` : '';
 
                 let medStatusBadge = '';
@@ -1277,7 +1275,7 @@
             const container = document.getElementById('attendance-status-container');
             const badge = document.getElementById('attendance-status-badge');
             const deleteBtn = document.getElementById('btn-delete-session');
-            
+
             if (!dateInput || !dateInput.value || !activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') {
                 if (container) container.classList.add('hidden');
                 currentSessionDocId = null;
@@ -1375,7 +1373,7 @@
                     });
                     alert('Presenze salvate con successo!');
                 }
-                
+
                 AppCache.clearAttendances(activeTeamId);
                 const savedDateObj = new Date(date + 'T00:00:00');
                 document.getElementById('filter-month').value = savedDateObj.getMonth();
@@ -1406,46 +1404,6 @@
             }
         });
 
-		let myChart = null; // Variabile globale per gestire l'istanza del grafico
-
-		function updateAttendanceChart(sessions, totalDaysInMonth) {
-		    const ctx = document.getElementById('attendanceChart').getContext('2d');
-		    
-		    // Distruggi il grafico precedente se esiste
-		    if (myChart) myChart.destroy();
-		
-		    // Prepara i dati: calcoliamo i presenti per ogni giorno del mese
-		    const labels = [];
-		    const data = [];
-		
-		    for (let d = 1; d <= totalDaysInMonth; d++) {
-		        labels.push(d);
-		        const session = sessions.find(s => parseInt(s.date.split('-')[2], 10) === d);
-		        const presentCount = session ? session.records.filter(r => r.status === 'present').length : 0;
-		        data.push(presentCount);
-		    }
-		
-		    // Crea il nuovo grafico
-		    myChart = new Chart(ctx, {
-		        type: 'line',
-		        data: {
-		            labels: labels,
-		            datasets: [{
-		                label: 'Giocatori Presenti',
-		                data: data,
-		                borderColor: '#059669', // Verde smeraldo (stile Spes)
-		                backgroundColor: 'rgba(5, 150, 105, 0.1)',
-		                tension: 0.3,
-		                fill: true
-		            }]
-		        },
-		        options: {
-		            responsive: true,
-		            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-		        }
-		    });
-		}
-
         async function loadMonthlyAttendances(forceRefresh = false) {
             if (!activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') return;
 
@@ -1458,9 +1416,9 @@
             const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
             const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
             const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(totalDaysInMonth).padStart(2, '0')}`;
-			let sessions = [];
+
             try {
-                sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth);
+                let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth);
 
                 if (!sessions || forceRefresh) {
                     container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
@@ -1552,8 +1510,6 @@
                 console.error("Errore caricamento allenamenti:", err);
                 container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore durante il caricamento dei dati.</p>`;
             }
-
-			updateAttendanceChart(sessions, totalDaysInMonth);
         }
 
         document.getElementById('filter-month').addEventListener('change', () => loadMonthlyAttendances());
@@ -1746,7 +1702,7 @@
 
                 loadedCallupsList = docs;
                 container.innerHTML = '';
-                
+
                 docs.forEach(data => {
                     const playersList = (data.players || []).join(', ');
                     container.innerHTML += `
@@ -1754,8 +1710,8 @@
                             <div class="space-y-1">
                                 <p class="font-bold text-sm text-black">⚽ Spes Montesacro vs ${data.opponent}</p>
                                 <p class="text-gray-700">
-                                    📅 <strong>Giorno:</strong> ${formatDateIT(data.date)} | 
-                                    🕒 <strong>Inizio:</strong> ${data.matchTime} | 
+                                    📅 <strong>Giorno:</strong> ${formatDateIT(data.date)} |
+                                    🕒 <strong>Inizio:</strong> ${data.matchTime} |
                                     ⏰ <strong>Ritrovo:</strong> ${data.gatheringTime}
                                 </p>
                                 <p class="text-gray-600">📍 <strong>Campo:</strong> ${data.location}</p>
@@ -1875,7 +1831,7 @@
             editingPlayerId = null;
             document.getElementById('modal-player-title').innerText = "Aggiungi Nuovo Giocatore";
             document.getElementById('btn-submit-player').innerText = "Salva Giocatore";
-            
+
             document.getElementById('player-first-name').value = '';
             document.getElementById('player-last-name').value = '';
             document.getElementById('player-dob').value = '';
