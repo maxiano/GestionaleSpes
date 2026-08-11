@@ -484,7 +484,25 @@
                             🚀 Crea Account Coach
                         </button>
                     </form>
-
+					<!-- SEZIONE CAMBIO PASSWORD UTENTE CORRENTE -->
+                    <div class="bg-gray-50 p-4 border border-gray-300 rounded-lg space-y-3 mt-4">
+                        <h4 class="text-sm font-bold text-gray-800">🔒 Modifica Password Personale</h4>
+                        <form id="form-change-password" class="space-y-3">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 mb-1">Password Attuale *</label>
+                                    <input type="password" id="current-password" required placeholder="Inserisci la password attuale" class="w-full border p-2 rounded text-xs bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 mb-1">Nuova Password *</label>
+                                    <input type="password" id="new-password" minlength="6" required placeholder="Minimo 6 caratteri" class="w-full border p-2 rounded text-xs bg-white">
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-gray-800 hover:bg-black text-white font-bold text-xs px-4 py-2 rounded transition shadow">
+                                🔄 Aggiorna Password
+                            </button>
+                        </form>
+                    </div>
                     <!-- LISTA UTENTI STAFF ATTUALI -->
                     <div>
                         <h4 class="text-sm font-bold text-gray-800 mb-3">📋 Staff Tecnico Registrato</h4>
@@ -559,10 +577,13 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { 
-            getAuth, 
+           getAuth, 
             signInWithEmailAndPassword, 
             signOut, 
-            onAuthStateChanged 
+            onAuthStateChanged,
+            EmailAuthProvider,
+            reauthenticateWithCredential,
+            updatePassword
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { 
             getFirestore, 
@@ -598,6 +619,29 @@
         // PERSISTENZA OFFLINE FIRESTORE
         enableMultiTabIndexedDbPersistence(db).catch(err => {
             console.warn("Persistenza offline non abilitata:", err.code);
+        });
+
+		// GESTIONE CAMBIO PASSWORD UTENTE
+        document.getElementById('form-change-password').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPass = document.getElementById('current-password').value;
+            const newPass = document.getElementById('new-password').value;
+            const user = auth.currentUser;
+
+            if (!user || !user.email) {
+                return alert("Nessun utente autenticato.");
+            }
+
+            try {
+                const credential = EmailAuthProvider.credential(user.email, currentPass);
+                await reauthenticateWithCredential(user, credential);
+                await updatePassword(user, newPass);
+                
+                alert("Password aggiornata con successo!");
+                document.getElementById('form-change-password').reset();
+            } catch (err) {
+                alert("Errore durante il cambio password: " + err.message);
+            }
         });
 
         // SALVATAGGIO OPZIONI PREDEFINITE ADMIN PER IL SELECTOR
