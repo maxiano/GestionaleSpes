@@ -1610,8 +1610,56 @@
 		    });
 		});
 
+		window.exportToCSV = function() {
+		    if (tournamentMatches.length === 0) return alert("Nessuna partita da esportare!");
+		
+		    let csvContent = "data:text/csv;charset=utf-8,Torneo,Partita,Data,Orario,Luogo,Risultato\n";
+		    
+		    tournamentMatches.forEach(m => {
+		        let row = [m.tournament, m.match, m.date, m.time, m.location, m.result].join(",");
+		        csvContent += row + "\n";
+		    });
+		
+		    const encodedUri = encodeURI(csvContent);
+		    const link = document.createElement("a");
+		    link.setAttribute("href", encodedUri);
+		    link.setAttribute("download", "partite_torneo.csv");
+		    document.body.appendChild(link);
+		    link.click();
+		};
 
-
+		window.importCSV = async function(input) {
+		    const file = input.files[0];
+		    if (!file) return;
+		
+		    const reader = new FileReader();
+		    reader.onload = async function(e) {
+		        const text = e.target.result;
+		        const rows = text.split("\n").slice(1); // Salta l'intestazione
+		
+		        for (let row of rows) {
+		            const cols = row.split(",");
+		            if (cols.length < 5) continue;
+		
+		            const newMatch = {
+		                teamId: activeTeamId, // Assegna alla squadra attiva
+		                tournament: cols[0],
+		                match: cols[1],
+		                date: cols[2],
+		                time: cols[3],
+		                location: cols[4],
+		                played: false,
+		                result: ""
+		            };
+		
+		            // Salva su Firebase
+		            await addDoc(collection(db, 'tournaments'), newMatch);
+		        }
+		        alert("Importazione completata!");
+		        loadTournamentsFromDB(); // Ricarica tutto dal DB
+		    };
+		    reader.readAsText(file);
+		};
 
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
