@@ -1388,15 +1388,7 @@
 			    }
 			}
 			
-			// 6. Gestione cambio TAB
-			document.getElementById('btn-tab-tournaments').addEventListener('click', function() {
-			    // Nascondi tutti i tab
-			    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-			    // Mostra questo
-			    document.getElementById('tab-tournaments').classList.remove('hidden');
-			    // Aggiorna stile bottoni (come fai negli altri)
-			    renderTournaments();
-			});
+
 
 
         // GESTIONE CAMBIO TAB CLICK
