@@ -233,25 +233,43 @@
 
         <!-- TAB 1: ROSA GIOCATORI -->
         <div id="tab-roster" class="tab-content bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 print:shadow-none print:p-0 print:border-none">
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4 print:hidden">
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-5 print:hidden">
+                
+                <!-- Titolo e Sottotitolo -->
                 <div>
-                    <h3 class="text-lg font-black text-slate-900 tracking-tight">👥 Rosa Giocatori (<span id="display-active-team" class="text-emerald-600">--</span>)</h3>
-                    <p class="text-xs text-slate-500 font-medium mt-0.5">Gestione Anagrafica e Certificati Medici</p>
+                    <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-800 text-sm">👥</span>
+                        Rosa Giocatori 
+                        <span class="text-xs font-bold px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100" id="display-active-team">--</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 font-medium mt-1">Gestione anagrafica, scadenze e controlli medici</p>
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <input type="file" id="input-import-roster-csv" accept=".csv" class="hidden">
-                    <button id="btn-import-roster-csv" class="bg-slate-800 hover:bg-slate-900 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5">
-                        📥 Importa CSV
-                    </button>
-                    <button id="btn-export-roster-csv" class="bg-slate-700 hover:bg-slate-800 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5">
-                        📄 Esporta CSV
-                    </button>
-                    <button id="btn-share-roster-wa" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm shadow-emerald-500/10 active:scale-95 flex items-center gap-1.5">
-                        📲 WhatsApp
-                    </button>
-                    <button id="btn-print-roster" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5">
-                        🖨️ Stampa
-                    </button>
+        
+                <!-- 🎛️ Barra dei Pulsanti Organizzata -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    
+                    <!-- Gruppo Dati (Import / Export) -->
+                    <div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-2xl border border-slate-200/80">
+                        <input type="file" id="input-import-roster-csv" accept=".csv" class="hidden">
+                        <button id="btn-import-roster-csv" class="hover:bg-white text-slate-700 hover:text-slate-900 text-xs px-3 py-2 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5">
+                            📥 Import
+                        </button>
+                        <div class="w-[1px] h-4 bg-slate-200"></div>
+                        <button id="btn-export-roster-csv" class="hover:bg-white text-slate-700 hover:text-slate-900 text-xs px-3 py-2 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5">
+                            📄 Export
+                        </button>
+                    </div>
+        
+                    <!-- Gruppo Azioni Principali (WhatsApp / Stampa) -->
+                    <div class="flex items-center gap-2">
+                        <button id="btn-share-roster-wa" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm shadow-emerald-600/20 active:scale-95 flex items-center gap-1.5">
+                            📲 WhatsApp
+                        </button>
+                        <button id="btn-print-roster" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5">
+                            🖨️ Stampa
+                        </button>
+                    </div>
+        
                 </div>
             </div>
 
