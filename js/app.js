@@ -1302,13 +1302,19 @@
 			// 1. Variabile per i dati dei tornei
 			let tournamentMatches = JSON.parse(localStorage.getItem('tournamentMatches')) || [];
 			
-			// 2. Funzione per aprire/chiudere la modale (Assicurati di avere il riferimento nel DOM)
-			function openTournamentModal() {
-			    document.getElementById('modal-tournament').classList.remove('hidden');
-			}
+			// MODALE E GESTIONE TORNEI (Aggiungi Partita)
+			const btnOpenModalTournament = document.getElementById('btn-open-modal-tournament');
+			const modalTournament = document.getElementById('modal-tournament');
 			
-			function closeTournamentModal() {
-			    document.getElementById('modal-tournament').classList.add('hidden');
+			if (btnOpenModalTournament && modalTournament) {
+			    btnOpenModalTournament.addEventListener('click', () => {
+			        if (!activeTeamId) return alert('Seleziona prima una squadra!');
+			        
+			        // Eventuale reset di variabili di stato (es. se gestisci la modifica)
+			        // editingTournamentId = null; 
+			        
+			        modalTournament.classList.remove('hidden');
+			    });
 			}
 			
 			// 3. Salvataggio Partita
