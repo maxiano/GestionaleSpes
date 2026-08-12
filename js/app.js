@@ -1377,21 +1377,44 @@
 		function renderTournaments() {
 		    const container = document.getElementById('tournament-grid');
 		    const teamSpan = document.getElementById('display-active-team-tour');
+		    const filterSelect = document.getElementById('filter-tournament-select');
 		    
 		    const currentId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
 		    
 		    if(teamSpan) teamSpan.innerText = currentId;
 		    
 		    if (!container) return;
+		
+		    // 1. Prima filtriamo le partite della squadra attiva
+		    const teamMatches = tournamentMatches.filter(m => m.teamId === currentId);
+		
+		    // 2. Aggiorniamo le opzioni del menu a tendina dei tornei in base a questa squadra
+		    if (filterSelect) {
+		        const selectedValue = filterSelect.value;
+		        // Estrai tutti i tornei unici per questa squadra
+		        const uniqueTournaments = [...new Set(teamMatches.map(m => m.tournament))];
+		        
+		        filterSelect.innerHTML = `<option value="">Tutti i tornei (${teamMatches.length})</option>`;
+		        uniqueTournaments.forEach(tourName => {
+		            const isSelected = tourName === selectedValue ? 'selected' : '';
+		            filterSelect.innerHTML += `<option value="${tourName}" ${isSelected}>${tourName}</option>`;
+		        });
+		    }
+		
+		    // 3. Applichiamo il filtro del torneo selezionato (se è stato scelto qualcosa)
+		    const selectedTourFilter = filterSelect ? filterSelect.value : '';
+		    const filtered = selectedTourFilter 
+		        ? teamMatches.filter(m => m.tournament === selectedTourFilter) 
+		        : teamMatches;
+		    
 		    container.innerHTML = '';
 		    
-		    const filtered = tournamentMatches.filter(m => m.teamId === currentId);
-		    
 		    if (filtered.length === 0) {
-		        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10 w-full col-span-2">Nessuna partita in programma per questo gruppo.</p>`;
+		        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10 w-full col-span-2">Nessuna partita trovata per questo filtro.</p>`;
 		        return;
 		    }
 		
+		    // 4. Render delle card (invariato)
 		    filtered.forEach(m => {
 		        container.innerHTML += `
 		            <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-2">
@@ -1418,6 +1441,7 @@
 		        `;
 		    });
 		}
+		
 		
 		// 5. Funzione globale per inserire/aggiornare il risultato
 		window.setResult = async function(id) {
