@@ -1340,15 +1340,18 @@
 			    const container = document.getElementById('tournament-grid');
 			    const teamSpan = document.getElementById('display-active-team-tour');
 			    
-			    // Aggiorna il titolo del tab con la squadra corrente
-			    if(teamSpan) teamSpan.innerText = currentTeamName;
+			    // Se hai una funzione o variabile per ricavare il nome da mostrare a video, usalo, altrimenti mostra l'ID
+			    const currentId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
+			    
+			    if(teamSpan) teamSpan.innerText = currentId;
 			    
 			    container.innerHTML = '';
 			    
-			    const filtered = tournamentMatches.filter(m => m.team === currentTeamName);
+			    // Filtra le partite usando l'ID della squadra attiva
+			    const filtered = tournamentMatches.filter(m => m.teamId === currentId);
 			    
 			    if (filtered.length === 0) {
-			        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10 w-full">Nessuna partita in programma per questo gruppo.</p>`;
+			        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10 w-full col-span-2">Nessuna partita in programma per questo gruppo.</p>`;
 			        return;
 			    }
 			
@@ -1371,7 +1374,7 @@
 			            </div>
 			        `;
 			    });
-			}
+			}			
 			
 			// 5. Funzione semplificata per segnare il risultato
 			function setResult(id) {
