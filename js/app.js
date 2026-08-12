@@ -1305,41 +1305,54 @@
         });
 
 
-			// 1. Variabile per i dati dei tornei
-			let tournamentMatches = JSON.parse(localStorage.getItem('tournamentMatches')) || [];
-			
-			// MODALE E GESTIONE TORNEI
-			const btnOpenModalTournament = document.getElementById('btn-open-modal-tournament');
-			const modalTournament = document.getElementById('modal-tournament');
-			
-			if (btnOpenModalTournament && modalTournament) {
-			    btnOpenModalTournament.addEventListener('click', () => {
-			        // Controlla se è stata selezionata una squadra (come fai per i giocatori)
-			        if (typeof activeTeamId !== 'undefined' && !activeTeamId) {
-			            alert('Seleziona prima una squadra!');
-			            return;
-			        }
-			        
-			        // Mostra la modale rimuovendo la classe hidden
-			        modalTournament.classList.remove('hidden');
-			    });
-			}
-			
-			// 3. Salvataggio Partita
-			document.getElementById('form-tournament').addEventListener('submit', function(e) {
+		// 1. Array in memoria per i tornei (inizialmente vuoto)
+		let tournamentMatches = [];
+		
+		// Funzione per caricare i dati da Firebase all'avvio
+		async function loadTournamentsFromDB() {
+		    try {
+		        const snapshot = await db.collection('tournaments').get();
+		        tournamentMatches = [];
+		        snapshot.forEach(doc => {
+		            tournamentMatches.push({ id: doc.id, ...doc.data() });
+		        });
+		        renderTournaments();
+		    } catch (error) {
+		        console.error("Errore nel caricamento dei tornei da Firebase:", error);
+		    }
+		}
+		
+		// Chiama questa funzione all'avvio della pagina o quando carichi la sezione
+		loadTournamentsFromDB();
+		
+		// MODALE E GESTIONE TORNEI
+		const btnOpenModalTournament = document.getElementById('btn-open-modal-tournament');
+		const modalTournament = document.getElementById('modal-tournament');
+		
+		if (btnOpenModalTournament && modalTournament) {
+		    btnOpenModalTournament.addEventListener('click', () => {
+		        // Controlla se è stata selezionata una squadra
+		        if (typeof activeTeamId !== 'undefined' && !activeTeamId) {
+		            alert('Seleziona prima una squadra!');
+		            return;
+		        }
+		        
+		        // Mostra la modale rimuovendo la classe hidden
+		        modalTournament.classList.remove('hidden');
+		    });
+		}
+		
+		// 3. Salvataggio Partita su Firebase Firestore
+		document.getElementById('form-tournament').addEventListener('submit', async function(e) {
 		    e.preventDefault();
 		    
-		    // Recuperiamo il nome della squadra basandoci sull'ID attivo
-		    // (Assumendo che tu abbia un array o oggetto globale che contiene i dati delle squadre)
-		    // Se non hai un array globale, puoi usare l'ID direttamente nel campo 'team'
 		    const teamName = typeof teams !== 'undefined' && teams.find(t => t.id === activeTeamId) 
-		                     ? teams.find(t => t.id === activeTeamId).name 
-		                     : "Squadra " + activeTeamId;
+		        ? teams.find(t => t.id === activeTeamId).name 
+		        : "Squadra " + activeTeamId;
 		
 		    const newMatch = {
-		        id: Date.now(),
-		        teamId: activeTeamId,        // Usiamo l'ID che esiste nel tuo sistema
-		        team: activeTeamId,             // Salviamo il nome ricavato
+		        teamId: activeTeamId,
+		        team: teamName,
 		        tournament: document.getElementById('tour-name').value,
 		        match: document.getElementById('tour-match').value,
 		        date: document.getElementById('tour-date').value,
@@ -1349,55 +1362,90 @@
 		        result: ""
 		    };
 		    
-		    tournamentMatches.push(newMatch);
-		    localStorage.setItem('tournamentMatches', JSON.stringify(tournamentMatches));
-		    
-		    renderTournaments();
-		    closeTournamentModal();
-		    this.reset();
+		    try {
+		        // Salvataggio nel database remoto (collezione 'tournaments')
+		        const docRef = await db.collection('tournaments').add(newMatch);
+		        
+		        // Aggiungiamo l'ID generato da Firestore all'oggetto locale e all'array
+		        newMatch.id = docRef.id;
+		        tournamentMatches.push(newMatch);
+		        
+		        renderTournaments();
+		        closeTournamentModal();
+		        this.reset();
+		    } catch (error) {
+		        console.error("Errore durante il salvataggio su Firebase:", error);
+		        alert("Errore nel salvataggio della partita.");
+		    }
 		});
-					
-			// 4. Renderizzazione dinamica delle card
-			function renderTournaments() {
-			    const container = document.getElementById('tournament-grid');
-			    const teamSpan = document.getElementById('display-active-team-tour');
-			    
-			    // Se hai una funzione o variabile per ricavare il nome da mostrare a video, usalo, altrimenti mostra l'ID
-			    const currentId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
-			    
-			    if(teamSpan) teamSpan.innerText = currentId;
-			    
-			    container.innerHTML = '';
-			    
-			    // Filtra le partite usando l'ID della squadra attiva
-			    const filtered = tournamentMatches.filter(m => m.teamId === currentId);
-			    
-			    if (filtered.length === 0) {
-			        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10 w-full col-span-2">Nessuna partita in programma per questo gruppo.</p>`;
-			        return;
-			    }
-			
-			    filtered.forEach(m => {
-			        container.innerHTML += `
-			            <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-2">
-			                <div class="flex justify-between items-center">
-			                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${m.tournament}</span>
-			                    <span class="text-[9px] font-bold ${m.played ? 'text-emerald-600' : 'text-amber-600'}">
-			                        ${m.played ? '● GIOCATA' : '● DA GIOCARE'}
-			                    </span>
-			                </div>
-			                <h4 class="font-bold text-slate-800 text-sm">${m.match}</h4>
-			                <p class="text-[11px] font-semibold text-slate-500">📍 ${m.location} | 📅 ${m.date} - ${m.time}</p>
-			                
-			                ${!m.played ? 
-			                    `<button onclick="setResult('${m.id}')" class="mt-2 w-full bg-slate-900 text-white font-bold text-[10px] py-2 rounded-xl transition active:scale-95">Inserisci Risultato</button>` 
-			                    : `<p class="mt-2 text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-2 rounded-lg">Risultato: ${m.result}</p>`
-			                }
-			            </div>
-			        `;
-			    });
-			}			
-			
+		            
+		// 4. Renderizzazione dinamica delle card
+		function renderTournaments() {
+		    const container = document.getElementById('tournament-grid');
+		    const teamSpan = document.getElementById('display-active-team-tour');
+		    
+		    const currentId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
+		    
+		    if(teamSpan) teamSpan.innerText = currentId;
+		    
+		    if (!container) return;
+		    container.innerHTML = '';
+		    
+		    // Filtra le partite usando l'ID della squadra attiva
+		    const filtered = tournamentMatches.filter(m => m.teamId === currentId);
+		    
+		    if (filtered.length === 0) {
+		        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10 w-full col-span-2">Nessuna partita in programma per questo gruppo.</p>`;
+		        return;
+		    }
+		
+		    filtered.forEach(m => {
+		        container.innerHTML += `
+		            <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-2">
+		                <div class="flex justify-between items-center">
+		                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${m.tournament}</span>
+		                    <span class="text-[9px] font-bold ${m.played ? 'text-emerald-600' : 'text-amber-600'}">
+		                        ${m.played ? '● GIOCATA' : '● DA GIOCARE'}
+		                    </span>
+		                </div>
+		                <h4 class="font-bold text-slate-800 text-sm">${m.match}</h4>
+		                <p class="text-[11px] font-semibold text-slate-500">📍 ${m.location} | 📅 ${m.date} - ${m.time}</p>
+		                
+		                ${!m.played ? 
+		                    `<button onclick="setResult('${m.id}')" class="mt-2 w-full bg-slate-900 text-white font-bold text-[10px] py-2 rounded-xl transition active:scale-95">Inserisci Risultato</button>` 
+		                    : `<p class="mt-2 text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-2 rounded-lg">Risultato: ${m.result}</p>`
+		                }
+		            </div>
+		        `;
+		    });
+		}
+		
+		// 5. Funzione globale per aggiornare il risultato su Firebase
+		window.setResult = async function(id) {
+		    const res = prompt("Inserisci il risultato (es. 3-1):");
+		    if (res) {
+		        try {
+		            // Aggiorna direttamente sul database Firestore
+		            await db.collection('tournaments').doc(String(id)).update({
+		                played: true,
+		                result: res
+		            });
+		
+		            // Aggiorna lo stato nell'array locale
+		            const match = tournamentMatches.find(m => m.id === id);
+		            if (match) {
+		                match.played = true;
+		                match.result = res;
+		            }
+		
+		            // Ridisegna la griglia
+		            renderTournaments();
+		        } catch (error) {
+		            console.error("Errore nell'aggiornamento del risultato su Firebase:", error);
+		            alert("Errore nel salvataggio del risultato sul cloud.");
+		        }
+		    }
+		};		
 
 
         // GESTIONE CAMBIO TAB CLICK
