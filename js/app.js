@@ -1711,18 +1711,20 @@
 		// 2. Gestisce il click sui tab all'interno del menu
 		document.querySelectorAll('.tab-btn').forEach(btn => {
 		    btn.addEventListener('click', function() {
-		        // Aggiorna l'etichetta del pulsante principale con la voce scelta
 		        const labelBtn = document.getElementById('current-active-tab-label');
 		        if (labelBtn) {
-		            labelBtn.innerHTML = this.innerHTML;
+		            // Prende il testo pulito rimuovendo spazi extra ed emoji se necessario, 
+		            // oppure prendendo il testo del bottone escludendo l'icona
+		            const textOnly = this.textContent.trim();
+		            labelBtn.textContent = textOnly;
 		        }
 		        
 		        // Chiude la tendina
 		        const tabsMenu = document.getElementById('navigation-tabs');
-		        const icon = document.getElementById('hamburger-icon');
+		        const wrapper = document.getElementById('hamburger-icon-wrapper');
 		        if (tabsMenu) {
 		            tabsMenu.classList.add('hidden');
-		            if (icon) icon.style.transform = 'rotate(0deg)';
+		            if (wrapper) wrapper.style.transform = 'rotate(0deg)';
 		        }
 		    });
 		});
