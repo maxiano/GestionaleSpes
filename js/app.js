@@ -1303,7 +1303,7 @@
 			let tournamentMatches = JSON.parse(localStorage.getItem('tournamentMatches')) || [];
 			
 			// MODALE E GESTIONE TORNEI (Aggiungi Partita)
-			const btnOpenModalTournament = document.getElementById('btn-open-modal-tournament');
+			const btnOpenModalTournament = document.getElementById('btn-tab-tournaments');
 			const modalTournament = document.getElementById('modal-tournament');
 			
 			if (btnOpenModalTournament && modalTournament) {
