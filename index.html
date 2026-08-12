@@ -493,7 +493,12 @@
                                 <select id="filter-tournament-select" onchange="renderTournaments()" class="bg-white border border-slate-200 text-slate-700 text-xs px-3 py-2.5 rounded-xl font-bold shadow-sm focus:outline-none focus:border-emerald-500">
                                     <option value="">Tutti i tornei</option>
                                 </select>
-                        
+                                <!-- 🔍 2. NUOVO: Filtro per Stato (Giocata / Da Giocare) -->
+                                <select id="filter-status-select" onchange="renderTournaments()" class="bg-white border border-slate-200 text-slate-700 text-xs px-3 py-2.5 rounded-xl font-bold shadow-sm focus:outline-none focus:border-emerald-500">
+                                    <option value="">Tutti gli stati</option>
+                                    <option value="da_giocare">Da giocare</option>
+                                    <option value="giocata">Giocate</option>
+                                </select>
                                 <button id="btn-open-modal-tournament" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5">
                                     ➕ Aggiungi Partita
                                 </button>
