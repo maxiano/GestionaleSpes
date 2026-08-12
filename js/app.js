@@ -1374,7 +1374,7 @@
 		});
 		
 		// 4. Renderizzazione dinamica delle card (con bottoni Modifica ed Elimina)
-		function renderTournaments() {
+		window.renderTournaments = function() {
 		    const container = document.getElementById('tournament-grid');
 		    const teamSpan = document.getElementById('display-active-team-tour');
 		    const filterSelect = document.getElementById('filter-tournament-select');
@@ -1440,7 +1440,7 @@
 		            </div>
 		        `;
 		    });
-		}
+		};
 		
 		
 		// 5. Funzione globale per inserire/aggiornare il risultato
