@@ -1319,28 +1319,36 @@
 			
 			// 3. Salvataggio Partita
 			document.getElementById('form-tournament').addEventListener('submit', function(e) {
-			    e.preventDefault();
-			    
-			    const newMatch = {
-			        id: Date.now(),
-			        team: currentTeamName, // Recupera il nome squadra attivo
-			        tournament: document.getElementById('tour-name').value,
-			        match: document.getElementById('tour-match').value,
-			        date: document.getElementById('tour-date').value,
-			        time: document.getElementById('tour-time').value,
-			        location: document.getElementById('tour-location').value,
-			        played: false,
-			        result: ""
-			    };
-			    
-			    tournamentMatches.push(newMatch);
-			    localStorage.setItem('tournamentMatches', JSON.stringify(tournamentMatches));
-			    
-			    renderTournaments();
-			    closeTournamentModal();
-			    this.reset();
-			});
-			
+		    e.preventDefault();
+		    
+		    // Recuperiamo il nome della squadra basandoci sull'ID attivo
+		    // (Assumendo che tu abbia un array o oggetto globale che contiene i dati delle squadre)
+		    // Se non hai un array globale, puoi usare l'ID direttamente nel campo 'team'
+		    const teamName = typeof teams !== 'undefined' && teams.find(t => t.id === activeTeamId) 
+		                     ? teams.find(t => t.id === activeTeamId).name 
+		                     : "Squadra " + activeTeamId;
+		
+		    const newMatch = {
+		        id: Date.now(),
+		        teamId: activeTeamId,        // Usiamo l'ID che esiste nel tuo sistema
+		        team: activeTeamId,             // Salviamo il nome ricavato
+		        tournament: document.getElementById('tour-name').value,
+		        match: document.getElementById('tour-match').value,
+		        date: document.getElementById('tour-date').value,
+		        time: document.getElementById('tour-time').value,
+		        location: document.getElementById('tour-location').value,
+		        played: false,
+		        result: ""
+		    };
+		    
+		    tournamentMatches.push(newMatch);
+		    localStorage.setItem('tournamentMatches', JSON.stringify(tournamentMatches));
+		    
+		    renderTournaments();
+		    closeTournamentModal();
+		    this.reset();
+		});
+					
 			// 4. Renderizzazione dinamica delle card
 			function renderTournaments() {
 			    const container = document.getElementById('tournament-grid');
