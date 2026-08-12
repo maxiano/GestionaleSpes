@@ -1401,62 +1401,64 @@
 		    const container = document.getElementById('tournament-grid');
 		    const teamSpan = document.getElementById('display-active-team-tour');
 		    const filterSelect = document.getElementById('filter-tournament-select');
+		    const statusSelect = document.getElementById('filter-status-select'); 
 		    
 		    const currentId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
 		    
-		    if(teamSpan) teamSpan.innerText = currentId;
+		    if (teamSpan) teamSpan.innerText = currentId;
 		    
 		    if (!container) return;
 		
-		    // 1. Prima filtriamo le partite della squadra attiva
+		    // 1. Filtra le partite della squadra attiva
 		    const teamMatches = tournamentMatches.filter(m => m.teamId === currentId);
 		
-		    // 2. Aggiorniamo le opzioni del menu a tendina dei tornei in base a questa squadra
+		    // 2. Popola o aggiorna automaticamente le opzioni del menu a tendina dei tornei
 		    if (filterSelect) {
 		        const selectedValue = filterSelect.value;
-		        // Estrai tutti i tornei unici per questa squadra
-		        const uniqueTournaments = [...new Set(teamMatches.map(m => m.tournament))];
+		        const uniqueTournaments = [...new Set(teamMatches.map(m => m.tournament).filter(Boolean))];
 		        
 		        filterSelect.innerHTML = `<option value="">Tutti i tornei (${teamMatches.length})</option>`;
 		        uniqueTournaments.forEach(tourName => {
-		            const isSelected = tourName === selectedValue ? 'selected' : '';
-		            filterSelect.innerHTML += `<option value="${tourName}" ${isSelected}>${tourName}</option>`;
+		            const isScaleSelected = tourName === selectedValue ? 'selected' : '';
+		            filterSelect.innerHTML += `<option value="${tourName}" ${isScaleSelected}>${tourName}</option>`;
 		        });
 		    }
 		
-			// 3. Applichiamo il filtro del torneo selezionato (sicuro contro spazi e maiuscole/minuscole)
-			    const selectedTourFilter = filterSelect ? filterSelect.value.trim().toLowerCase() : '';
-			    let filtered = selectedTourFilter 
-			        ? teamMatches.filter(m => m.tournament && m.tournament.trim().toLowerCase() === selectedTourFilter) 
-			        : teamMatches;
-			// 4. 🔍 APPLICA IL FILTRO DELLO STATO (Da giocare / Giocate)
-			    const statusFilter = statusSelect ? statusSelect.value : '';
-			    if (statusFilter === 'da_giocare') {
-			        filtered = filtered.filter(m => !m.played);
-			    } else if (statusFilter === 'giocata') {
-			        filtered = filtered.filter(m => m.played);
-			    }
-
-			// 5. ORDINAMENTO CRONOLOGICO PER DATA E ORA
+		    // 3. Applica il filtro del torneo selezionato
+		    const selectedTourFilter = filterSelect ? filterSelect.value.trim().toLowerCase() : '';
+		    let filtered = selectedTourFilter 
+		        ? teamMatches.filter(m => m.tournament && m.tournament.trim().toLowerCase() === selectedTourFilter) 
+		        : [...teamMatches];
+		    
+		    // 4. 🔍 APPLICA IL FILTRO DELLO STATO (Controllo rigoroso su boolean)
+		    const statusFilter = statusSelect ? statusSelect.value : '';
+		    
+		    if (statusFilter === 'da_giocare') {
+		        filtered = filtered.filter(m => m.played === false || m.played === undefined);
+		    } else if (statusFilter === 'giocata') {
+		        filtered = filtered.filter(m => m.played === true);
+		    }
+		
+		    // 5. Ordinamento cronologico per data e ora
 		    filtered.sort((a, b) => {
 		        const dateTimeA = new Date(`${a.date || '1970-01-01'}T${a.time || '00:00'}`);
 		        const dateTimeB = new Date(`${b.date || '1970-01-01'}T${b.time || '00:00'}`);
-		        return dateTimeA - dateTimeB; // Crescente (dalla più vicina nel tempo alla più lontana)
+		        return dateTimeA - dateTimeB;
 		    });
-		    
+		
 		    container.innerHTML = '';
 		    
 		    if (filtered.length === 0) {
-		        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10 w-full col-span-2">Nessuna partita trovata per questo filtro.</p>`;
+		        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10 w-full col-span-2">Nessuna partita trovata con i filtri selezionati.</p>`;
 		        return;
 		    }
 		
-		    // 6. Render delle card (invariato)
+		    // 6. Renderizzazione dinamica delle card
 		    filtered.forEach(m => {
 		        container.innerHTML += `
 		            <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-2">
 		                <div class="flex justify-between items-center">
-		                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${m.tournament}</span>
+		                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${m.tournament || 'Torneo'}</span>
 		                    <span class="text-[9px] font-bold ${m.played ? 'text-emerald-600' : 'text-amber-600'}">
 		                        ${m.played ? '● GIOCATA' : '● DA GIOCARE'}
 		                    </span>
@@ -1467,7 +1469,7 @@
 		                <div class="flex flex-col gap-1.5 mt-2">
 		                    ${!m.played ? 
 		                        `<button onclick="setResult('${m.id}')" class="w-full bg-slate-900 hover:bg-emerald-600 text-white font-bold text-[10px] py-2 rounded-xl transition active:scale-95">Inserisci Risultato</button>` 
-		                        : `<p class="text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-2 rounded-lg">Risultato: ${m.result}</p>`
+		                        : `<p class="mt-2 text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-2 rounded-lg">Risultato: ${m.result}</p>`
 		                    }
 		                    <div class="flex gap-2">
 		                        <button onclick="editMatch('${m.id}')" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[10px] py-1.5 rounded-xl transition active:scale-95">✏️ Modifica</button>
