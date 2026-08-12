@@ -547,6 +547,7 @@
     <script type="module">
 		import { AppCache } from './js/cache.js';
 		import { monthNamesIT, normalizeUserProfile } from './js/config.js';
+		import { auth, db } from './js/firebase-init.js';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import {
            getAuth,
@@ -573,25 +574,7 @@
             serverTimestamp
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // CONFIGURAZIONE FIREBASE
-        const firebaseConfig = {
-            apiKey: "AIzaSyBv0g2gejMRNsD4INV80ODkYS2QPyCLj30",
-            authDomain: "gestione-scuola-calcio-43987.firebaseapp.com",
-            projectId: "gestione-scuola-calcio-43987",
-            storageBucket: "gestione-scuola-calcio-43987.firebasestorage.app",
-            messagingSenderId: "625497921694",
-            appId: "1:625497921694:web:0e883838e8108a6ced438f",
-            measurementId: "G-N1FSZNKS7N"
-        };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // PERSISTENZA OFFLINE FIRESTORE
-        enableMultiTabIndexedDbPersistence(db).catch(err => {
-            console.warn("Persistenza offline non abilitata:", err.code);
-        });
 		// GESTIONE MODALE CAMBIO PASSWORD PERSONALE
         const modalPassword = document.getElementById('modal-change-password');
 
