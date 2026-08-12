@@ -1414,12 +1414,25 @@
 
 
         // GESTIONE CAMBIO TAB CLICK
-        document.getElementById('btn-tab-roster').addEventListener('click', () => switchTab('tab-roster'));
-        document.getElementById('btn-tab-attendance').addEventListener('click', () => switchTab('tab-attendance'));
-        document.getElementById('btn-tab-monthly').addEventListener('click', () => switchTab('tab-monthly'));
-        document.getElementById('btn-tab-callup').addEventListener('click', () => switchTab('tab-callup'));
-        document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-staff'));
-		document.getElementById('btn-tab-tournaments').addEventListener('click', () => switchTab('tab-tournaments'));
+		document.addEventListener('DOMContentLoaded', () => {
+		    // Collegamenti sicuri ai tab
+		    const tabs = [
+		        { id: 'btn-tab-roster', target: 'tab-roster' },
+		        { id: 'btn-tab-attendance', target: 'tab-attendance' },
+		        { id: 'btn-tab-monthly', target: 'tab-monthly' },
+		        { id: 'btn-tab-callup', target: 'tab-callup' },
+		        { id: 'btn-tab-staff', target: 'tab-staff' },
+		        { id: 'btn-tab-tournaments', target: 'tab-tournaments' }
+		    ];
+		
+		    tabs.forEach(tab => {
+		        const btn = document.getElementById(tab.id);
+		        if (btn) {
+		            btn.addEventListener('click', () => switchTab(tab.target));
+		        }
+		    });
+		});
+
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
