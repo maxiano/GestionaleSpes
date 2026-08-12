@@ -1,8 +1,8 @@
  <!-- LOGICA APPLICATIVA IN JAVASCRIPT MODULARE (FIREBASE V10 SDK) -->
-		import { AppCache } from './js/cache.js';
-		import { daysOfWeekIT, monthNamesIT, normalizeUserProfile } from './js/config.js';
+		import { AppCache } from './cache.js';
+		import { daysOfWeekIT, monthNamesIT, normalizeUserProfile } from './config.js';
 		import { auth, db } from './js/firebase-init.js';
-		import { formatDateIT, sendToWhatsApp, downloadCSV } from './js/utils.js';
+		import { formatDateIT, sendToWhatsApp, downloadCSV } from './utils.js';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import {
            getAuth,
