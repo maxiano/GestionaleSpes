@@ -1695,38 +1695,37 @@
 		    reader.readAsText(file);
 		};
 
-		// 1. Funzione globale per aprire/chiudere il menu hamburger
-	window.toggleHamburgerMenu = function() {
-	    const tabsMenu = document.getElementById('navigation-tabs');
-	    const icon = document.getElementById('hamburger-icon');
-	    
-	    if (tabsMenu) {
-	        tabsMenu.classList.toggle('hidden');
-	        if (icon) {
-	            icon.style.transform = tabsMenu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-	        }
-	    }
-	};
-	
-	// 2. Gestione dei click sui tab (senza cancellare nulla)
-	document.querySelectorAll('.tab-btn').forEach(btn => {
-	    btn.addEventListener('click', () => {
-	        // Aggiorna solo il testo visibile nel pulsante principale dell'hamburger
-	        const labelBtn = document.getElementById('current-active-tab-label');
-	        if (labelBtn) {
-	            // Estraiamo solo il testo pulito o l'icona del bottone cliccato
-	            labelBtn.innerHTML = btn.innerHTML;
-	        }
-	        
-	        // Chiude semplicemente la tendina dei tab
-	        const tabsMenu = document.getElementById('navigation-tabs');
-	        if (tabsMenu) {
-	            tabsMenu.classList.add('hidden');
-	            const icon = document.getElementById('hamburger-icon');
-	            if (icon) icon.style.transform = 'rotate(0deg)';
-	        }
-	    });
-	});
+		// 1. Apre e chiude il menu a tendina
+		window.toggleHamburgerMenu = function() {
+		    const tabsMenu = document.getElementById('navigation-tabs');
+		    const icon = document.getElementById('hamburger-icon');
+		    
+		    if (tabsMenu) {
+		        tabsMenu.classList.toggle('hidden');
+		        if (icon) {
+		            icon.style.transform = tabsMenu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+		        }
+		    }
+		};
+		
+		// 2. Gestisce il click sui tab all'interno del menu
+		document.querySelectorAll('.tab-btn').forEach(btn => {
+		    btn.addEventListener('click', function() {
+		        // Aggiorna l'etichetta del pulsante principale con la voce scelta
+		        const labelBtn = document.getElementById('current-active-tab-label');
+		        if (labelBtn) {
+		            labelBtn.innerHTML = this.innerHTML;
+		        }
+		        
+		        // Chiude la tendina
+		        const tabsMenu = document.getElementById('navigation-tabs');
+		        const icon = document.getElementById('hamburger-icon');
+		        if (tabsMenu) {
+		            tabsMenu.classList.add('hidden');
+		            if (icon) icon.style.transform = 'rotate(0deg)';
+		        }
+		    });
+		});
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
