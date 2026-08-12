@@ -1429,8 +1429,15 @@
 			    let filtered = selectedTourFilter 
 			        ? teamMatches.filter(m => m.tournament && m.tournament.trim().toLowerCase() === selectedTourFilter) 
 			        : teamMatches;
+			// 4. 🔍 APPLICA IL FILTRO DELLO STATO (Da giocare / Giocate)
+			    const statusFilter = statusSelect ? statusSelect.value : '';
+			    if (statusFilter === 'da_giocare') {
+			        filtered = filtered.filter(m => !m.played);
+			    } else if (statusFilter === 'giocata') {
+			        filtered = filtered.filter(m => m.played);
+			    }
 
-			// 4. ORDINAMENTO CRONOLOGICO PER DATA E ORA
+			// 5. ORDINAMENTO CRONOLOGICO PER DATA E ORA
 		    filtered.sort((a, b) => {
 		        const dateTimeA = new Date(`${a.date || '1970-01-01'}T${a.time || '00:00'}`);
 		        const dateTimeB = new Date(`${b.date || '1970-01-01'}T${b.time || '00:00'}`);
@@ -1444,7 +1451,7 @@
 		        return;
 		    }
 		
-		    // 4. Render delle card (invariato)
+		    // 6. Render delle card (invariato)
 		    filtered.forEach(m => {
 		        container.innerHTML += `
 		            <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-2">
@@ -1473,7 +1480,7 @@
 		};
 		
 		
-		// 5. Funzione globale per inserire/aggiornare il risultato
+		// 7. Funzione globale per inserire/aggiornare il risultato
 		window.setResult = async function(id) {
 		    const res = prompt("Inserisci il risultato (es. 3-1):");
 		    if (res) {
@@ -1497,7 +1504,7 @@
 		    }
 		};
 		
-		// 6. Funzione globale per modificare una partita
+		// 8. Funzione globale per modificare una partita
 		window.editMatch = async function(id) {
 		    const match = tournamentMatches.find(m => m.id === id);
 		    if (!match) return;
