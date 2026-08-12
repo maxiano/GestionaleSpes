@@ -1037,28 +1037,28 @@
         }
 
 		function getMonthlyTableAsText() {
-    const table = document.querySelector('#monthly-sessions-container table');
-    if (!table) return "Nessun dato disponibile.";
-
-    const rows = Array.from(table.querySelectorAll('tr'));
-    if (rows.length === 0) return "Tabella vuota.";
-    
-    // 1. Identifica le colonne (giorni) con almeno un dato
-    const headerCells = Array.from(rows[0].querySelectorAll('th, td'));
-    const activeColumns = [];
-    
-    for (let i = 1; i < headerCells.length; i++) {
-        let hasData = false;
-        for (let j = 1; j < rows.length; j++) {
-            const cells = rows[j].querySelectorAll('td');
-            if (cells[i] && cells[i].innerText.trim() !== '-' && cells[i].innerText.trim() !== '') {
-                hasData = true;
-                break;
-            }
-        }
-        if (hasData) activeColumns.push(i);
-    }
-
+		    const table = document.querySelector('#monthly-sessions-container table');
+		    if (!table) return "Nessun dato disponibile.";
+		
+		    const rows = Array.from(table.querySelectorAll('tr'));
+		    if (rows.length === 0) return "Tabella vuota.";
+		    
+		    // 1. Identifica le colonne (giorni) con almeno un dato
+		    const headerCells = Array.from(rows[0].querySelectorAll('th, td'));
+		    const activeColumns = [];
+		    
+		    for (let i = 1; i < headerCells.length; i++) {
+		        let hasData = false;
+		        for (let j = 1; j < rows.length; j++) {
+		            const cells = rows[j].querySelectorAll('td');
+		            if (cells[i] && cells[i].innerText.trim() !== '-' && cells[i].innerText.trim() !== '') {
+		                hasData = true;
+		                break;
+		            }
+		        }
+		        if (hasData) activeColumns.push(i);
+		    }
+		
 		    // 2. Costruisci il messaggio formattato
 		    let output = "📋 *Registro Presenze Mensile*\n```\n";
 		
@@ -1067,17 +1067,18 @@
 		        let rowText = "";
 		
 		        if (rowIndex === 0) {
-		            // Intestazione: Nome colonna "Cognome" e numeri dei giorni attivi
-		            rowText += "Cognome".substring(0, 10).padEnd(10, ' ') + "|";
+		            // Intestazione: Spazio vuoto al posto di "Cognome" e numeri dei giorni
+		            rowText += "".padEnd(10, ' ') + "|";
 		            activeColumns.forEach(colIndex => {
 		                let cellText = cells[colIndex] ? cells[colIndex].innerText.trim() : "";
 		                let dayNum = cellText.replace('Giorno', '').trim();
+		                // Formattazione pulita per i giorni (es. centrati in 3 spazi)
 		                rowText += dayNum.substring(0, 3).padStart(3, ' ') + " ";
 		            });
 		        } else {
 		            // Dati giocatori: Solo cognome e stati di presenza (3 caratteri)
 		            let fullName = cells[0].innerText.trim();
-		            let lastName = fullName.split(' ')[0]; // Prende la prima parola (il cognome)
+		            let lastName = fullName.split(' ')[0]; // Prende il cognome
 		            rowText += lastName.substring(0, 10).padEnd(10, ' ') + "|";
 		
 		            activeColumns.forEach(colIndex => {
@@ -1094,7 +1095,6 @@
 		    output += "```";
 		    return output;
 		}
-
         function shareCallupWhatsApp(callupId) {
             const callup = loadedCallupsList.find(c => c.id === callupId);
             if (!callup) return;
