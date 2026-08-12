@@ -129,6 +129,7 @@
 
             if (tabId === 'tab-callup') loadCallups();
             if (tabId === 'tab-staff') loadStaffList();
+			if (tabId === 'tab-tournaments') renderTournaments();
         }
 
         // CONFIGURAZIONE SELETTORE SQUADRE
