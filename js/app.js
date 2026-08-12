@@ -1308,17 +1308,40 @@
 		// 1. Array in memoria per i tornei
 		let tournamentMatches = [];
 		
-		// Funzione per caricare i dati da Firebase all'avvio
+		// Funzione intelligente per caricare i dati in base al ruolo dell'utente loggato
 		async function loadTournamentsFromDB() {
 		    try {
-		        const querySnapshot = await getDocs(collection(db, 'tournaments'));
+		        let q;
+		        
+		        // Esempio: Verifichiamo il ruolo dell'utente corrente (preso dal tuo sistema di autenticazione o profilo utente)
+		        // currentUserRole può essere 'admin' o 'coach'
+		        // currentCoachTeamId è l'ID della squadra associata a quel coach
+		        
+		        if (typeof currentUserRole !== 'undefined' && currentUserRole === 'coach' && typeof currentCoachTeamId !== 'undefined') {
+		            // 🔒 IL COACH: Scarica dal DB solo i tornei della sua squadra specifica
+		            q = query(collection(db, 'tournaments'), where("teamId", "==", currentCoachTeamId));
+		            
+		            // Forza l'activeTeamId del coach alla sua squadra
+		            window.activeTeamId = currentCoachTeamId;
+		            
+		            // Opzionale: Disabilita il selettore squadre nell'HTML se il coach non deve poterlo cambiare
+		            const teamSelectUI = document.getElementById('team-selector'); // Sostituisci con l'ID del tuo selettore
+		            if (teamSelectUI) teamSelectUI.disabled = true;
+		            
+		        } else {
+		            // 👑 L'ADMIN: Scarica tutti i tornei di tutte le squadre
+		            q = collection(db, 'tournaments');
+		        }
+		
+		        const querySnapshot = await getDocs(q);
 		        tournamentMatches = [];
 		        querySnapshot.forEach((docSnap) => {
 		            tournamentMatches.push({ id: docSnap.id, ...docSnap.data() });
 		        });
+		        
 		        renderTournaments();
 		    } catch (error) {
-		        console.error("Errore nel caricamento dei tornei da Firebase:", error);
+		        console.error("Errore nel caricamento dei tornei:", error);
 		    }
 		}
 		
