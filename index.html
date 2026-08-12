@@ -180,6 +180,10 @@
         <button id="btn-tab-callup" class="tab-btn flex-1 min-w-[140px] py-3 px-4 text-center rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200">
             📩 Convocazioni
         </button>
+        <!-- TAB TORNEI -->
+        <button id="btn-tab-tournaments" class="tab-btn flex-1 min-w-[140px] py-3 px-4 text-center rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200">
+            🏆 Tornei
+        </button>
         <!-- TAB ESCLUSIVA ADMIN -->
         <button id="btn-tab-staff" class="tab-btn hidden flex-1 min-w-[140px] py-3 px-4 text-center rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-800 bg-slate-100 hover:bg-slate-200 transition-all duration-200 border border-slate-300">
             ⚙️ Gestione Staff/Coach
@@ -456,47 +460,6 @@
 
 
 
-
-
-                       <!-- TAB TORNEI -->
-<div id="tab-tournaments" class="tab-content hidden space-y-6">
-    <div class="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <div>
-            <h3 class="text-lg font-black text-slate-900">🏆 Tornei e Partite Ufficiali</h3>
-            <p class="text-xs text-slate-500">Gestione calendario e risultati per ${currentTeamName}</p>
-        </div>
-        <button onclick="openTournamentModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs transition active:scale-95">
-            ➕ Aggiungi Partita
-        </button>
-    </div>
-
-    <!-- Lista Partite -->
-    <div id="tournament-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Le partite verranno iniettate qui via JS -->
-    </div>
-</div>
-
-<!-- MODALE AGGIUNTA PARTITA -->
-<div id="modal-tournament" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-white p-6 rounded-3xl max-w-md w-full space-y-4">
-        <h3 class="font-black text-slate-900 text-lg">📅 Nuova Partita Torneo</h3>
-        <form id="form-tournament" class="space-y-3">
-            <input type="text" id="tour-name" placeholder="Nome Torneo (es. NIKI)" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
-            <input type="text" id="tour-match" placeholder="Incontro (es. Spes - Artiglio)" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
-            <div class="grid grid-cols-2 gap-2">
-                <input type="date" id="tour-date" required class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
-                <input type="time" id="tour-time" required class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
-            </div>
-            <input type="text" id="tour-location" placeholder="Campo di gioco" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
-            
-            <div class="flex gap-2 pt-2">
-                <button type="button" onclick="closeTournamentModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-xs">Annulla</button>
-                <button type="submit" class="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold text-xs">Salva Partita</button>
-            </div>
-        </form>
-    </div>
-</div> 
-
                         <div class="flex justify-end pt-1">
                             <button type="submit" class="bg-slate-900 hover:bg-emerald-600 text-white font-bold text-xs px-5 py-3 rounded-xl tracking-wide uppercase transition-all duration-300 shadow-md active:scale-95">
                                 🚀 Crea Account Coach
@@ -517,6 +480,8 @@
         </div>
 
     </div>
+
+
 
     <!-- MODALE AGGIUNTA / MODIFICA GIOCATORE -->
     <div id="modal-add-player" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 print:hidden">
