@@ -1037,34 +1037,52 @@
         }
 
 		/**
-		 * Estrae i dati dalla tabella del registro mensile e li formatta in testo per WA
+		 * Estrae solo cognomi e giorni con presenze effettive
 		 */
 		function getMonthlyTableAsText() {
 		    const table = document.querySelector('#monthly-sessions-container table');
-		    if (!table) return "Nessun dato in griglia.";
+		    if (!table) return "Nessun dato disponibile.";
 		
-		    let output = "📋 *Registro Mensile*\n```\n";
+		    const rows = Array.from(table.querySelectorAll('tr'));
+		    if (rows.length === 0) return "Tabella vuota.";
+		
+		    // 1. Identifica quali colonne (giorni) hanno almeno un dato (non vuoto/non trattino)
+		    const headerCells = Array.from(rows[0].querySelectorAll('th, td'));
+		    const activeColumns = []; // Indici delle colonne con dati
 		    
-		    // Prendiamo solo le righe dei giocatori (tr)
-		    const rows = table.querySelectorAll('tr');
-		    
-		    rows.forEach((row, rowIndex) => {
-		        const cells = row.querySelectorAll('th, td');
-		        let rowText = "";
-		        
-		        cells.forEach((cell, cellIndex) => {
-		            let content = cell.innerText.trim();
-		            
-		            // Logica di formattazione:
-		            // Colonna 0 (Nome) = max 10 caratteri
-		            // Altre colonne (Giorni) = max 2 caratteri
-		            if (cellIndex === 0) {
-		                rowText += content.substring(0, 10).padEnd(10, ' ') + " | ";
-		            } else {
-		                // Se il contenuto è lungo, tronchiamo o prendiamo solo i primi 2 caratteri
-		                rowText += content.substring(0, 2).padStart(2, ' ') + " ";
+		    // Partiamo da 1 per saltare la colonna nomi
+		    for (let i = 1; i < headerCells.length; i++) {
+		        let hasData = false;
+		        for (let j = 1; j < rows.length; j++) {
+		            const cell = rows[j].querySelectorAll('td')[i];
+		            if (cell && cell.innerText.trim() !== '-' && cell.innerText.trim() !== '') {
+		                hasData = true;
+		                break;
 		            }
+		        }
+		        if (hasData) activeColumns.push(i);
+		    }
+		
+		    // 2. Costruisci il messaggio
+		    let output = "📋 *Registro Presenze (Giorni Attivi):*\n```\n";
+		
+		    rows.forEach((row, rowIndex) => {
+		        const cells = Array.from(row.querySelectorAll('th, td'));
+		        let rowText = "";
+		
+		        // Aggiungi Nome/Cognome (colonna 0)
+		        let name = cells[0].innerText.trim();
+		        rowText += name.substring(0, 10).padEnd(10, ' ') + "|";
+		
+		        // Aggiungi solo le colonne attive
+		        activeColumns.forEach(colIndex => {
+		            const cell = cells[colIndex];
+		            let content = cell ? cell.innerText.trim() : "-";
+		            // Normalizza: se vuoto metti '.', se presente metti 'P', ecc.
+		            let val = (content === '-' || content === '') ? '.' : content.substring(0, 1);
+		            rowText += val + " ";
 		        });
+		
 		        output += rowText + "\n";
 		    });
 		
