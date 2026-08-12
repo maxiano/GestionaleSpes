@@ -1298,6 +1298,104 @@
             resetAttendanceRadios();
         });
 
+
+			// 1. Variabile per i dati dei tornei
+			let tournamentMatches = JSON.parse(localStorage.getItem('tournamentMatches')) || [];
+			
+			// 2. Funzione per aprire/chiudere la modale (Assicurati di avere il riferimento nel DOM)
+			function openTournamentModal() {
+			    document.getElementById('modal-tournament').classList.remove('hidden');
+			}
+			
+			function closeTournamentModal() {
+			    document.getElementById('modal-tournament').classList.add('hidden');
+			}
+			
+			// 3. Salvataggio Partita
+			document.getElementById('form-tournament').addEventListener('submit', function(e) {
+			    e.preventDefault();
+			    
+			    const newMatch = {
+			        id: Date.now(),
+			        team: currentTeamName, // Recupera il nome squadra attivo
+			        tournament: document.getElementById('tour-name').value,
+			        match: document.getElementById('tour-match').value,
+			        date: document.getElementById('tour-date').value,
+			        time: document.getElementById('tour-time').value,
+			        location: document.getElementById('tour-location').value,
+			        played: false,
+			        result: ""
+			    };
+			    
+			    tournamentMatches.push(newMatch);
+			    localStorage.setItem('tournamentMatches', JSON.stringify(tournamentMatches));
+			    
+			    renderTournaments();
+			    closeTournamentModal();
+			    this.reset();
+			});
+			
+			// 4. Renderizzazione dinamica delle card
+			function renderTournaments() {
+			    const container = document.getElementById('tournament-grid');
+			    const teamSpan = document.getElementById('display-active-team-tour');
+			    
+			    // Aggiorna il titolo del tab con la squadra corrente
+			    if(teamSpan) teamSpan.innerText = currentTeamName;
+			    
+			    container.innerHTML = '';
+			    
+			    const filtered = tournamentMatches.filter(m => m.team === currentTeamName);
+			    
+			    if (filtered.length === 0) {
+			        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10 w-full">Nessuna partita in programma per questo gruppo.</p>`;
+			        return;
+			    }
+			
+			    filtered.forEach(m => {
+			        container.innerHTML += `
+			            <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-2">
+			                <div class="flex justify-between items-center">
+			                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${m.tournament}</span>
+			                    <span class="text-[9px] font-bold ${m.played ? 'text-emerald-600' : 'text-amber-600'}">
+			                        ${m.played ? '● GIOCATA' : '● DA GIOCARE'}
+			                    </span>
+			                </div>
+			                <h4 class="font-bold text-slate-800 text-sm">${m.match}</h4>
+			                <p class="text-[11px] font-semibold text-slate-500">📍 ${m.location} | 📅 ${m.date} - ${m.time}</p>
+			                
+			                ${!m.played ? 
+			                    `<button onclick="setResult(${m.id})" class="mt-2 w-full bg-slate-900 text-white font-bold text-[10px] py-2 rounded-xl transition active:scale-95">Inserisci Risultato</button>` 
+			                    : `<p class="mt-2 text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-2 rounded-lg">Risultato: ${m.result}</p>`
+			                }
+			            </div>
+			        `;
+			    });
+			}
+			
+			// 5. Funzione semplificata per segnare il risultato
+			function setResult(id) {
+			    const res = prompt("Inserisci il risultato (es. 3-1):");
+			    if (res) {
+			        const match = tournamentMatches.find(m => m.id === id);
+			        match.played = true;
+			        match.result = res;
+			        localStorage.setItem('tournamentMatches', JSON.stringify(tournamentMatches));
+			        renderTournaments();
+			    }
+			}
+			
+			// 6. Gestione cambio TAB
+			document.getElementById('btn-tab-tournaments').addEventListener('click', function() {
+			    // Nascondi tutti i tab
+			    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+			    // Mostra questo
+			    document.getElementById('tab-tournaments').classList.remove('hidden');
+			    // Aggiorna stile bottoni (come fai negli altri)
+			    renderTournaments();
+			});
+
+
         // GESTIONE CAMBIO TAB CLICK
         document.getElementById('btn-tab-roster').addEventListener('click', () => switchTab('tab-roster'));
         document.getElementById('btn-tab-attendance').addEventListener('click', () => switchTab('tab-attendance'));
