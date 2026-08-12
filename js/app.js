@@ -1401,11 +1401,11 @@
 		        });
 		    }
 		
-		    // 3. Applichiamo il filtro del torneo selezionato (se è stato scelto qualcosa)
-		    const selectedTourFilter = filterSelect ? filterSelect.value : '';
-		    const filtered = selectedTourFilter 
-		        ? teamMatches.filter(m => m.tournament === selectedTourFilter) 
-		        : teamMatches;
+			// 3. Applichiamo il filtro del torneo selezionato (sicuro contro spazi e maiuscole/minuscole)
+			    const selectedTourFilter = filterSelect ? filterSelect.value.trim().toLowerCase() : '';
+			    const filtered = selectedTourFilter 
+			        ? teamMatches.filter(m => m.tournament && m.tournament.trim().toLowerCase() === selectedTourFilter) 
+			        : teamMatches;
 		    
 		    container.innerHTML = '';
 		    
