@@ -1433,6 +1433,14 @@
 		    });
 		});
 
+	// Funzione globale per chiudere la modale dei tornei
+	function closeTournamentModal() {
+	    const modal = document.getElementById('modal-tournament');
+	    if (modal) {
+	        modal.classList.add('hidden');
+	    }
+	}
+
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
