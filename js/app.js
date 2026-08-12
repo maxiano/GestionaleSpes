@@ -1036,52 +1036,57 @@
             }
         }
 
-		/**
-		 * Estrae solo cognomi e giorni con presenze effettive
-		 */
 		function getMonthlyTableAsText() {
-		    const table = document.querySelector('#monthly-sessions-container table');
-		    if (!table) return "Nessun dato disponibile.";
-		
-		    const rows = Array.from(table.querySelectorAll('tr'));
-		    if (rows.length === 0) return "Tabella vuota.";
-		
-		    // 1. Identifica quali colonne (giorni) hanno almeno un dato (non vuoto/non trattino)
-		    const headerCells = Array.from(rows[0].querySelectorAll('th, td'));
-		    const activeColumns = []; // Indici delle colonne con dati
-		    
-		    // Partiamo da 1 per saltare la colonna nomi
-		    for (let i = 1; i < headerCells.length; i++) {
-		        let hasData = false;
-		        for (let j = 1; j < rows.length; j++) {
-		            const cell = rows[j].querySelectorAll('td')[i];
-		            if (cell && cell.innerText.trim() !== '-' && cell.innerText.trim() !== '') {
-		                hasData = true;
-		                break;
-		            }
-		        }
-		        if (hasData) activeColumns.push(i);
-		    }
-		
-		    // 2. Costruisci il messaggio
-		    let output = "📋 *Registro Presenze (Giorni Attivi):*\n```\n";
+    const table = document.querySelector('#monthly-sessions-container table');
+    if (!table) return "Nessun dato disponibile.";
+
+    const rows = Array.from(table.querySelectorAll('tr'));
+    if (rows.length === 0) return "Tabella vuota.";
+    
+    // 1. Identifica le colonne (giorni) con almeno un dato
+    const headerCells = Array.from(rows[0].querySelectorAll('th, td'));
+    const activeColumns = [];
+    
+    for (let i = 1; i < headerCells.length; i++) {
+        let hasData = false;
+        for (let j = 1; j < rows.length; j++) {
+            const cells = rows[j].querySelectorAll('td');
+            if (cells[i] && cells[i].innerText.trim() !== '-' && cells[i].innerText.trim() !== '') {
+                hasData = true;
+                break;
+            }
+        }
+        if (hasData) activeColumns.push(i);
+    }
+
+		    // 2. Costruisci il messaggio formattato
+		    let output = "📋 *Registro Presenze Mensile*\n```\n";
 		
 		    rows.forEach((row, rowIndex) => {
 		        const cells = Array.from(row.querySelectorAll('th, td'));
 		        let rowText = "";
 		
-		        // Aggiungi Nome/Cognome (colonna 0)
-		        let name = cells[0].innerText.trim();
-		        rowText += name.substring(0, 10).padEnd(10, ' ') + "|";
+		        if (rowIndex === 0) {
+		            // Intestazione: Nome colonna "Cognome" e numeri dei giorni attivi
+		            rowText += "Cognome".substring(0, 10).padEnd(10, ' ') + "|";
+		            activeColumns.forEach(colIndex => {
+		                let cellText = cells[colIndex] ? cells[colIndex].innerText.trim() : "";
+		                let dayNum = cellText.replace('Giorno', '').trim();
+		                rowText += dayNum.substring(0, 3).padStart(3, ' ') + " ";
+		            });
+		        } else {
+		            // Dati giocatori: Solo cognome e stati di presenza (3 caratteri)
+		            let fullName = cells[0].innerText.trim();
+		            let lastName = fullName.split(' ')[0]; // Prende la prima parola (il cognome)
+		            rowText += lastName.substring(0, 10).padEnd(10, ' ') + "|";
 		
-		        // Aggiungi solo le colonne attive
-		        activeColumns.forEach(colIndex => {
-		            const cell = cells[colIndex];
-		            let content = cell ? cell.innerText.trim() : "-";
-		            // Normalizza: se vuoto metti '.', se presente metti 'P', ecc.
-		            let val = (content === '-' || content === '') ? '.' : content.substring(0, 1);
-		            rowText += val + " ";
-		        });
+		            activeColumns.forEach(colIndex => {
+		                const cell = cells[colIndex];
+		                let content = cell ? cell.innerText.trim() : "-";
+		                let val = (content === '-' || content === '') ? " . " : content.substring(0, 3).padEnd(3, ' ');
+		                rowText += val + " ";
+		            });
+		        }
 		
 		        output += rowText + "\n";
 		    });
