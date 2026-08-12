@@ -512,7 +512,28 @@
 
     </div>
 
-
+    <!--  MODALE TORNEI -->
+    <div id="modal-tournament" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-3xl max-w-md w-full space-y-4">
+            <h3 class="font-black text-slate-900 text-lg">📅 Nuova Partita Torneo</h3>
+            
+            <!-- IL FORM VA INSERITO QUI -->
+            <form id="form-tournament" class="space-y-3">
+                <input type="text" id="tour-name" placeholder="Nome Torneo (es. NIKI)" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                <input type="text" id="tour-match" placeholder="Incontro (es. Spes - Artiglio)" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="date" id="tour-date" required class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                    <input type="time" id="tour-time" required class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                </div>
+                <input type="text" id="tour-location" placeholder="Campo di gioco" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeTournamentModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-xs">Annulla</button>
+                    <button type="submit" class="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold text-xs">Salva Partita</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- MODALE AGGIUNTA / MODIFICA GIOCATORE -->
     <div id="modal-add-player" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 print:hidden">
