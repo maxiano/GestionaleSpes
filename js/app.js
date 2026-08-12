@@ -1398,19 +1398,6 @@
 			    });
 			}			
 			
-			// 5. Funzione semplificata per segnare il risultato
-			function setResult(id) {
-			    const res = prompt("Inserisci il risultato (es. 3-1):");
-			    if (res) {
-			        const match = tournamentMatches.find(m => m.id === id);
-			        match.played = true;
-			        match.result = res;
-			        localStorage.setItem('tournamentMatches', JSON.stringify(tournamentMatches));
-			        renderTournaments();
-			    }
-			}
-			
-
 
 
         // GESTIONE CAMBIO TAB CLICK
@@ -1433,6 +1420,17 @@
 		    });
 		});
 
+	// 5. Funzione semplificata per segnare il risultato
+	function setResult(id) {
+		const res = prompt("Inserisci il risultato (es. 3-1):");
+		if (res) {
+			const match = tournamentMatches.find(m => m.id === id);
+			match.played = true;
+			match.result = res;
+			localStorage.setItem('tournamentMatches', JSON.stringify(tournamentMatches));
+			renderTournaments();
+		}
+	}
 	// Funzione globale per chiudere la modale dei tornei
 	function closeTournamentModal() {
 	    const modal = document.getElementById('modal-tournament');
