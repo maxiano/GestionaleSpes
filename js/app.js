@@ -109,9 +109,9 @@
             }
 
             const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
-
+			// 1. Nascondi tutti i tab
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-
+			// 2. Gestisci lo stile di tutti i bottoni
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 if (btn.id === 'btn-tab-staff') {
                     btn.className = `tab-btn ${isAdmin ? '' : 'hidden'} flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300`;
@@ -120,13 +120,18 @@
                 }
             });
 
-            document.getElementById(tabId).classList.remove('hidden');
+			// 3. Mostra il tab selezionato (QUESTO È QUELLO CHE FA APPARIRE LA SCHERMATA)
+    		const targetTab = document.getElementById(tabId);
+    		if (targetTab) {
+        		targetTab.classList.remove('hidden');
+    		}
 
+			// 4. Evidenzia il bottone attivo
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
                 activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
             }
-
+			// 5. Caricamenti specifici per tab
             if (tabId === 'tab-callup') loadCallups();
             if (tabId === 'tab-staff') loadStaffList();
 			if (tabId === 'tab-tournaments') renderTournaments();
@@ -1415,8 +1420,6 @@
         document.getElementById('btn-tab-callup').addEventListener('click', () => switchTab('tab-callup'));
         document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-staff'));
 		document.getElementById('btn-tab-tournaments').addEventListener('click', () => switchTab('tab-tournaments'));
-
-
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
