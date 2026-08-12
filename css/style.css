@@ -1,41 +1,94 @@
 @media print {
-            @page {
-                size: A4 portrait;
-                margin: 8mm;
-            }
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
 
-            body.print-landscape @page {
-                size: A4 landscape;
-                margin: 5mm;
-            }
+    body.print-landscape @page {
+        size: A4 landscape;
+        margin: 8mm;
+    }
 
-            body {
-                background-color: white !important;
-                color: black !important;
-                font-size: 9pt !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
+    body {
+        background-color: white !important;
+        color: #111 !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+        font-size: 9pt !important;
+        line-height: 1.3 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
 
-            .print\:hidden { display: none !important; }
-            .print\:block { display: block !important; }
+    .print\:hidden { display: none !important; }
+    .print\:block { display: block !important; }
 
-            #tab-attendance, #tab-staff { display: none !important; }
-            body:not(.print-roster) #tab-roster { display: none !important; }
-            body:not(.print-monthly) #tab-monthly { display: none !important; }
-            body:not(.print-callup) #tab-callup { display: none !important; }
+    /* Gestione visibilità Tab in stampa */
+    #tab-attendance, #tab-staff { display: none !important; }
+    body:not(.print-roster) #tab-roster { display: none !important; }
+    body:not(.print-monthly) #tab-monthly { display: none !important; }
+    body:not(.print-callup) #tab-callup { display: none !important; }
 
-            body.print-roster #tab-roster,
-            body.print-monthly #tab-monthly,
-            body.print-callup #tab-callup {
-                display: block !important;
-                width: 100% !important;
-            }
+    body.print-roster #tab-roster,
+    body.print-monthly #tab-monthly,
+    body.print-callup #tab-callup {
+        display: block !important;
+        width: 100% !important;
+    }
 
-            table { width: 100% !important; border-collapse: collapse !important; }
-            th, td { border: 1px solid #000 !important; padding: 4px 6px !important; text-align: left !important; font-size: 8.5pt !important; }
+    /* Struttura tabelle pulita e moderna */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-bottom: 12px;
+        break-inside: auto;
+    }
 
-            body.print-monthly table { table-layout: fixed !important; }
-            body.print-monthly th, body.print-monthly td { padding: 2px 1px !important; text-align: center !important; font-size: 7.5pt !important; }
-            body.print-monthly th:first-child, body.print-monthly td:first-child { text-align: left !important; padding-left: 4px !important; width: 160px !important; }
-        }
+    tr {
+        break-inside: avoid;
+        break-after: auto;
+    }
+
+    th {
+        background-color: #1e293b !important; /* Grigio scuro/ardesia elegante */
+        color: #ffffff !important;
+        border: 1px solid #1e293b !important;
+        padding: 6px 8px !important;
+        text-align: left !important;
+        font-size: 8.5pt !important;
+        font-weight: bold !important;
+    }
+
+    td {
+        border: 1px solid #cbd5e1 !important; /* Grigio chiaro per bordi delicati */
+        padding: 5px 8px !important;
+        text-align: left !important;
+        font-size: 8.5pt !important;
+        color: #1f2937 !important;
+    }
+
+    /* Effetto riga alternata (Zebra) per facilitare la lettura */
+    tbody tr:nth-child(even) {
+        background-color: #f8fafc !important;
+    }
+
+    /* Ottimizzazione specifica per il Registro Mensile a griglia */
+    body.print-monthly table {
+        table-layout: fixed !important;
+    }
+
+    body.print-monthly th, 
+    body.print-monthly td {
+        padding: 3px 2px !important;
+        text-align: center !important;
+        font-size: 7.5pt !important;
+    }
+
+    body.print-monthly th:first-child, 
+    body.print-monthly td:first-child {
+        text-align: left !important;
+        padding-left: 6px !important;
+        width: 150px !important;
+        font-weight: bold !important;
+        background-color: #f1f5f9 !important; /* Evidenzia la colonna dei nomi */
+    }
+}
