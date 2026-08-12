@@ -1040,22 +1040,30 @@
 		 * Estrae i dati dalla tabella del registro mensile e li formatta in testo per WA
 		 */
 		function getMonthlyTableAsText() {
-		    const container = document.getElementById('monthly-sessions-container');
-		    const table = container.querySelector('table'); // Assumiamo che la griglia sia in un tag <table>
-		    if (!table) return "Tabella non disponibile.";
+		    const table = document.querySelector('#monthly-sessions-container table');
+		    if (!table) return "Nessun dato in griglia.";
 		
-		    let output = "📋 *Registro Presenze:*\n```\n"; // Il blocco ``` crea un font monospazio su WA
-		
-		    // Leggi le righe della tabella
+		    let output = "📋 *Registro Mensile*\n```\n";
+		    
+		    // Prendiamo solo le righe dei giocatori (tr)
 		    const rows = table.querySelectorAll('tr');
-		    rows.forEach(row => {
+		    
+		    rows.forEach((row, rowIndex) => {
 		        const cells = row.querySelectorAll('th, td');
 		        let rowText = "";
-		        cells.forEach((cell, index) => {
-		            // Prendi il testo e limita la lunghezza per non sgranare il messaggio
+		        
+		        cells.forEach((cell, cellIndex) => {
 		            let content = cell.innerText.trim();
-		            // Allinea le colonne (es: 10 caratteri per il nome, 3 per i giorni)
-		            rowText += content.padEnd(index === 0 ? 12 : 4, ' ');
+		            
+		            // Logica di formattazione:
+		            // Colonna 0 (Nome) = max 10 caratteri
+		            // Altre colonne (Giorni) = max 2 caratteri
+		            if (cellIndex === 0) {
+		                rowText += content.substring(0, 10).padEnd(10, ' ') + " | ";
+		            } else {
+		                // Se il contenuto è lungo, tronchiamo o prendiamo solo i primi 2 caratteri
+		                rowText += content.substring(0, 2).padStart(2, ' ') + " ";
+		            }
 		        });
 		        output += rowText + "\n";
 		    });
