@@ -16,7 +16,6 @@
         import {
             getFirestore,
             enableMultiTabIndexedDbPersistence,
-			collection,
             doc,
             getDoc,
             getDocs,
