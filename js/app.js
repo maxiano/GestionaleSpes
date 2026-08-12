@@ -1548,13 +1548,14 @@
 		    }
 		};	
 
-		// Funzione globale per chiudere la modale dei tornei
-		function closeTournamentModal() {
+		// Definisce la funzione come proprietà dell'oggetto globale window
+		window.closeTournamentModal = function() {
 		    const modal = document.getElementById('modal-tournament');
+		    
 		    if (modal) {
 		        modal.classList.add('hidden');
 		    }
-		}
+		};
 
 
         // GESTIONE CAMBIO TAB CLICK
