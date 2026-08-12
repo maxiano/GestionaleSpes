@@ -1302,17 +1302,19 @@
 			// 1. Variabile per i dati dei tornei
 			let tournamentMatches = JSON.parse(localStorage.getItem('tournamentMatches')) || [];
 			
-			// MODALE E GESTIONE TORNEI (Aggiungi Partita)
-			const btnOpenModalTournament = document.getElementById('btn-tab-tournaments');
-			const modalTournament = document.getElementById('tab-tournaments');
+			// MODALE E GESTIONE TORNEI
+			const btnOpenModalTournament = document.getElementById('btn-open-modal-tournament');
+			const modalTournament = document.getElementById('modal-tournament');
 			
 			if (btnOpenModalTournament && modalTournament) {
 			    btnOpenModalTournament.addEventListener('click', () => {
-			        if (!activeTeamId) return alert('Seleziona prima una squadra!');
+			        // Controlla se è stata selezionata una squadra (come fai per i giocatori)
+			        if (typeof activeTeamId !== 'undefined' && !activeTeamId) {
+			            alert('Seleziona prima una squadra!');
+			            return;
+			        }
 			        
-			        // Eventuale reset di variabili di stato (es. se gestisci la modifica)
-			        // editingTournamentId = null; 
-			        
+			        // Mostra la modale rimuovendo la classe hidden
 			        modalTournament.classList.remove('hidden');
 			    });
 			}
