@@ -1403,9 +1403,16 @@
 		
 			// 3. Applichiamo il filtro del torneo selezionato (sicuro contro spazi e maiuscole/minuscole)
 			    const selectedTourFilter = filterSelect ? filterSelect.value.trim().toLowerCase() : '';
-			    const filtered = selectedTourFilter 
+			    let filtered = selectedTourFilter 
 			        ? teamMatches.filter(m => m.tournament && m.tournament.trim().toLowerCase() === selectedTourFilter) 
 			        : teamMatches;
+
+			// 4. ORDINAMENTO CRONOLOGICO PER DATA E ORA
+		    filtered.sort((a, b) => {
+		        const dateTimeA = new Date(`${a.date || '1970-01-01'}T${a.time || '00:00'}`);
+		        const dateTimeB = new Date(`${b.date || '1970-01-01'}T${b.time || '00:00'}`);
+		        return dateTimeA - dateTimeB; // Crescente (dalla più vicina nel tempo alla più lontana)
+		    });
 		    
 		    container.innerHTML = '';
 		    
