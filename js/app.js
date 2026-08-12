@@ -1610,13 +1610,25 @@
 		    });
 		});
 
+		// 📥 Funzione globale per esportare in CSV
 		window.exportToCSV = function() {
-		    if (tournamentMatches.length === 0) return alert("Nessuna partita da esportare!");
+		    if (tournamentMatches.length === 0) {
+		        alert("Nessuna partita da esportare!");
+		        return;
+		    }
 		
 		    let csvContent = "data:text/csv;charset=utf-8,Torneo,Partita,Data,Orario,Luogo,Risultato\n";
 		    
 		    tournamentMatches.forEach(m => {
-		        let row = [m.tournament, m.match, m.date, m.time, m.location, m.result].join(",");
+		        // Racchiudiamo i campi tra virgolette per evitare problemi con le virgole nei testi
+		        let row = [
+		            `"${m.tournament || ''}"`,
+		            `"${m.match || ''}"`,
+		            `"${m.date || ''}"`,
+		            `"${m.time || ''}"`,
+		            `"${m.location || ''}"`,
+		            `"${m.result || ''}"`
+		        ].join(",");
 		        csvContent += row + "\n";
 		    });
 		
@@ -1626,8 +1638,10 @@
 		    link.setAttribute("download", "partite_torneo.csv");
 		    document.body.appendChild(link);
 		    link.click();
+		    document.body.removeChild(link);
 		};
-
+		
+		// 📤 Funzione globale per importare da CSV
 		window.importCSV = async function(input) {
 		    const file = input.files[0];
 		    if (!file) return;
@@ -1637,26 +1651,46 @@
 		        const text = e.target.result;
 		        const rows = text.split("\n").slice(1); // Salta l'intestazione
 		
+		        let importedCount = 0;
+		
 		        for (let row of rows) {
+		            if (!row.trim()) continue;
+		            
+		            // Gestione base della separazione (se usi le virgolette nel CSV)
 		            const cols = row.split(",");
 		            if (cols.length < 5) continue;
 		
+		            const clean = (val) => val ? val.replace(/^["']|["']$/g, '').trim() : '';
+		
 		            const newMatch = {
-		                teamId: activeTeamId, // Assegna alla squadra attiva
-		                tournament: cols[0],
-		                match: cols[1],
-		                date: cols[2],
-		                time: cols[3],
-		                location: cols[4],
+		                teamId: typeof activeTeamId !== 'undefined' ? activeTeamId : '',
+		                tournament: clean(cols[0]),
+		                match: clean(cols[1]),
+		                date: clean(cols[2]),
+		                time: clean(cols[3]),
+		                location: clean(cols[4]),
 		                played: false,
 		                result: ""
 		            };
 		
-		            // Salva su Firebase
-		            await addDoc(collection(db, 'tournaments'), newMatch);
+		            try {
+		                // Salvataggio su Firebase Firestore
+		                await addDoc(collection(db, 'tournaments'), newMatch);
+		                importedCount++;
+		            } catch (error) {
+		                console.error("Errore durante l'importazione di una riga:", error);
+		            }
 		        }
-		        alert("Importazione completata!");
-		        loadTournamentsFromDB(); // Ricarica tutto dal DB
+		
+		        alert(`Importazione completata! Aggiunte ${importedCount} partite.`);
+		        
+		        // Pulisce l'input file per permettere di ricaricare lo stesso file se necessario
+		        input.value = "";
+		
+		        // Ricarica i dati dal DB
+		        if (typeof loadTournamentsFromDB === 'function') {
+		            loadTournamentsFromDB();
+		        }
 		    };
 		    reader.readAsText(file);
 		};
