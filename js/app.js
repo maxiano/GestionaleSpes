@@ -1036,6 +1036,34 @@
             }
         }
 
+		/**
+		 * Estrae i dati dalla tabella del registro mensile e li formatta in testo per WA
+		 */
+		function getMonthlyTableAsText() {
+		    const container = document.getElementById('monthly-sessions-container');
+		    const table = container.querySelector('table'); // Assumiamo che la griglia sia in un tag <table>
+		    if (!table) return "Tabella non disponibile.";
+		
+		    let output = "📋 *Registro Presenze:*\n```\n"; // Il blocco ``` crea un font monospazio su WA
+		
+		    // Leggi le righe della tabella
+		    const rows = table.querySelectorAll('tr');
+		    rows.forEach(row => {
+		        const cells = row.querySelectorAll('th, td');
+		        let rowText = "";
+		        cells.forEach((cell, index) => {
+		            // Prendi il testo e limita la lunghezza per non sgranare il messaggio
+		            let content = cell.innerText.trim();
+		            // Allinea le colonne (es: 10 caratteri per il nome, 3 per i giorni)
+		            rowText += content.padEnd(index === 0 ? 12 : 4, ' ');
+		        });
+		        output += rowText + "\n";
+		    });
+		
+		    output += "```";
+		    return output;
+		}
+
         function shareCallupWhatsApp(callupId) {
             const callup = loadedCallupsList.find(c => c.id === callupId);
             if (!callup) return;
@@ -1046,13 +1074,26 @@
             sendToWhatsApp(text, `Convocazione vs ${callup.opponent}`);
         }
 
-        document.getElementById('btn-share-monthly-wa').addEventListener('click', () => {
-            if (!activeTeamId) return;
-            const m = parseInt(document.getElementById('filter-month').value);
-            const y = parseInt(document.getElementById('filter-year').value);
-            let text = `📊 *RIEPILOGO PRESENZE MENSILE*\n🏆 *Spes Montesacro - ${activeTeamId}*\n📅 *Mese:* ${monthNamesIT[m]} ${y}\n\n📌 *Sedute:* ${document.getElementById('stat-total-sessions').innerText}\n✅ *Presenze Totali:* ${document.getElementById('stat-total-presents').innerText}\n📈 *Media/Seduta:* ${document.getElementById('stat-avg-presents').innerText}\n\n_Report Registro Tecnico Spes Montesacro._`;
-            sendToWhatsApp(text, `Report Mensile ${monthNamesIT[m]}`);
-        });
+		document.getElementById('btn-share-monthly-wa').addEventListener('click', () => {
+		    if (!activeTeamId) return;
+		    
+		    // Mostra la tab
+		    document.getElementById('tab-monthly').classList.remove('hidden');
+		    document.getElementById('monthly-sessions-container').classList.remove('hidden');
+		
+		    const m = parseInt(document.getElementById('filter-month').value);
+		    const y = parseInt(document.getElementById('filter-year').value);
+		    
+		    // Componi l'intestazione
+		    let text = `📊 *RIEPILOGO PRESENZE - ${activeTeamId}*\n📅 *${monthNamesIT[m]} ${y}*\n\n`;
+		    
+		    // Aggiungi la tabella convertita in testo
+		    text += getMonthlyTableAsText();
+		    
+		    // Invia
+		    sendToWhatsApp(text, `Registro ${monthNamesIT[m]}`);
+		});
+
 
         document.getElementById('btn-share-roster-wa').addEventListener('click', () => {
             if (!activeTeamId || activeTeamPlayers.length === 0) return;
