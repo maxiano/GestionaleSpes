@@ -1360,9 +1360,7 @@
 		    };
 		    
 		    try {
-		        // Salvataggio con la sintassi moderna addDoc + collection
 		        const docRef = await addDoc(collection(db, 'tournaments'), newMatch);
-		        
 		        newMatch.id = docRef.id;
 		        tournamentMatches.push(newMatch);
 		        
@@ -1375,7 +1373,7 @@
 		    }
 		});
 		
-		// 4. Renderizzazione dinamica delle card
+		// 4. Renderizzazione dinamica delle card (con bottoni Modifica ed Elimina)
 		function renderTournaments() {
 		    const container = document.getElementById('tournament-grid');
 		    const teamSpan = document.getElementById('display-active-team-tour');
@@ -1406,14 +1404,94 @@
 		                <h4 class="font-bold text-slate-800 text-sm">${m.match}</h4>
 		                <p class="text-[11px] font-semibold text-slate-500">📍 ${m.location} | 📅 ${m.date} - ${m.time}</p>
 		                
-		                ${!m.played ? 
-		                    `<button onclick="setResult('${m.id}')" class="mt-2 w-full bg-slate-900 text-white font-bold text-[10px] py-2 rounded-xl transition active:scale-95">Inserisci Risultato</button>` 
-		                    : `<p class="mt-2 text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-2 rounded-lg">Risultato: ${m.result}</p>`
-		                }
+		                <div class="flex flex-col gap-1.5 mt-2">
+		                    ${!m.played ? 
+		                        `<button onclick="setResult('${m.id}')" class="w-full bg-slate-900 hover:bg-emerald-600 text-white font-bold text-[10px] py-2 rounded-xl transition active:scale-95">Inserisci Risultato</button>` 
+		                        : `<p class="text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-2 rounded-lg">Risultato: ${m.result}</p>`
+		                    }
+		                    <div class="flex gap-2">
+		                        <button onclick="editMatch('${m.id}')" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[10px] py-1.5 rounded-xl transition active:scale-95">✏️ Modifica</button>
+		                        <button onclick="deleteMatch('${m.id}')" class="flex-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[10px] py-1.5 rounded-xl transition active:scale-95">🗑️ Elimina</button>
+		                    </div>
+		                </div>
 		            </div>
 		        `;
 		    });
 		}
+		
+		// 5. Funzione globale per inserire/aggiornare il risultato
+		window.setResult = async function(id) {
+		    const res = prompt("Inserisci il risultato (es. 3-1):");
+		    if (res) {
+		        try {
+		            await updateDoc(doc(db, 'tournaments', String(id)), {
+		                played: true,
+		                result: res
+		            });
+		
+		            const match = tournamentMatches.find(m => m.id === id);
+		            if (match) {
+		                match.played = true;
+		                match.result = res;
+		            }
+		
+		            renderTournaments();
+		        } catch (error) {
+		            console.error("Errore nell'aggiornamento del risultato su Firebase:", error);
+		            alert("Errore nel salvataggio del risultato sul cloud.");
+		        }
+		    }
+		};
+		
+		// 6. Funzione globale per modificare una partita
+		window.editMatch = async function(id) {
+		    const match = tournamentMatches.find(m => m.id === id);
+		    if (!match) return;
+		
+		    const newMatchName = prompt("Modifica Incontro (es. Roma vs Lazio):", match.match);
+		    if (newMatchName === null) return;
+		
+		    const newLocation = prompt("Modifica Luogo:", match.location);
+		    if (newLocation === null) return;
+		
+		    const newDate = prompt("Modifica Data (es. 2026-09-10):", match.date);
+		    if (newDate === null) return;
+		
+		    const newTime = prompt("Modifica Orario (es. 15:00):", match.time);
+		    if (newTime === null) return;
+		
+		    const updatedData = {
+		        match: newMatchName.trim() || match.match,
+		        location: newLocation.trim() || match.location,
+		        date: newDate.trim() || match.date,
+		        time: newTime.trim() || match.time
+		    };
+		
+		    try {
+		        await updateDoc(doc(db, 'tournaments', String(id)), updatedData);
+		        
+		        Object.assign(match, updatedData);
+		        renderTournaments();
+		    } catch (error) {
+		        console.error("Errore durante la modifica della partita:", error);
+		        alert("Impossibile aggiornare la partita sul cloud.");
+		    }
+		};
+		
+		// 7. Funzione globale per eliminare una partita
+		window.deleteMatch = async function(id) {
+		    if (confirm("Sei sicuro di voler eliminare questa partita?")) {
+		        try {
+		            await deleteDoc(doc(db, 'tournaments', String(id)));
+		            
+		            tournamentMatches = tournamentMatches.filter(m => m.id !== id);
+		            renderTournaments();
+		        } catch (error) {
+		            console.error("Errore durante l'eliminazione della partita:", error);
+		            alert("Impossibile eliminare la partita dal cloud.");
+		        }
+		    }
+		};
 		
 		// 5. Funzione globale per aggiornare il risultato con updateDoc + doc
 		window.setResult = async function(id) {
