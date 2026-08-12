@@ -1478,7 +1478,7 @@
 		    }
 		};
 		
-		// 7. Funzione globale per eliminare una partita
+		//  Funzione globale per eliminare una partita
 		window.deleteMatch = async function(id) {
 		    if (confirm("Sei sicuro di voler eliminare questa partita?")) {
 		        try {
@@ -1493,7 +1493,7 @@
 		    }
 		};
 		
-		// 5. Funzione globale per aggiornare il risultato con updateDoc + doc
+		//  Funzione globale per aggiornare il risultato con updateDoc + doc
 		window.setResult = async function(id) {
 		    const res = prompt("Inserisci il risultato (es. 3-1):");
 		    if (res) {
@@ -1515,7 +1515,15 @@
 		            alert("Errore nel salvataggio del risultato sul cloud.");
 		        }
 		    }
-		};		
+		};	
+
+		// Funzione globale per chiudere la modale dei tornei
+		function closeTournamentModal() {
+		    const modal = document.getElementById('modal-tournament');
+		    if (modal) {
+		        modal.classList.add('hidden');
+		    }
+		}
 
 
         // GESTIONE CAMBIO TAB CLICK
@@ -1539,13 +1547,7 @@
 		});
 
 
-	// Funzione globale per chiudere la modale dei tornei
-	function closeTournamentModal() {
-	    const modal = document.getElementById('modal-tournament');
-	    if (modal) {
-	        modal.classList.add('hidden');
-	    }
-	}
+
 
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
