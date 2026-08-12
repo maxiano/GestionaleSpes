@@ -16,6 +16,7 @@
         import {
             getFirestore,
             enableMultiTabIndexedDbPersistence,
+			collection,
             doc,
             getDoc,
             getDocs,
@@ -1305,16 +1306,16 @@
         });
 
 
-		// 1. Array in memoria per i tornei (inizialmente vuoto)
+		// 1. Array in memoria per i tornei
 		let tournamentMatches = [];
 		
 		// Funzione per caricare i dati da Firebase all'avvio
 		async function loadTournamentsFromDB() {
 		    try {
-		        const snapshot = await db.collection('tournaments').get();
+		        const querySnapshot = await getDocs(collection(db, 'tournaments'));
 		        tournamentMatches = [];
-		        snapshot.forEach(doc => {
-		            tournamentMatches.push({ id: doc.id, ...doc.data() });
+		        querySnapshot.forEach((docSnap) => {
+		            tournamentMatches.push({ id: docSnap.id, ...docSnap.data() });
 		        });
 		        renderTournaments();
 		    } catch (error) {
@@ -1322,7 +1323,7 @@
 		    }
 		}
 		
-		// Chiama questa funzione all'avvio della pagina o quando carichi la sezione
+		// Carica i dati all'avvio
 		loadTournamentsFromDB();
 		
 		// MODALE E GESTIONE TORNEI
@@ -1331,13 +1332,10 @@
 		
 		if (btnOpenModalTournament && modalTournament) {
 		    btnOpenModalTournament.addEventListener('click', () => {
-		        // Controlla se è stata selezionata una squadra
 		        if (typeof activeTeamId !== 'undefined' && !activeTeamId) {
 		            alert('Seleziona prima una squadra!');
 		            return;
 		        }
-		        
-		        // Mostra la modale rimuovendo la classe hidden
 		        modalTournament.classList.remove('hidden');
 		    });
 		}
@@ -1363,10 +1361,9 @@
 		    };
 		    
 		    try {
-		        // Salvataggio nel database remoto (collezione 'tournaments')
-		        const docRef = await db.collection('tournaments').add(newMatch);
+		        // Salvataggio con la sintassi moderna addDoc + collection
+		        const docRef = await addDoc(collection(db, 'tournaments'), newMatch);
 		        
-		        // Aggiungiamo l'ID generato da Firestore all'oggetto locale e all'array
 		        newMatch.id = docRef.id;
 		        tournamentMatches.push(newMatch);
 		        
@@ -1378,7 +1375,7 @@
 		        alert("Errore nel salvataggio della partita.");
 		    }
 		});
-		            
+		
 		// 4. Renderizzazione dinamica delle card
 		function renderTournaments() {
 		    const container = document.getElementById('tournament-grid');
@@ -1391,7 +1388,6 @@
 		    if (!container) return;
 		    container.innerHTML = '';
 		    
-		    // Filtra le partite usando l'ID della squadra attiva
 		    const filtered = tournamentMatches.filter(m => m.teamId === currentId);
 		    
 		    if (filtered.length === 0) {
@@ -1420,25 +1416,22 @@
 		    });
 		}
 		
-		// 5. Funzione globale per aggiornare il risultato su Firebase
+		// 5. Funzione globale per aggiornare il risultato con updateDoc + doc
 		window.setResult = async function(id) {
 		    const res = prompt("Inserisci il risultato (es. 3-1):");
 		    if (res) {
 		        try {
-		            // Aggiorna direttamente sul database Firestore
-		            await db.collection('tournaments').doc(String(id)).update({
+		            await updateDoc(doc(db, 'tournaments', String(id)), {
 		                played: true,
 		                result: res
 		            });
 		
-		            // Aggiorna lo stato nell'array locale
 		            const match = tournamentMatches.find(m => m.id === id);
 		            if (match) {
 		                match.played = true;
 		                match.result = res;
 		            }
 		
-		            // Ridisegna la griglia
 		            renderTournaments();
 		        } catch (error) {
 		            console.error("Errore nell'aggiornamento del risultato su Firebase:", error);
