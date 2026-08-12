@@ -1,4 +1,4 @@
- <!-- LOGICA APPLICATIVA IN JAVASCRIPT MODULARE (FIREBASE V10 SDK) -->
+// LOGICA APPLICATIVA IN JAVASCRIPT MODULARE (FIREBASE V10 SDK) -->
 		import { AppCache } from './cache.js';
 		import { daysOfWeekIT, monthNamesIT, normalizeUserProfile } from './config.js';
 		import { auth, db } from './js/firebase-init.js';
