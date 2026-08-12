@@ -499,6 +499,14 @@
                                     <option value="da_giocare">Da giocare</option>
                                     <option value="giocata">Giocate</option>
                                 </select>
+                                <div class="flex gap-2">
+                                    <!-- Esportazione -->
+                                    <button onclick="exportToCSV()" class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-3 py-2 rounded-xl">📥 Export CSV</button>
+                                    
+                                    <!-- Importazione (input file nascosto) -->
+                                    <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="importCSV(this)">
+                                    <button onclick="document.getElementById('csvFileInput').click()" class="bg-blue-100 text-blue-700 text-[10px] font-bold px-3 py-2 rounded-xl">📤 Import CSV</button>
+                                </div>
                                 <button id="btn-open-modal-tournament" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5">
                                     ➕ Aggiungi Partita
                                 </button>
