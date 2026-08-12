@@ -481,22 +481,27 @@
                                 <!-- TAB 6: TORNEI -->
                         <div id="tab-tournaments" class="tab-content hidden bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 print:shadow-none print:p-0 print:border-none">
                             <!-- Header del Tab -->
-                            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4 print:hidden">
-                                <div>
-                                    <h3 class="text-lg font-black text-slate-900 tracking-tight">🏆 Tornei e Partite (<span id="display-active-team-tour" class="text-emerald-600">--</span>)</h3>
-                                    <p class="text-xs text-slate-500 font-medium mt-0.5">Gestione calendario, risultati e classifiche di squadra.</p>
-                                </div>
-                                
-                                <!-- Pulsanti di Azione -->
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <button id="btn-open-modal-tournament" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5">
-                                        ➕ Aggiungi Partita
-                                    </button>
-                                    <button id="btn-share-tournament-wa" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm shadow-emerald-500/10 active:scale-95 flex items-center gap-1.5">
-                                        📲 WhatsApp
-                                    </button>
-                                </div>
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4 print:hidden">
+                            <div>
+                                <h3 class="text-lg font-black text-slate-900 tracking-tight">🏆 Tornei e Partite (<span id="display-active-team-tour" class="text-emerald-600"></span>)</h3>
+                                <p class="text-xs text-slate-500 font-medium mt-0.5">Gestione calendario, risultati e classifiche di squadra.</p>
                             </div>
+                            
+                            <!-- Filtro Torneo e Pulsanti -->
+                            <div class="flex flex-wrap items-center gap-2">
+                                <!-- 🔍 NUOVO FILTRO PER TORNEO -->
+                                <select id="filter-tournament-select" onchange="renderTournaments()" class="bg-white border border-slate-200 text-slate-700 text-xs px-3 py-2.5 rounded-xl font-bold shadow-sm focus:outline-none focus:border-emerald-500">
+                                    <option value="">Tutti i tornei</option>
+                                </select>
+                        
+                                <button id="btn-open-modal-tournament" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5">
+                                    ➕ Aggiungi Partita
+                                </button>
+                                <button id="btn-share-tournament-wa" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-sm shadow-emerald-500/10 active:scale-95 flex items-center gap-1.5">
+                                    📲 WhatsApp
+                                </button>
+                            </div>
+                        </div>
                         
                             <!-- Griglia Partite -->
                             <div id="tournament-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 print:hidden">
