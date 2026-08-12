@@ -166,28 +166,42 @@
             </button>
         </div>
 
-            <!-- BARRA MENU A TAB -->
-    <div id="navigation-tabs" class="bg-white rounded-2xl shadow-sm p-1.5 flex flex-wrap gap-1 border border-slate-200 print:hidden hidden">
-        <button id="btn-tab-roster" class="tab-btn flex-1 min-w-[140px] py-3 px-4 text-center rounded-xl font-bold text-xs md:text-sm tracking-wide transition-all duration-200 text-white bg-slate-900 shadow-md">
+<!-- BARRA MENU A TAB (VERSIONE HAMBURGER RESPONSIVE) -->
+<div id="navigation-container" class="relative print:hidden hidden mb-4">
+    
+    <!-- 🍔 Pulsante Hamburger (Visibile soprattutto su mobile) -->
+    <button id="btn-menu-toggle" onclick="toggleHamburgerMenu()" class="w-full bg-white border border-slate-200 rounded-2xl shadow-sm p-3.5 flex items-center justify-between text-slate-800 font-bold text-sm transition active:scale-[0.98]">
+        <span id="current-active-tab-label" class="flex items-center gap-2">
             👥 Rosa Giocatori
-        </button>
-        <button id="btn-tab-attendance" class="tab-btn flex-1 min-w-[140px] py-3 px-4 text-center rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200">
-            ⚽ Registra Presenze
-        </button>
-        <button id="btn-tab-monthly" class="tab-btn flex-1 min-w-[140px] py-3 px-4 text-center rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200">
-            📊 Registro Mensile
-        </button>
-        <button id="btn-tab-callup" class="tab-btn flex-1 min-w-[140px] py-3 px-4 text-center rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200">
-            📩 Convocazioni
-        </button>
-        <!-- TAB TORNEI -->
-        <button id="btn-tab-tournaments" class="tab-btn flex-1 min-w-[140px] py-3 px-4 text-center rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200">
-            🏆 Tornei
-        </button>
-        <!-- TAB ESCLUSIVA ADMIN -->
-        <button id="btn-tab-staff" class="tab-btn hidden flex-1 min-w-[140px] py-3 px-4 text-center rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-800 bg-slate-100 hover:bg-slate-200 transition-all duration-200 border border-slate-300">
-            ⚙️ Gestione Staff/Coach
-        </button>
+        </span>
+        <svg class="w-5 h-5 text-slate-500 transition-transform duration-200" id="hamburger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+    </button>
+
+        <!-- Menu a tendina (Nascosto di default, si apre al click) -->
+        <div id="navigation-tabs" class="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl p-2 flex flex-col gap-1 border border-slate-200 z-50 hidden transition-all duration-200">
+            <button id="btn-tab-roster" class="tab-btn w-full py-3 px-4 text-left rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition flex items-center gap-2">
+                👥 Rosa Giocatori
+            </button>
+            <button id="btn-tab-attendance" class="tab-btn w-full py-3 px-4 text-left rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition flex items-center gap-2">
+                ⚽ Registra Presenze
+            </button>
+            <button id="btn-tab-monthly" class="tab-btn w-full py-3 px-4 text-left rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition flex items-center gap-2">
+                📊 Registro Mensile
+            </button>
+            <button id="btn-tab-callup" class="tab-btn w-full py-3 px-4 text-left rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition flex items-center gap-2">
+                📩 Convocazioni
+            </button>
+            <!-- TAB TORNEI -->
+            <button id="btn-tab-tournaments" class="tab-btn w-full py-3 px-4 text-left rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition flex items-center gap-2">
+                🏆 Tornei
+            </button>
+            <!-- TAB ESCLUSIVA ADMIN -->
+            <button id="btn-tab-staff" class="tab-btn hidden w-full py-3 px-4 text-left rounded-xl font-bold text-xs md:text-sm tracking-wide text-slate-800 bg-slate-100 hover:bg-slate-200 transition border border-slate-300 flex items-center gap-2">
+                ⚙️ Gestione Staff/Coach
+            </button>
+        </div>
     </div>
 
     <!-- CONTENUTI OPERATIVI SEPARATI PER TAB -->
