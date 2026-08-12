@@ -1304,7 +1304,7 @@
 			
 			// MODALE E GESTIONE TORNEI (Aggiungi Partita)
 			const btnOpenModalTournament = document.getElementById('btn-tab-tournaments');
-			const modalTournament = document.getElementById('modal-tournament');
+			const modalTournament = document.getElementById('tab-tournaments');
 			
 			if (btnOpenModalTournament && modalTournament) {
 			    btnOpenModalTournament.addEventListener('click', () => {
