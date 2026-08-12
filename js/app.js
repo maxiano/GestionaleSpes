@@ -1390,7 +1390,7 @@
 			                <p class="text-[11px] font-semibold text-slate-500">📍 ${m.location} | 📅 ${m.date} - ${m.time}</p>
 			                
 			                ${!m.played ? 
-			                    `<button onclick="setResult(${m.id})" class="mt-2 w-full bg-slate-900 text-white font-bold text-[10px] py-2 rounded-xl transition active:scale-95">Inserisci Risultato</button>` 
+			                    `<button onclick="setResult('${m.id}')" class="mt-2 w-full bg-slate-900 text-white font-bold text-[10px] py-2 rounded-xl transition active:scale-95">Inserisci Risultato</button>` 
 			                    : `<p class="mt-2 text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-2 rounded-lg">Risultato: ${m.result}</p>`
 			                }
 			            </div>
