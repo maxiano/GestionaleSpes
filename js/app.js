@@ -1350,7 +1350,7 @@
 		
 		    const newMatch = {
 		        teamId: activeTeamId,
-		        team: teamName,
+		        team: activeTeamId,
 		        tournament: document.getElementById('tour-name').value,
 		        match: document.getElementById('tour-match').value,
 		        date: document.getElementById('tour-date').value,
