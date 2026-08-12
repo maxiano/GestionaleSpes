@@ -1695,36 +1695,38 @@
 		    reader.readAsText(file);
 		};
 
-		// Funzione globale per aprire/chiudere il menu hamburger
-		window.toggleHamburgerMenu = function() {
-		    const tabsMenu = document.getElementById('navigation-tabs');
-		    const icon = document.getElementById('hamburger-icon');
-		    
-		    if (tabsMenu) {
-		        tabsMenu.classList.toggle('hidden');
-		        if (icon) {
-		            icon.style.transform = tabsMenu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-		        }
-		    }
-		};
-		
-		// Modifica opzionale: se hai una funzione che gestisce il cambio tab, 
-		// puoi aggiornare il testo del pulsante principale e chiudere la tendina automaticamente:
-		document.querySelectorAll('.tab-btn').forEach(btn => {
-		    btn.addEventListener('click', () => {
-		        const labelBtn = document.getElementById('current-active-tab-label');
-		        if (labelBtn) {
-		            labelBtn.innerHTML = btn.innerHTML; // Aggiorna l'etichetta col tab scelto
-		        }
-		        const tabsMenu = document.getElementById('navigation-tabs');
-		        if (tabsMenu) {
-		            tabsMenu.classList.add('hidden'); // Chiude il menu dopo la scelta
-		            const icon = document.getElementById('hamburger-icon');
-		            if (icon) icon.style.transform = 'rotate(0deg)';
-		        }
-		    });
-		});
-
+		// 1. Funzione globale per aprire/chiudere il menu hamburger
+	window.toggleHamburgerMenu = function() {
+	    const tabsMenu = document.getElementById('navigation-tabs');
+	    const icon = document.getElementById('hamburger-icon');
+	    
+	    if (tabsMenu) {
+	        tabsMenu.classList.toggle('hidden');
+	        if (icon) {
+	            icon.style.transform = tabsMenu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+	        }
+	    }
+	};
+	
+	// 2. Gestione dei click sui tab (senza cancellare nulla)
+	document.querySelectorAll('.tab-btn').forEach(btn => {
+	    btn.addEventListener('click', () => {
+	        // Aggiorna solo il testo visibile nel pulsante principale dell'hamburger
+	        const labelBtn = document.getElementById('current-active-tab-label');
+	        if (labelBtn) {
+	            // Estraiamo solo il testo pulito o l'icona del bottone cliccato
+	            labelBtn.innerHTML = btn.innerHTML;
+	        }
+	        
+	        // Chiude semplicemente la tendina dei tab
+	        const tabsMenu = document.getElementById('navigation-tabs');
+	        if (tabsMenu) {
+	            tabsMenu.classList.add('hidden');
+	            const icon = document.getElementById('hamburger-icon');
+	            if (icon) icon.style.transform = 'rotate(0deg)';
+	        }
+	    });
+	});
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
