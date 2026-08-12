@@ -1405,6 +1405,8 @@
         document.getElementById('btn-tab-monthly').addEventListener('click', () => switchTab('tab-monthly'));
         document.getElementById('btn-tab-callup').addEventListener('click', () => switchTab('tab-callup'));
         document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-staff'));
+		document.getElementById('btn-tab-staff').addEventListener('click', () => switchTab('tab-tournaments'));
+
 
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
