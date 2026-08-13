@@ -7,6 +7,7 @@
 
 import { db } from './firebase-init.js';
 import { doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"; // <--- Importa signOut direttamente
 
 /**
  * Inizializza e carica l'HTML del portale genitori
@@ -30,12 +31,18 @@ export async function initParentPortal(userProfile) {
         const htmlContent = await response.text();
         portalWrapper.innerHTML = htmlContent;
 
-        // Tasto Logout
-        document.getElementById('btn-parent-logout').addEventListener('click', () => {
-            import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js").then(({ signOut }) => {
-                signOut(auth);
+        // Tasto Logout corretto
+        const logoutBtn = document.getElementById('btn-parent-logout');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                try {
+                    await signOut(auth);
+                    console.log("Logout effettuato con successo");
+                } catch (error) {
+                    console.error("Errore durante il logout:", error);
+                }
             });
-        });
+        }
 
         // Carica dati figlio e convocazioni
         await loadChildData(userProfile);
