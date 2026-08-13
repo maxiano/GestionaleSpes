@@ -1,4 +1,4 @@
-import { db, auth } from './firebase-init.js'; // Modifica il percorso se necessario in base alla tua configurazione
+mport { db, auth } from './firebase-config.js';
 import { 
     collection, 
     doc, 
@@ -13,9 +13,10 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-aut
 
 // 1. FUNZIONE PRINCIPALE DI AVVIO
 export async function initParentPortal(userProfile) {
-    console.log("Inizializzazione portale genitori per:", userProfile.name);
+    console.log("Inizializzazione portale genitori per:", userProfile?.name);
     
-    document.getElementById('app-dashboard').classList.add('hidden');
+    const dashboard = document.getElementById('app-dashboard');
+    if (dashboard) dashboard.classList.add('hidden');
     
     let portalWrapper = document.getElementById('dynamic-parent-container');
     if (!portalWrapper) {
@@ -48,19 +49,31 @@ export async function initParentPortal(userProfile) {
 
 // 2. CARICAMENTO DATI (Partite + Storico Presenze Allenamenti)
 async function loadChildData(userProfile) {
-    const childId = userProfile.childId; 
-    if (!childId) return;
+    const childId = userProfile?.childId; 
+    if (!childId) {
+        console.error("ID del bambino non trovato nel profilo utente.");
+        return;
+    }
 
     try {
         const childDocRef = doc(db, 'players', childId);
         const childDoc = await getDoc(childDocRef);
-        if (!childDoc.exists()) return;
+        if (!childDoc.exists()) {
+            console.error("Scheda giocatore non trovata su Firestore.");
+            return;
+        }
 
         const childData = childDoc.data();
         const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim();
         const childTeamId = childData.teamId || childData.team || childData.squadra || childData.group || '';
 
-        document.getElementById('parent-child-name').innerText = displayName;
+        const nameEl = document.getElementById('parent-child-name');
+        if (nameEl) nameEl.innerText = displayName;
+
+        // Verifica di sicurezza su db prima di chiamare collection()
+        if (!db) {
+            throw new Error("L'istanza del database Firestore (db) non è definita.");
+        }
 
         // Scarichiamo callups (partite) e attendances (allenamenti) in parallelo
         const [callupsSnap, attendancesSnap] = await Promise.all([
@@ -100,8 +113,8 @@ async function loadChildData(userProfile) {
         // B. Storico Allenamenti del ragazzo (dalla collezione attendances)
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
-            
             const recordList = data.record || data.records || [];
+            
             if (Array.isArray(recordList)) {
                 const myRecord = recordList.find(r => r.playerId === childId);
                 if (myRecord) {
@@ -118,7 +131,7 @@ async function loadChildData(userProfile) {
 
         // Ordinamento cronologico
         matchesList.sort((a, b) => (new Date(a.date || 0)).getTime() - (new Date(b.date || 0)).getTime());
-        trainingsHistory.sort((a, b) => (new Date(b.date || 0)).getTime() - (new Date(a.date || 0)).getTime()); // Dal più recente
+        trainingsHistory.sort((a, b) => (new Date(b.date || 0)).getTime() - (new Date(a.date || 0)).getTime());
 
         renderPortalUI(matchesList, trainingsHistory, childId, childTeamId || 'Assegnata', displayName);
     } catch (error) {
@@ -131,7 +144,6 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
     const container = document.getElementById('parent-content-area');
     if (!container) return;
 
-    // HTML Partite
     let matchesHTML = '';
     if (matchesList.length === 0) {
         matchesHTML = `<p class="text-xs text-slate-400 italic py-2">Nessuna convocazione attiva.</p>`;
@@ -144,7 +156,6 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                 ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Assenza Comunicata ❌</span>`
                 : `<span id="status-badge-${ev.id}" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">In attesa di risposta ⏳</span>`;
 
-            const confirmVal = 'confirmed';
             matchesHTML += `
                 <div class="bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 mb-2.5 transition">
                     <div class="flex flex-col gap-1">
@@ -157,7 +168,7 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                         <div class="mt-1">${statusBadge}</div>
                     </div>
                     <div class="flex gap-2 mt-2.5">
-                        <button onclick="window.respondEvent('callups', '${ev.id}', '${childId}', '${confirmVal}')" class="flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
+                        <button onclick="window.respondEvent('callups', '${ev.id}', '${childId}', 'confirmed')" class="flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
                         <button onclick="window.respondEvent('callups', '${ev.id}', '${childId}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-1.5 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Assente ❌</button>
                     </div>
                 </div>
@@ -165,7 +176,6 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
         });
     }
 
-    // HTML Storico Allenamenti gestiti dal genitore
     let historyHTML = '';
     if (trainingsHistory.length === 0) {
         historyHTML = `<p class="text-xs text-slate-400 italic py-1">Nessuna preferenza inviata di recente.</p>`;
@@ -188,13 +198,11 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
 
     container.innerHTML = `
         <div class="space-y-4">
-            <!-- HEADER SQUADRA -->
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                 <span class="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full">Squadra: ${teamName}</span>
                 <span class="text-[11px] text-slate-400 font-medium">Portale Famiglia</span>
             </div>
 
-            <!-- BOX PARTITE -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                 <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
                     <span class="text-base">⚽</span>
@@ -203,7 +211,6 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                 <div class="flex flex-col">${matchesHTML}</div>
             </div>
 
-            <!-- BOX AUTONOMIA ALLENAMENTI (TRAMITE DATEPICKER) -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                 <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
                     <span class="text-base">🏃‍♂️</span>
@@ -257,7 +264,7 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO CON DATA SCELTA DAL FAMILIARE
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     const dateInput = document.getElementById('custom-training-date');
     const selectedDate = dateInput ? dateInput.value : '';
