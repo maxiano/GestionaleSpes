@@ -166,7 +166,7 @@
                 document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach";
 
                 document.getElementById('btn-tab-staff').classList.add('hidden');
-                document.getElementById('').classList.add('hidden');
+                document.getElementById('nav-btn-staff').classList.add('hidden');
 
 				// --- AGGIUNGI QUI IL NASCONDI BACKUP PER I COACH ---
                 const backupBtn = document.getElementById('nav-btn-backup');
@@ -231,6 +231,9 @@
                 document.getElementById('btn-logout').classList.add('hidden');
                 document.getElementById('nav-btn-staff').classList.add('hidden');
                 document.getElementById('btn-tab-staff').classList.add('hidden');
+				// --- AGGIUNGI QUESTO PER NASCONDERE IL BACKUP AI COACH ---
+            	const backupBtn = document.getElementById('nav-btn-backup');
+            	if (backupBtn) backupBtn.classList.add('hidden');
                 document.getElementById('section-login').classList.remove('hidden');
                 document.getElementById('app-dashboard').classList.add('hidden');
             }
