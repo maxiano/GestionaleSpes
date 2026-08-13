@@ -280,12 +280,11 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (CON CONTROLLI DI SICUREZZA)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (ISPEZIONE STRUTTURA)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     console.log("🚀 submitCustomTraining avviata", { childId, teamName, childName, status });
 
     if (!db) {
-        console.error("❌ ERRORE CRITICO: 'db' non è definito.");
         alert("Errore: Connessione al database non disponibile.");
         return;
     }
@@ -304,7 +303,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         const dateIt = `${day}/${month}/${year}`;
         const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`;
 
-        console.log("🔍 Ricerca documenti in attendances...");
         const querySnapshot = await getDocs(collection(db, 'attendances'));
         
         let targetDoc = null;
@@ -320,23 +318,11 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         });
 
         let docRef;
-        let recordList = [];
-        let fieldNameUsed = 'records';
-
         if (targetDoc) {
-            console.log("✅ Trovato documento esistente ID:", targetDoc.id);
             docRef = doc(db, 'attendances', targetDoc.id);
-            const data = targetDoc.data();
-            
-            if (Array.isArray(data.records)) {
-                fieldNameUsed = 'records';
-                recordList = [...data.records];
-            } else if (Array.isArray(data.record)) {
-                fieldNameUsed = 'record';
-                recordList = [...data.record];
-            }
+            // STAMPIAMO I DATI ESATTI PRESENTI SUL DB PER CAPIRE LA STRUTTURA
+            console.log("📄 STRUTTURA ESISTENTE NEL DB:", targetDoc.id, targetDoc.data());
         } else {
-            console.log("⚠️ Documento non trovato. Creo un nuovo documento per la data:", dateIt);
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
                 date: dateIt,
@@ -344,33 +330,27 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
                 notes: 'Seduta scelta da portale famiglia',
                 records: []
             });
-            fieldNameUsed = 'records';
-            recordList = [];
+            console.log("⚠️ Creato nuovo documento.");
         }
 
-        const cleanList = recordList.filter(r => String(r.playerId || r.id) !== String(childId));
-
-        cleanList.push({
-            playerId: String(childId),
-            name: childName,
-            status: status
+        // Effettuiamo un salvataggio standard con campo 'records'
+        await updateDoc(docRef, {
+            records: [{
+                playerId: String(childId),
+                name: childName,
+                status: status
+            }]
         });
 
-        const updatePayload = {};
-        updatePayload[fieldNameUsed] = cleanList;
-
-        console.log("💾 Eseguisco updateDoc su Firestore...", updatePayload);
-        await updateDoc(docRef, updatePayload);
-        console.log("🎉 Salvataggio su Firestore completato con successo!");
-
+        console.log("🎉 Salvataggio forzato completato!");
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
         
         if (currentUserProfile) {
             await loadChildData(currentUserProfile);
         }
 
-    } catch (err) {
-        console.error("❌ ERRORE DURANTE IL SALVATAGGIO SU FIRESTORE:", err);
-        alert("Impossibile salvare: controlla la console per i dettagli sull'errore.");
+    }ationale (err) {
+        console.error("❌ ERRORE DURANTE IL SALVATAGGIO:", err);
+        alert("Impossibile salvare: controlla la console.");
     }
 };
