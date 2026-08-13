@@ -75,7 +75,7 @@ async function loadChildData(userProfile) {
 
         const childData = childDoc.data();
         const displayName = childData.lastName ? `${childData.lastName} ${childData.firstName}` : (childData.name || `${childData.cognome || ''} ${childData.nome || ''}`.trim());
-        const teamName = childData.team || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
+        const teamName = childData.teamId || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
 
         document.getElementById('parent-child-name').innerText = displayName;
 
