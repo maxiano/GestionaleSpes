@@ -280,7 +280,7 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (ISPEZIONE STRUTTURA)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (RICERCA DATA FLESSIBILE)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     console.log("🚀 submitCustomTraining avviata", { childId, teamName, childName, status });
 
@@ -290,7 +290,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 
     const dateInput = document.getElementById('custom-training-date');
-    const selectedDate = dateInput ? dateInput.value : '';
+    const selectedDate = dateInput ? dateInput.value : ''; // Formato input HTML: AAAA-MM-GG
 
     if (!selectedDate) {
         alert("Seleziona una data valida per l'allenamento.");
@@ -299,9 +299,9 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
     try {
         const [year, month, day] = selectedDate.split('-');
-        const dateIso = selectedDate;
-        const dateIt = `${day}/${month}/${year}`;
-        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`;
+        const dateIso = selectedDate;                             // 2026-08-13
+        const dateIt = `${day}/${month}/${year}`;                 // 13/08/2026
+        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
 
         const querySnapshot = await getDocs(collection(db, 'attendances'));
         
@@ -310,37 +310,61 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             const data = docSnap.data();
             const dbDate = String(data.date || '').trim();
             const dbTeam = String(data.teamId || data.team || '').trim();
+            
+            // Controlliamo se la data coincide (in qualsiasi formato) e se la squadra corrisponde
+            const matchDate = (dbDate === dateIso || dbDate === dateIt || dbDate === dateItAlt);
             const matchTeam = !dbTeam || !teamName || dbTeam.toLowerCase() === teamName.toLowerCase();
 
-            if ((dbDate === dateIso || dbDate === dateIt || dbDate === dateItAlt) && matchTeam) {
+            if (matchDate && matchTeam) {
                 targetDoc = docSnap;
             }
         });
 
         let docRef;
+        let recordList = [];
+        let fieldNameUsed = 'records';
+
         if (targetDoc) {
             docRef = doc(db, 'attendances', targetDoc.id);
-            console.log("📄 STRUTTURA ESISTENTE NEL DB:", targetDoc.id, targetDoc.data());
+            const data = targetDoc.data();
+            console.log("✅ Trovato documento esistente ID:", targetDoc.id, data);
+            
+            if (Array.isArray(data.records)) {
+                fieldNameUsed = 'records';
+                recordList = [...data.records];
+            } else if (Array.isArray(data.record)) {
+                fieldNameUsed = 'record';
+                recordList = [...data.record];
+            }
         } else {
+            console.log("⚠️ Nessun documento trovato per la data. Ne creo uno nuovo.");
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
-                date: dateIt,
+                date: dateIt, // Salviamo nel formato standard italiano coerente col gestionale
                 teamId: teamName,
                 notes: 'Seduta scelta da portale famiglia',
                 records: []
             });
-            console.log("⚠️ Creato nuovo documento.");
+            fieldNameUsed = 'records';
+            recordList = [];
         }
 
-        await updateDoc(docRef, {
-            records: [{
-                playerId: String(childId),
-                name: childName,
-                status: status
-            }]
+        // Rimuoviamo eventuali vecchi record dello stesso giocatore per evitare duplicati
+        const cleanList = recordList.filter(r => String(r.playerId || r.id) !== String(childId));
+
+        // Aggiungiamo il nuovo stato aggiornato
+        cleanList.push({
+            playerId: String(childId),
+            name: childName,
+            status: status
         });
 
-        console.log("🎉 Salvataggio forzato completato!");
+        const updatePayload = {};
+        updatePayload[fieldNameUsed] = cleanList;
+
+        await updateDoc(docRef, updatePayload);
+
+        console.log("🎉 Salvataggio completato con successo!");
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
         
         if (currentUserProfile) {
