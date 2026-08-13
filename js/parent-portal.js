@@ -60,10 +60,10 @@ async function loadChildData(userProfile) {
 
         document.getElementById('parent-child-name').innerText = displayName;
 
-        // Scarichiamo entrambe le collezioni (partite e allenamenti) contemporaneamente
-        const [callupsSnap, trainingsSnap] = await Promise.all([
+        // Scarichiamo callups e attendances in parallelo
+        const [callupsSnap, attendancesSnap] = await Promise.all([
             getDocs(collection(db, 'callups')),
-            getDocs(collection(db, 'trainings'))
+            getDocs(collection(db, 'attendances'))
         ]);
 
         let unifiedEvents = [];
@@ -94,19 +94,32 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // B. Elaborazione Allenamenti (Trainings)
-        trainingsSnap.forEach((docSnap) => {
+        // B. Elaborazione Allenamenti (Attendances)
+        attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
-            const trainingTeamId = data.teamId || data.team || '';
-            const responses = data.responses || {};
+            const trainingTeamId = data.teamId || data.team || data.squadra || '';
+            
+            // Convertiamo la struttura dei record in una mappa 'responses' standard per uniformità
+            let responses = data.responses || {};
+            const records = data.records || [];
+            if (Array.isArray(records)) {
+                records.forEach(r => {
+                    if (r.playerId) {
+                        responses[r.playerId] = r.status;
+                    }
+                });
+            }
             
             const hasResponded = responses[childId] !== undefined;
-            const isTeamMatch = trainingTeamId && childTeamId && String(trainingTeamId).toLowerCase() === String(childTeamId).toLowerCase();
+            const isTeamMatch = trainingTeamId && childTeamId && 
+                (String(trainingTeamId).toLowerCase().trim() === String(childTeamId).toLowerCase().trim() ||
+                 String(childTeamId).includes(String(trainingTeamId)) ||
+                 String(trainingTeamId).includes(String(childTeamId)));
 
-            if (hasResponded || isTeamMatch) {
+            if (isTeamMatch || hasResponded) {
                 unifiedEvents.push({
                     id: docSnap.id,
-                    collection: 'trainings',
+                    collection: 'attendances',
                     type: 'training',
                     title: `Allenamento (${data.notes || 'Seduta regolare'})`,
                     date: data.date || 'Da definire',
@@ -118,7 +131,7 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // Ordinamento cronologico unificato (dalla data più vicina alla più lontana)
+        // Ordinamento cronologico unificato
         unifiedEvents.sort((a, b) => {
             const timeA = (a.date && a.date !== 'da definire') ? new Date(a.date).getTime() : 0;
             const timeB = (b.date && b.date !== 'da definire') ? new Date(b.date).getTime() : 0;
@@ -151,19 +164,16 @@ function renderPortalUI(eventsList, childId, teamName) {
     eventsList.forEach((ev) => {
         const currentResponse = ev.responses?.[childId] || null;
         
-        // Badge di stato dinamico
         let statusBadge = currentResponse === 'confirmed' || currentResponse === 'present'
             ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Stato: Presenza Confermata ✅</span>`
             : currentResponse === 'absent'
             ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>`
             : `<span id="status-badge-${ev.id}" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Stato: In attesa di risposta ⏳</span>`;
 
-        // Distintivo visivo se è Partita o Allenamento
         let badgeType = ev.type === 'match' 
             ? '<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">⚽ PARTITA</span>'
             : '<span class="bg-sky-50 text-sky-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-sky-100">🏃‍♂️ ALLENAMENTO</span>';
 
-        // Per gli allenamenti usiamo lo stato 'present', per le partite 'confirmed'
         const confirmVal = ev.type === 'match' ? 'confirmed' : 'present';
 
         eventsHTML += `
@@ -201,18 +211,31 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     const statusBadge = document.getElementById(`status-badge-${eventId}`);
 
     try {
-        // Gestione standard basata sulla mappa 'responses' (usata sia per callups che per trainings)
         const docRef = doc(db, collectionName, eventId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            let responses = docSnap.data().responses || {};
-            responses[childId] = status; 
+            if (collectionName === 'attendances') {
+                // Gestione specifica basata sull'array 'records' per attendances
+                let records = docSnap.data().records || [];
+                const index = records.findIndex(r => r.playerId === childId);
+                
+                if (index > -1) {
+                    records[index].status = status;
+                } else {
+                    records.push({ playerId: childId, status: status });
+                }
 
-            await updateDoc(docRef, { responses: responses });
+                await updateDoc(docRef, { records: records });
+            } else {
+                // Gestione standard basata su mappa 'responses' per callups
+                let responses = docSnap.data().responses || {};
+                responses[childId] = status; 
+
+                await updateDoc(docRef, { responses: responses });
+            }
         }
 
-        // Aggiornamento visivo immediato del badge di stato nella pagina
         if (statusBadge) {
             if (status === 'confirmed' || status === 'present') {
                 statusBadge.className = "text-xs font-bold text-emerald-650 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200";
