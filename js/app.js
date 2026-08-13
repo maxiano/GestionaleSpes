@@ -39,6 +39,8 @@
             serverTimestamp
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+		import { initParentPortal } from './parent-portal.js';
+
 
 		// GESTIONE MODALE CAMBIO PASSWORD PERSONALE
         const modalPassword = document.getElementById('modal-change-password');
@@ -239,12 +241,11 @@
 		        if (currentUserProfile.role === 'parent') {
 		            document.getElementById('section-login').classList.add('hidden');
 		            document.getElementById('app-dashboard').classList.add('hidden');
-		            
-		            // Carica e avvia il portale genitori in modo dinamico
-		            import('./parent-portal.js').then(module => {
-		                module.initParentPortal(currentUserProfile);
-		            });
-		            return; // Interrompe il flusso standard per evitare di caricare elementi da mister
+
+    
+				    // Chiama direttamente la funzione importata in alto
+				    initParentPortal(currentUserProfile);
+				    return; 
 		        }
 		
 		        // --- FLUSSO STANDARD (Coach / Admin) ---
