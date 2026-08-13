@@ -1044,7 +1044,7 @@
             }
         });
 
-       async function loadCallups() {
+   async function loadCallups() {
             const container = document.getElementById('callups-list-container');
             if (!container || !activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') return;
 
@@ -1068,21 +1068,25 @@
                     const callupResponses = data.responses || {};
                     const invitedPlayers = data.players || [];
 
-                    // Genera la lista dei convocati con i badge dello stato risposta
-                    let playersListHTML = '';
-                    const sortedPlayers = [...invitedPlayers].sort((a, b) => {
-                        const nameA = a.includes('|') ? a.split('|')[1] : a;
-                        const nameB = b.includes('|') ? b.split('|')[1] : b;
-                        return nameA.localeCompare(nameB);
+                    // Pulisce e normalizza la lista dei giocatori per estrarre ID e Nome in modo sicuro
+                    const parsedPlayers = invitedPlayers.map(p => {
+                        if (typeof p === 'string' && p.includes('|')) {
+                            const parts = p.split('|');
+                            return { id: parts[0], name: parts[1] };
+                        } else if (typeof p === 'string') {
+                            return { id: p, name: p };
+                        } else if (p && typeof p === 'object') {
+                            return { id: p.id || p.playerId, name: p.name || p.playerName || 'Giocatore' };
+                        }
+                        return { id: null, name: String(p) };
                     });
 
-                    sortedPlayers.forEach((p, index) => {
-                        const parts = p.includes('|') ? p.split('|') : [null, p];
-                        const playerId = parts[0];
-                        const cleanName = parts[1];
+                    // Ordina alfabeticamente per nome
+                    parsedPlayers.sort((a, b) => a.name.localeCompare(b.name));
 
-                        // Legge lo stato del genitore da Firebase
-                        const status = (playerId && callupResponses[playerId]) ? callupResponses[playerId] : 'pending';
+                    let playersListHTML = '';
+                    parsedPlayers.forEach((player, index) => {
+                        const status = (player.id && callupResponses[player.id]) ? callupResponses[player.id] : 'pending';
 
                         let statusBadge = '<span class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">In attesa ⏳</span>';
                         if (status === 'confirmed') {
@@ -1093,7 +1097,7 @@
 
                         playersListHTML += `
                             <div class="flex items-center justify-between py-1 px-2 bg-white rounded border border-slate-100 text-xs mb-1">
-                                <span class="text-slate-700">${index + 1}. ${cleanName}</span>
+                                <span class="text-slate-700">${index + 1}. ${player.name}</span>
                                 <div>${statusBadge}</div>
                             </div>
                         `;
@@ -1112,9 +1116,9 @@
                             </div>
 
                             <div class="bg-slate-100 p-2.5 rounded-lg border border-slate-200">
-                                <p class="font-bold text-slate-800 mb-2">👥 Stato Risposte Convocati (${invitedPlayers.length}):</p>
+                                <p class="font-bold text-slate-800 mb-2">📊 Stato Risposta (${parsedPlayers.length}):</p>
                                 <div class="flex flex-col max-h-40 overflow-y-auto pr-1">
-                                    ${playersListHTML || '<p class="text-gray-400">Nessun giocatore convocato.</p>'}
+                                    ${playersListHTML || '<p class="text-gray-400">Nessun giocatore inserito.</p>'}
                                 </div>
                             </div>
 
