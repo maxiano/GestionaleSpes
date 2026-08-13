@@ -94,42 +94,34 @@ async function loadChildData(userProfile) {
             }
         });
 
-    // B. Elaborazione Allenamenti (Attendances)
-            attendancesSnap.forEach((docSnap) => {
-                const data = docSnap.data();
-                const trainingTeamId = data.teamId || data.team || data.squadra || '';
-                
-                // Estrapoliamo lo stato dall'array 'record' (o 'records')
-                let responses = {};
-                const recordList = data.record || data.records || [];
-                if (Array.isArray(recordList)) {
-                    recordList.forEach(r => {
-                        if (r.playerId) {
-                            responses[r.playerId] = r.status;
-                        }
-                    });
-                }
-                
-                const hasResponded = responses[childId] !== undefined;
-                const isTeamMatch = !trainingTeamId || !childTeamId || 
-                    String(trainingTeamId).toLowerCase().trim() === String(childTeamId).toLowerCase().trim() ||
-                    String(childTeamId).toLowerCase().includes(String(trainingTeamId).toLowerCase()) ||
-                    String(trainingTeamId).toLowerCase().includes(String(childTeamId).toLowerCase());
-    
-                if (isTeamMatch || hasResponded) {
-                    unifiedEvents.push({
-                        id: docSnap.id,
-                        collection: 'attendances',
-                        type: 'training',
-                        title: `Allenamento (${data.notes || 'Seduta regolare'})`,
-                        date: data.date || 'Da definire',
-                        time: data.time || '',
-                        location: data.location || 'Da definire',
-                        subInfo: data.notes ? `Note: ${data.notes}` : 'Campo principale',
-                        responses: responses
-                    });
-                }
+    // B. Elaborazione Allenamenti (Attendances - Forzato)
+        attendancesSnap.forEach((docSnap) => {
+            const data = docSnap.data();
+            
+            // Mappiamo l'array 'record' o 'records'
+            let responses = {};
+            const recordList = data.record || data.records || [];
+            if (Array.isArray(recordList)) {
+                recordList.forEach(r => {
+                    if (r.playerId) {
+                        responses[r.playerId] = r.status;
+                    }
+                });
+            }
+
+            // Includiamo l'allenamento nella timeline senza filtri restrittivi sulla squadra
+            unifiedEvents.push({
+                id: docSnap.id,
+                collection: 'attendances',
+                type: 'training',
+                title: `Allenamento (${data.notes || 'Seduta regolare'})`,
+                date: data.date || 'Da definire',
+                time: data.time || '',
+                location: data.location || 'Da definire',
+                subInfo: data.notes ? `Note: ${data.notes}` : 'Campo principale',
+                responses: responses
             });
+        });
 
         // Ordinamento cronologico unificato
         unifiedEvents.sort((a, b) => {
