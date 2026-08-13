@@ -375,3 +375,12 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         alert("Impossibile salvare: controlla la console.");
     }
 };
+
+// COMANDO DI TEST RAPIDO PER VERIFICARE COSA LEGGE IL MISTER
+window.debugCheckAttendances = async function() {
+    const querySnapshot = await getDocs(collection(db, 'attendances'));
+    console.log("📊 --- ELENCO COMPLETO DOCUMENTI ATTENDANCES NEL DB ---");
+    querySnapshot.forEach(docSnap => {
+        console.log(`ID: ${docSnap.id}`, docSnap.data());
+    });
+};
