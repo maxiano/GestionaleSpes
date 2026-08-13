@@ -624,7 +624,7 @@
                 const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
                 container.innerHTML += `
                     <label class="flex items-center space-x-2 text-xs p-1 border rounded bg-gray-50 cursor-pointer">
-                        <input type="checkbox" name="callup_player" value="${displayName}" checked class="rounded text-black focus:ring-black">
+                        <input type="checkbox" name="callup_player" value="${player.id}|${displayName}" checked class="rounded text-black focus:ring-black">
                         <span>${displayName}</span>
                     </label>
                 `;
