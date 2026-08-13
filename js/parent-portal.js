@@ -67,7 +67,7 @@ async function loadChildData(userProfile) {
         if (childDoc.exists()) {
             const childData = childDoc.data();
             childName = childData.name || childData.nome || "Atleta";
-            teamName = childData.team || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
+            teamName = childData.teamId || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
         }
 
         // Mostra il nome del figlio nell'intestazione
