@@ -991,58 +991,59 @@
         });
 
         // CONVOCAZIONI E GESTIONE
-        document.getElementById('form-callup').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!activeTeamId) return alert("Seleziona prima una squadra!");
-
-            const opponent = document.getElementById('match-opponent').value.trim();
-            const location = document.getElementById('match-location').value.trim();
-            const matchDate = document.getElementById('match-date').value;
-            const matchTime = document.getElementById('match-time').value;
-            const gatheringTime = document.getElementById('gathering-time').value;
-
-            const selectedPlayers = [];
-            document.querySelectorAll('input[name="callup_player"]:checked').forEach(cb => selectedPlayers.push(cb.value));
-
-            if (selectedPlayers.length === 0) return alert("Seleziona almeno un giocatore!");
-
-            try {
-                const q = query(
-                    collection(db, 'callups'),
-                    where('teamId', '==', activeTeamId),
-                    where('date', '==', matchDate)
-                );
-                const snapshot = await getDocs(q);
-
-                let docToUpdateId = !snapshot.empty ? snapshot.docs[0].id : null;
-
-                const callupData = {
-                    teamId: activeTeamId,
-                    opponent: opponent,
-                    location: location,
-                    date: matchDate,
-                    matchTime: matchTime,
-                    gatheringTime: gatheringTime,
-                    players: selectedPlayers,
-                    updatedAt: serverTimestamp()
-                };
-
-                if (docToUpdateId) {
-                    await updateDoc(doc(db, 'callups', docToUpdateId), callupData);
-                    alert(`Convocazione aggiornata per il ${formatDateIT(matchDate)}!`);
-                } else {
-                    callupData.createdAt = serverTimestamp();
-                    await addDoc(collection(db, 'callups'), callupData);
-                    alert(`Convocazione creata!`);
-                }
-
-                document.getElementById('form-callup').reset();
-                renderCallupCheckboxes();
-                loadCallups();
-            } catch (err) {
-                alert("Errore salvataggio convocazione: " + err.message);
-            }
-        });
+		document.getElementById('form-callup').addEventListener('submit', async (e) => {
+		    e.preventDefault();
+		    if (!activeTeamId) return alert("Seleziona prima una squadra!");
+		
+		    const opponent = document.getElementById('match-opponent').value.trim();
+		    const location = document.getElementById('match-location').value.trim();
+		    const matchDate = document.getElementById('match-date').value;
+		    const matchTime = document.getElementById('match-time').value;
+		    const gatheringTime = document.getElementById('gathering-time').value;
+		
+		    const selectedPlayers = [];
+		    document.querySelectorAll('input[name="callup_player"]:checked').forEach(cb => selectedPlayers.push(cb.value));
+		
+		    if (selectedPlayers.length === 0) return alert("Seleziona almeno un giocatore!");
+		
+		    try {
+		        const callupData = {
+		            teamId: activeTeamId,
+		            opponent: opponent,
+		            location: location,
+		            date: matchDate,
+		            matchTime: matchTime,
+		            gatheringTime: gatheringTime,
+		            players: selectedPlayers,
+		            updatedAt: serverTimestamp()
+		        };
+		
+		        if (editingCallupId) {
+		            // === AGGIORNAMENTO (MODIFICA ESPLICITA) ===
+		            // Non tocchiamo 'responses' così non perdiamo le preferenze dei genitori
+		            await updateDoc(doc(db, 'callups', editingCallupId), callupData);
+		            alert(`Convocazione aggiornata con successo!`);
+		        } else {
+		            // === NUOVA CREAZIONE (MERCOLEDÌ) ===
+		            callupData.createdAt = serverTimestamp();
+		            callupData.responses = {}; // Inizializza le risposte vuote
+		            await addDoc(collection(db, 'callups'), callupData);
+		            alert(`Convocazione creata con successo!`);
+		        }
+		
+		        // Reset dello stato di modifica e del form
+		        editingCallupId = null;
+		        const submitBtn = document.querySelector('#form-callup button[type="submit"]');
+		        if (submitBtn) submitBtn.textContent = "Genera Convocazione";
+		
+		        document.getElementById('form-callup').reset();
+		        if (typeof renderCallupCheckboxes === 'function') renderCallupCheckboxes();
+		        loadCallups();
+		
+		    } catch (err) {
+		        alert("Errore salvataggio convocazione: " + err.message);
+		    }
+		});
 
   async function loadCallups() {
             const container = document.getElementById('callups-list-container');
@@ -1150,6 +1151,7 @@
                 container.querySelectorAll('.btn-delete-callup').forEach(b => {
                     b.addEventListener('click', (e) => deleteCallup(e.target.getAttribute('data-id')));
                 });
+
 
             } catch (err) {
                 container.innerHTML = `<p class="text-xs text-red-500">Errore: ${err.message}</p>`;
@@ -1896,6 +1898,24 @@
 		        alert("Errore nel backup: " + error.message);
 		    }
 		};
+
+	// 1. Invio invito iniziale (Mercoledì)
+	function sendInviteWhatsApp(id) {
+	    const callup = loadedCallupsList.find(c => c.id === id);
+	    if (!callup) return;
+	    const msg = `Ciao! È online la convocazione per la partita contro ${callup.opponent} del ${formatDateIT(callup.date)}. Entrate nel portale Spes Montesacro per gestire la presenza!`;
+	    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+	}
+	
+	// 2. Invio convocazione definitiva (Venerdì)
+	function sendFinalCallupWhatsApp(id) {
+	    const callup = loadedCallupsList.find(c => c.id === id);
+	    if (!callup) return;
+	    
+	    const msg = `🚨 CONVOCAZIONE DEFINITIVA - Spes Montesacro 🚨\n\nPartita: *${callup.opponent}*\nRitrovo: *${callup.gatheringTime}*\n\nLa lista è stata finalizzata. Controllate il portale per i dettagli definitivi!`;
+	    
+	    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+	}
 
 
 	if ('serviceWorker' in navigator) {
