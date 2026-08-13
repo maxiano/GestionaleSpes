@@ -18,10 +18,10 @@ let currentUserProfile = null;
 export async function initParentPortal(userProfile) {
     console.log("Inizializzazione portale genitori per:", userProfile?.name);
     currentUserProfile = userProfile; // Salviamo il profilo globale
-    
+     
     const dashboard = document.getElementById('app-dashboard');
     if (dashboard) dashboard.classList.add('hidden');
-    
+     
     let portalWrapper = document.getElementById('dynamic-parent-container');
     if (!portalWrapper) {
         portalWrapper = document.createElement('div');
@@ -32,7 +32,7 @@ export async function initParentPortal(userProfile) {
     try {
         const response = await fetch('parent-view.html');
         if (!response.ok) throw new Error("Impossibile caricare la vista genitori.");
-        
+         
         const htmlContent = await response.text();
         portalWrapper.innerHTML = htmlContent;
 
@@ -93,7 +93,7 @@ async function loadChildData(userProfile) {
             const callupTeamId = data.teamId || data.team || data.squadra || '';
             const invitedPlayers = data.players || [];
             const responses = data.responses || {};
-            
+             
             const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && (p === childId || p.startsWith(`${childId}|`)));
             const hasResponded = responses[childId] !== undefined;
             const isTeamMatch = callupTeamId && childTeamId && String(callupTeamId).toLowerCase() === String(childTeamId).toLowerCase();
@@ -117,7 +117,7 @@ async function loadChildData(userProfile) {
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const recordList = data.record || data.records || [];
-            
+             
             if (Array.isArray(recordList)) {
                 const myRecord = recordList.find(r => String(r.playerId || r.id) === String(childId));
                 if (myRecord) {
@@ -132,8 +132,36 @@ async function loadChildData(userProfile) {
             }
         });
 
-        matchesList.sort((a, b) => (new Date(a.date || 0)).getTime() - (new Date(b.date || 0)).getTime());
-        trainingsHistory.sort((a, b) => (new Date(b.date || 0)).getTime() - (new Date(a.date || 0)).getTime());
+        // Funzione di supporto per convertire qualsiasi formato data in un timestamp ordinabile
+        const parseDateToTimestamp = (dateStr) => {
+            if (!dateStr || dateStr === 'Da definire') return 0;
+            const str = String(dateStr).trim();
+            let year, month, day;
+
+            if (str.includes('-')) {
+                const parts = str.split('-');
+                if (parts.length === 3) {
+                    year = parseInt(parts[0], 10);
+                    month = parseInt(parts[1], 10) - 1;
+                    day = parseInt(parts[2], 10);
+                }
+            } else if (str.includes('/')) {
+                const parts = str.split('/');
+                if (parts.length === 3) {
+                    day = parseInt(parts[0], 10);
+                    month = parseInt(parts[1], 10) - 1;
+                    year = parseInt(parts[2], 10);
+                }
+            }
+
+            if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+                return new Date(year, month, day).getTime();
+            }
+            return new Date(str).getTime() || 0;
+        };
+
+        matchesList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
+        trainingsHistory.sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
 
         renderPortalUI(matchesList, trainingsHistory, childId, childTeamId || 'Assegnata', displayName);
     } catch (error) {
@@ -218,11 +246,11 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                     <span class="text-base">🏃‍♂️</span>
                     <h3 class="font-bold text-slate-800 text-sm">Comunica Presenza / Assenza Allenamento</h3>
                 </div>
-                
+                 
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
                     <label class="block text-xs font-bold text-slate-700">Seleziona la data dell'allenamento:</label>
                     <input type="date" id="custom-training-date" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-emerald-500">
-                    
+                     
                     <div class="flex gap-2 pt-1">
                         <button id="btn-submit-present" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
                         <button id="btn-submit-absent" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
@@ -299,18 +327,18 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
     try {
         const [year, month, day] = selectedDate.split('-');
-        const dateIso = selectedDate;                             // 2026-08-13
-        const dateIt = `${day}/${month}/${year}`;                 // 13/08/2026
+        const dateIso = selectedDate;                           // 2026-08-13
+        const dateIt = `${day}/${month}/${year}`;               // 13/08/2026
         const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
 
         const querySnapshot = await getDocs(collection(db, 'attendances'));
-        
+         
         let targetDoc = null;
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const dbDate = String(data.date || '').trim();
             const dbTeam = String(data.teamId || data.team || '').trim();
-            
+             
             const matchDate = (dbDate === dateIso || dbDate === dateIt || dbDate === dateItAlt);
             const matchTeam = !dbTeam || !teamName || dbTeam.toLowerCase() === teamName.toLowerCase();
 
@@ -326,8 +354,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
             console.log("✅ Trovato documento esistente ID:", targetDoc.id, data);
-            
-            // Preleviamo la lista esistente da whichever campo il mister stia usando
+             
             recordList = data.records || data.record || data.presenze || [];
         } else {
             console.log("⚠️ Nessun documento trovato per la data. Ne creo uno nuovo.");
@@ -342,22 +369,19 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             recordList = [];
         }
 
-        // Rimuoviamo eventuali vecchi record dello stesso giocatore per evitare duplicati
         const cleanList = recordList.filter(r => {
             const rId = String(r.playerId || r.id || '');
             return rId !== String(childId);
         });
 
-        // Aggiungiamo il record completo di tutti i possibili campi letti dai mister
         cleanList.push({
             id: String(childId),
             playerId: String(childId),
             name: childName,
             status: status,
-            present: status === 'present' // Alcuni registri leggono direttamente un booleano
+            present: status === 'present'
         });
 
-        // Scriviamo contemporaneamente sia 'records' che 'record' per massima compatibilità con il pannello allenatore
         await updateDoc(docRef, {
             records: cleanList,
             record: cleanList
@@ -365,7 +389,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
         console.log("🎉 Salvataggio sincronizzato con il registro mister completato!");
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
-        
+         
         if (currentUserProfile) {
             await loadChildData(currentUserProfile);
         }
@@ -376,7 +400,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 };
 
-// COMANDO DI TEST RAPIDO PER VERIFICARE COSA LEGGE IL MISTER
 window.debugCheckAttendances = async function() {
     const querySnapshot = await getDocs(collection(db, 'attendances'));
     console.log("📊 --- ELENCO COMPLETO DOCUMENTI ATTENDANCES NEL DB ---");
