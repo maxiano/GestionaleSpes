@@ -1,6 +1,6 @@
-/**
+**
  * @file parent-portal.js
- * @brief Gestione Portale Genitori - Gestionale Spes Montesacro
+ * @brief Gestione Portale Genitori Unificata (Partite e Allenamenti) - Spes Montesacro
  * @author Massimiliano Nanni
  * @copyright © 2026 Spes Montesacro. Tutti i diritti riservati.
  */
@@ -11,7 +11,7 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth
 
 // 1. FUNZIONE PRINCIPALE DI AVVIO
 export async function initParentPortal(userProfile) {
-    console.log("Inizializzazione portale genitori per:", userProfile.name);
+    console.log("Inizializzazione portale genitori unificato per:", userProfile.name);
     
     document.getElementById('app-dashboard').classList.add('hidden');
     
@@ -44,7 +44,7 @@ export async function initParentPortal(userProfile) {
     }
 }
 
-// 2. FUNZIONE DI CARICAMENTO DATI
+// 2. CARICAMENTO UNIFICATO DATI (Partite + Allenamenti in parallelo)
 async function loadChildData(userProfile) {
     const childId = userProfile.childId; 
     if (!childId) return;
@@ -56,93 +56,127 @@ async function loadChildData(userProfile) {
 
         const childData = childDoc.data();
         const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim();
-        
         const childTeamId = childData.teamId || childData.team || childData.squadra || childData.group || '';
 
         document.getElementById('parent-child-name').innerText = displayName;
 
-        const callupsRef = collection(db, 'callups');
-        const querySnapshot = await getDocs(callupsRef);
+        // Scarichiamo entrambe le collezioni (partite e allenamenti) contemporaneamente
+        const [callupsSnap, trainingsSnap] = await Promise.all([
+            getDocs(collection(db, 'callups')),
+            getDocs(collection(db, 'trainings'))
+        ]);
 
-        let userCallups = [];
+        let unifiedEvents = [];
 
-        querySnapshot.forEach((docSnap) => {
-            const callup = docSnap.data();
-            const callupTeamId = callup.teamId || callup.team || callup.squadra || '';
-            const invitedPlayers = callup.players || [];
-            const responses = callup.responses || {};
+        // A. Elaborazione Partite (Callups)
+        callupsSnap.forEach((docSnap) => {
+            const data = docSnap.data();
+            const callupTeamId = data.teamId || data.team || data.squadra || '';
+            const invitedPlayers = data.players || [];
+            const responses = data.responses || {};
             
             const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && (p === childId || p.startsWith(`${childId}|`)));
             const hasResponded = responses[childId] !== undefined;
-            
-            const isTeamMatch = callupTeamId && childTeamId && (
-                String(callupTeamId).toLowerCase() === String(childTeamId).toLowerCase() ||
-                String(childTeamId).includes(String(callupTeamId)) ||
-                String(callupTeamId).includes(String(childTeamId))
-            );
+            const isTeamMatch = callupTeamId && childTeamId && String(callupTeamId).toLowerCase() === String(childTeamId).toLowerCase();
 
             if (isExplicitlyInvited || hasResponded || isTeamMatch) {
-                userCallups.push({
+                unifiedEvents.push({
                     id: docSnap.id,
-                    ...callup
+                    collection: 'callups',
+                    type: 'match',
+                    title: `Partita vs ${data.opponent || 'Avversario'}`,
+                    date: data.date || 'Da definire',
+                    time: data.matchTime || '',
+                    location: data.location || 'Da definire',
+                    subInfo: `Ritrovo: ${data.gatheringTime || 'Da definire'}`,
+                    responses: responses
                 });
             }
         });
 
-        userCallups.sort((a, b) => {
+        // B. Elaborazione Allenamenti (Trainings)
+        trainingsSnap.forEach((docSnap) => {
+            const data = docSnap.data();
+            const trainingTeamId = data.teamId || data.team || '';
+            const responses = data.responses || {};
+            
+            const hasResponded = responses[childId] !== undefined;
+            const isTeamMatch = trainingTeamId && childTeamId && String(trainingTeamId).toLowerCase() === String(trainingTeamId).toLowerCase();
+
+            if (hasResponded || isTeamMatch) {
+                unifiedEvents.push({
+                    id: docSnap.id,
+                    collection: 'trainings',
+                    type: 'training',
+                    title: `Allenamento (${data.notes || 'Seduta regolare'})`,
+                    date: data.date || 'Da definire',
+                    time: data.time || '',
+                    location: data.location || 'Da definire',
+                    subInfo: data.notes ? `Note: ${data.notes}` : 'Campo principale',
+                    responses: responses
+                });
+            }
+        });
+
+        // Ordinamento cronologico unificato (dalla data più vicina alla più lontana)
+        unifiedEvents.sort((a, b) => {
             const timeA = (a.date && a.date !== 'da definire') ? new Date(a.date).getTime() : 0;
             const timeB = (b.date && b.date !== 'da definire') ? new Date(b.date).getTime() : 0;
             return timeA - timeB;
         });
 
-        renderPortalUI(userCallups, childId, childTeamId || 'Assegnata');
+        renderPortalUI(unifiedEvents, childId, childTeamId || 'Assegnata');
     } catch (error) {
-        console.error("Errore caricamento dati:", error);
+        console.error("Errore caricamento dati unificati:", error);
     }
 }
 
-// 3. FUNZIONE GRAFICA
-function renderPortalUI(callupsList, childId, teamName) {
+// 3. RENDER GRAFICO DELLA TIMELINE UNIFICATA
+function renderPortalUI(eventsList, childId, teamName) {
     const container = document.getElementById('parent-content-area');
     if (!container) return;
 
-    if (!callupsList || callupsList.length === 0) {
+    if (!eventsList || eventsList.length === 0) {
         container.innerHTML = `
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center">
                 <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full">Squadra: ${teamName}</span>
-                <p class="text-xs text-slate-500 mt-3">Nessuna partita programmata al momento.</p>
+                <p class="text-xs text-slate-500 mt-4">Nessun impegno programmato al momento.</p>
             </div>
         `;
         return;
     }
 
-    let callupsHTML = '';
+    let eventsHTML = '';
 
-    callupsList.forEach((callup) => {
-        const currentResponse = callup.responses?.[childId] || null;
+    eventsList.forEach((ev) => {
+        const currentResponse = ev.responses?.[childId] || null;
         
+        // Badge di stato dinamico
         let statusBadge = currentResponse === 'confirmed' 
-            ? `<span id="status-badge-${callup.id}" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Stato: Presenza Confermata ✅</span>`
+            ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Stato: Presenza Confermata ✅</span>`
             : currentResponse === 'absent'
-            ? `<span id="status-badge-${callup.id}" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>`
-            : `<span id="status-badge-${callup.id}" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Stato: In attesa di risposta ⏳</span>`;
+            ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>`
+            : `<span id="status-badge-${ev.id}" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Stato: In attesa di risposta ⏳</span>`;
 
-        const matchDate = callup.date ? callup.date : 'Da definire';
-        const matchTime = callup.matchTime ? callup.matchTime : '';
-        const matchLocation = callup.location ? callup.location : 'Da definire';
-        const gatheringTime = callup.gatheringTime ? callup.gatheringTime : 'Da definire';
+        // Distintivo visivo se è Partita o Allenamento
+        let badgeType = ev.type === 'match' 
+            ? '<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">⚽ PARTITA</span>'
+            : '<span class="bg-sky-50 text-sky-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-sky-100">🏃‍♂️ ALLENAMENTO</span>';
 
-        callupsHTML += `
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-3 last:mb-0">
+        eventsHTML += `
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-3 last:mb-0 transition hover:shadow-md">
                 <div class="flex flex-col gap-1.5">
-                    <span class="font-bold text-slate-800 text-sm">📅 Partita vs ${callup.opponent || 'Avversario'}</span>
-                    <span class="text-xs text-slate-600">Data: ${matchDate} ${matchTime ? '| ' + matchTime : ''}</span>
-                    <span class="text-xs text-slate-600">📍 Campo: ${matchLocation} | ⏰ Ritrovo: ${gatheringTime}</span>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-800 text-sm">${ev.title}</span>
+                        ${badgeType}
+                    </div>
+                    <span class="text-xs text-slate-600">📅 Data: ${ev.date} ${ev.time ? '| ⏰ ' + ev.time : ''}</span>
+                    <span class="text-xs text-slate-600">📍 Campo: ${ev.location} | ${ev.subInfo}</span>
                     <div class="mt-1">${statusBadge}</div>
                 </div>
                 <div class="flex gap-2 mt-3">
-                    <button onclick="window.respondCallup('${callup.id}', '${childId}', 'confirmed')" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs transition">Conferma ✅</button>
-                    <button onclick="window.respondCallup('${callup.id}', '${childId}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-xl text-xs transition border border-rose-200">Assente ❌</button>
+                    <button onclick="window.respondEvent('${ev.collection}', '${ev.id}', '${childId}', 'confirmed')" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
+                    <button onclick="window.respondEvent('${ev.collection}', '${ev.id}', '${childId}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-xl text-xs transition border border-rose-200 hover:bg-rose-100">Assente ❌</button>
                 </div>
             </div>
         `;
@@ -150,15 +184,18 @@ function renderPortalUI(callupsList, childId, teamName) {
 
     container.innerHTML = `
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full">Squadra: ${teamName}</span>
-            <div class="mt-3 flex flex-col">${callupsHTML}</div>
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full">Squadra: ${teamName}</span>
+                <span class="text-[11px] text-slate-400 font-medium">Prossimi Impegni</span>
+            </div>
+            <div class="flex flex-col">${eventsHTML}</div>
         </div>
     `;
 }
 
-// 4. RISPOSTA
-window.respondCallup = async function(callupId, childId, status) {
-    const badge = document.getElementById(`status-badge-${callupId}`);
+// 4. GESTIONE UNIFICATA DELLE RISPOSTE (Funziona sia per callups che trainings)
+window.respondEvent = async function(collectionName, eventId, childId, status) {
+    const badge = document.getElementById(`status-badge-${eventId}`);
     if (badge) {
         badge.className = status === 'confirmed' 
             ? "text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200"
@@ -166,5 +203,5 @@ window.respondCallup = async function(callupId, childId, status) {
         badge.innerText = status === 'confirmed' ? "Stato: Presenza Confermata ✅" : "Stato: Assenza Comunicata ❌";
     }
 
-    await updateDoc(doc(db, 'callups', callupId), { [`responses.${childId}`]: status });
+    await updateDoc(doc(db, collectionName, eventId), { [`responses.${childId}`]: status });
 };
