@@ -1,4 +1,4 @@
-**
+/**
  * @file parent-portal.js
  * @brief Gestione Portale Genitori Unificata (Partite e Allenamenti) - Spes Montesacro
  * @author Massimiliano Nanni
