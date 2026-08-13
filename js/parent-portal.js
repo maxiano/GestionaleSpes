@@ -281,12 +281,14 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
+
 // 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (SENZA RICARICARE LA PAGINA)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (CON DEBUG PASSO-PASSO)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     console.log("🚀 CLICCATO! submitCustomTraining avviata", { childId, teamName, childName, status });
 
     if (!db) {
+        console.error("❌ ERRORE: db è undefined!");
         alert("Errore di configurazione: Database Firebase non inizializzato.");
         return;
     }
@@ -300,18 +302,25 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 
     try {
+        console.log("1️⃣ Data selezionata dall'input:", selectedDate);
         const [year, month, day] = selectedDate.split('-');
         const dateIso = selectedDate;
         const dateIt = `${day}/${month}/${year}`;
         const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`;
 
+        console.log("2️⃣ Scarico la collezione attendances da Firestore...");
         const querySnapshot = await getDocs(collection(db, 'attendances'));
+        console.log(`3️⃣ Trovati ${querySnapshot.size} documenti totali in attendances.`);
         
         let targetDoc = null;
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const dbDate = String(data.date || '').trim();
-            if (dbDate === dateIso || dbDate === dateIt || dbDate === dateItAlt) {
+            // Verifichiamo se la data corrisponde E se appartiene alla stessa squadra (se teamId è presente)
+            const dbTeam = String(data.teamId || data.team || '').trim();
+            const matchTeam = !dbTeam || !teamName || dbTeam.toLowerCase() === teamName.toLowerCase();
+
+            if ((dbDate === dateIso || dbDate === dateIt || dbDate === dateItAlt) && matchTeam) {
                 targetDoc = docSnap;
             }
         });
@@ -321,6 +330,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         let fieldNameUsed = 'records';
 
         if (targetDoc) {
+            console.log("4️⃣ A) Trovato documento esistente corrispondente! ID:", targetDoc.id);
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
             
@@ -332,6 +342,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
                 recordList = [...data.record];
             }
         } else {
+            console.log("4️⃣ B) Nessun documento trovato per questa data/squadra. Ne creo uno nuovo.");
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
                 date: dateIt,
@@ -342,6 +353,8 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             fieldNameUsed = 'records';
             recordList = [];
         }
+
+        console.log("5️⃣ Lista record attuale prima dell'aggiornamento:", recordList);
 
         const cleanList = recordList.filter(r => String(r.playerId || r.id) !== String(childId));
 
@@ -354,15 +367,16 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         const updatePayload = {};
         updatePayload[fieldNameUsed] = cleanList;
 
+        console.log("6️⃣ Scrivo su Firestore con payload:", updatePayload);
         await updateDoc(docRef, updatePayload);
+        console.log("7️⃣ Scrittura completata con successo!");
 
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
         
-        // Invece di ricaricare la pagina, ricarichiamo silenziosamente i dati del figlio
-        await loadChildData({ childId: childId, name: childName });
+        await loadChildData({ childId: childId, name: childName, teamId: teamName });
 
     } catch (err) {
-        console.error("❌ Errore durante il salvataggio:", err);
-        alert("Errore durante il salvataggio. Controlla la console.");
+        console.error("❌ ERRORE CRITICO NELLA CATCH:", err);
+        alert("Errore durante il salvataggio. Controlla la console per i dettagli.");
     }
 };
