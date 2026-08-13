@@ -1,13 +1,15 @@
-/**
- * @file parent-portal.js
- * @brief Gestione Portale Genitori Unificata (Partite e Allenamenti) - Spes Montesacro
- * @author Massimiliano Nanni
- * @copyright © 2026 Spes Montesacro. Tutti i diritti riservati.
- */
-
-import { db, auth } from './firebase-init.js';
-import { doc, getDoc, collection, getDocs, updateDoc, addDoc, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { db, auth } from './firebase-config.js'; // Modifica il percorso se necessario in base alla tua configurazione
+import { 
+    collection, 
+    doc, 
+    getDoc, 
+    getDocs, 
+    setDoc, 
+    updateDoc, 
+    query, 
+    where 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // 1. FUNZIONE PRINCIPALE DI AVVIO
 export async function initParentPortal(userProfile) {
@@ -98,7 +100,6 @@ async function loadChildData(userProfile) {
         // B. Storico Allenamenti del ragazzo (dalla collezione attendances)
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
-            const trainingTeamId = data.teamId || data.team || data.squadra || '';
             
             const recordList = data.record || data.records || [];
             if (Array.isArray(recordList)) {
@@ -274,12 +275,10 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         let recordList = [];
 
         if (!querySnapshot.empty) {
-            // Se esiste già un documento per questa data, lo aggiorniamo
             const existingDoc = querySnapshot.docs[0];
             docRef = doc(db, 'attendances', existingDoc.id);
             recordList = existingDoc.data().record || existingDoc.data().records || [];
         } else {
-            // Altrimenti creiamo un nuovo documento in attendances per quella data
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
                 date: selectedDate,
@@ -289,7 +288,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             });
         }
 
-        // Aggiorniamo o aggiungiamo il record del ragazzo
         const index = recordList.findIndex(r => r.playerId === childId);
         if (index > -1) {
             recordList[index].status = status;
@@ -301,7 +299,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         await updateDoc(docRef, { record: recordList });
 
         alert(`Preferenza registrata con successo per il ${selectedDate}!`);
-        window.location.reload(); // Ricarica per aggiornare lo storico
+        window.location.reload();
 
     } catch (err) {
         console.error("Errore salvataggio allenamento personalizzato:", err);
