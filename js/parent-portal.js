@@ -320,7 +320,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         let docRef;
         if (targetDoc) {
             docRef = doc(db, 'attendances', targetDoc.id);
-            // STAMPIAMO I DATI ESATTI PRESENTI SUL DB PER CAPIRE LA STRUTTURA
             console.log("📄 STRUTTURA ESISTENTE NEL DB:", targetDoc.id, targetDoc.data());
         } else {
             docRef = doc(collection(db, 'attendances'));
@@ -333,7 +332,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             console.log("⚠️ Creato nuovo documento.");
         }
 
-        // Effettuiamo un salvataggio standard con campo 'records'
         await updateDoc(docRef, {
             records: [{
                 playerId: String(childId),
@@ -349,7 +347,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             await loadChildData(currentUserProfile);
         }
 
-    }ationale (err) {
+    } catch (err) {
         console.error("❌ ERRORE DURANTE IL SALVATAGGIO:", err);
         alert("Impossibile salvare: controlla la console.");
     }
