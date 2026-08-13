@@ -45,7 +45,7 @@ export async function initParentPortal(userProfile) {
     }
 }
 
-// 2. FUNZIONE DI CARICAMENTO DATI (Raccoglie tutte le convocazioni in modo sicuro)
+// 2. FUNZIONE DI CARICAMENTO DATI (Raccoglie tutte le convocazioni in modo sicuro e persistente)
 async function loadChildData(userProfile) {
     const childId = userProfile.childId; 
     if (!childId) return;
@@ -73,12 +73,23 @@ async function loadChildData(userProfile) {
             const callup = docSnap.data();
             const callupTeamId = callup.teamId || callup.team || callup.squadra || '';
             const invitedPlayers = callup.players || [];
+            const responses = callup.responses || {};
             
-            // Verifica se il ragazzo è invitato esplicitamente o fa parte della squadra
+            // 1. Il ragazzo è nella lista dei convocati attuale
             const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && (p === childId || p.startsWith(`${childId}|`)));
-            const isTeamMatch = callupTeamId && childTeamId && String(callupTeamId).toLowerCase() === String(childTeamId).toLowerCase();
+            
+            // 2. Il genitore ha già risposto in passato (quindi la partita non deve sparire anche se il Mister modifica la lista)
+            const hasResponded = responses[childId] !== undefined;
+            
+            // 3. Corrispondenza di squadra (flessibile)
+            const isTeamMatch = callupTeamId && childTeamId && (
+                String(callupTeamId).toLowerCase() === String(childTeamId).toLowerCase() ||
+                String(childTeamId).includes(String(callupTeamId)) ||
+                String(callupTeamId).includes(String(childTeamId))
+            );
 
-            if (isTeamMatch || isExplicitlyInvited) {
+            // Se BASTA UNA di queste condizioni, la partita viene mostrata al genitore
+            if (isExplicitlyInvited || hasResponded || isTeamMatch) {
                 userCallups.push({
                     id: docSnap.id,
                     ...callup
@@ -86,7 +97,7 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // Ordinamento sicuro: gestisce senza errori date vuote o "da definire"
+        // Ordinamento sicuro delle date
         userCallups.sort((a, b) => {
             const timeA = (a.date && a.date !== 'da definire') ? new Date(a.date).getTime() : 0;
             const timeB = (b.date && b.date !== 'da definire') ? new Date(b.date).getTime() : 0;
