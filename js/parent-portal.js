@@ -207,17 +207,28 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
         });
     }
 
-    // --- Elaborazione Storico Allenamenti (Raggruppato) ---
+    // --- Elaborazione Storico Allenamenti (Raggruppato con mesi in italiano) ---
     let historyHTML = '';
     if (trainingsHistory.length === 0) {
         historyHTML = `<p class="text-xs text-slate-400 italic py-1">Nessun allenamento comunicato di recente.</p>`;
     } else {
-        // Raggruppamento dinamico per Mese/Anno
+        const mesi = [
+            "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+            "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+        ];
+
+        // Raggruppamento dinamico per Mese Anno
         const grouped = trainingsHistory.reduce((acc, t) => {
             const parts = t.date.split('/');
-            const monthYear = parts.length === 3 ? `${parts[1]}/${parts[2]}` : 'Altro';
-            if (!acc[monthYear]) acc[monthYear] = [];
-            acc[monthYear].push(t);
+            if (parts.length === 3) {
+                const meseIndex = parseInt(parts[1], 10) - 1;
+                const nomeMese = mesi[meseIndex] || "Altro";
+                const anno = parts[2];
+                const key = `${nomeMese} ${anno}`;
+                
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(t);
+            }
             return acc;
         }, {});
 
