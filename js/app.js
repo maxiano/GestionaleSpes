@@ -1125,8 +1125,8 @@
 
                             <div class="flex flex-wrap justify-end gap-2 pt-1">
                                 <button data-id="${data.id}" class="btn-share-invite bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">📲 Invito</button>
+								<button data-id="${data.id}" class="btn-edit-callup bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">✏️ Modifica</button>
                                 <button data-id="${data.id}" class="btn-final-callup bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">📢 Definitiva</button>
-                                <button data-id="${data.id}" class="btn-edit-callup bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">✏️ Modifica</button>
                                 <button data-id="${data.id}" class="btn-print-callup bg-black hover:bg-gray-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">🖨️ Stampa</button>
                                 <button data-id="${data.id}" class="btn-delete-callup bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">🗑️ Elimina</button>
                             </div>
