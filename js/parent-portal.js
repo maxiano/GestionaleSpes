@@ -95,10 +95,18 @@ async function loadChildData(userProfile) {
         const nameEl = document.getElementById('parent-child-name');
         if (nameEl) nameEl.innerText = displayName;
 
-        const [callupsSnap, attendancesSnap] = await Promise.all([
+       /* const [callupsSnap, attendancesSnap] = await Promise.all([
             getDocs(collection(db, 'callups')),
             getDocs(collection(db, 'attendances'))
-        ]);
+        ]);*/
+
+        console.log("Tentativo recupero callups...");
+        const callupsSnap = await getDocs(collection(db, 'callups'));
+        console.log("Callups recuperate con successo!");
+
+        console.log("Tentativo recupero attendances...");
+        const attendancesSnap = await getDocs(collection(db, 'attendances'));
+        console.log("Attendances recuperate con successo!");
 
         let matchesList = [];
         let trainingsHistory = [];
