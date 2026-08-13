@@ -14,7 +14,7 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth
 // Variabile globale per mantenere in memoria il profilo utente completo
 let currentUserProfile = null;
 
-// 1. FUNZIONE PRINCIPALE DI AVVIO
+// 1. FUNZIONE PRINCIPALE DI AVVIO (VERSIONE BLINDATA)
 export async function initParentPortal(userProfile) {
     console.log("Inizializzazione portale genitori per:", userProfile?.name);
     currentUserProfile = userProfile; // Salviamo il profilo globale
@@ -22,11 +22,24 @@ export async function initParentPortal(userProfile) {
     const dashboard = document.getElementById('app-dashboard');
     if (dashboard) dashboard.classList.add('hidden');
      
-    // Cerchiamo il contenitore già esistente in index.html
+    // Cerca il contenitore, se non c'è lo crea automaticamente al volo in modo sicuro
     let portalWrapper = document.getElementById('dynamic-parent-container');
     if (!portalWrapper) {
-        console.error("Errore: Elemento #dynamic-parent-container non trovato in index.html");
-        return;
+        portalWrapper = document.createElement('div');
+        portalWrapper.id = 'dynamic-parent-container';
+        
+        // Lo mette dentro <main> se esiste, altrimenti prima del footer
+        const mainContainer = document.querySelector('main');
+        if (mainContainer) {
+            mainContainer.appendChild(portalWrapper);
+        } else {
+            const footer = document.querySelector('footer');
+            if (footer) {
+                footer.parentNode.insertBefore(portalWrapper, footer);
+            } else {
+                document.body.appendChild(portalWrapper);
+            }
+        }
     }
 
     try {
