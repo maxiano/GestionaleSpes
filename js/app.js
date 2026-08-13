@@ -151,6 +151,11 @@
                 document.getElementById('btn-tab-staff').classList.remove('hidden');
                 document.getElementById('nav-btn-staff').classList.remove('hidden');
 
+				// --- AGGIUNGI QUI IL MOSTRA BACKUP PER L'ADMIN ---
+                const backupBtn = document.getElementById('nav-btn-backup');
+                if (backupBtn) backupBtn.classList.remove('hidden');
+                // ------------------------------------------------
+
                 teamSelect.innerHTML = adminTeamOptionsHTML;
                 teamSelect.value = 'ALL';
                 activeTeamId = null;
@@ -161,7 +166,12 @@
                 document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach";
 
                 document.getElementById('btn-tab-staff').classList.add('hidden');
-                document.getElementById('nav-btn-staff').classList.add('hidden');
+                document.getElementById('').classList.add('hidden');
+
+				// --- AGGIUNGI QUI IL NASCONDI BACKUP PER I COACH ---
+                const backupBtn = document.getElementById('nav-btn-backup');
+                if (backupBtn) backupBtn.classList.add('hidden');
+                // -------------------------------------------------
 
                 const coachTeams = currentUserProfile.teams || [];
 
@@ -245,6 +255,14 @@
                 document.getElementById('navigation-tabs').classList.remove('hidden');
                 document.getElementById('main-content-area').classList.remove('hidden');
                 switchTab('tab-staff');
+            }
+        });
+
+		// EVENTO PULSANTE BACKUP NELLA NAV BAR SUPERIORE
+        document.getElementById('nav-btn-backup').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentUserProfile && currentUserProfile.role === 'admin') {
+                downloadDatabaseBackup();
             }
         });
 
@@ -1728,6 +1746,41 @@
 		        }
 		    });
 		});
+		// 3. Esegue il Backup dei dati
+		window.downloadDatabaseBackup = async function() {
+		    const db = firebase.firestore();
+		    const backupData = {};
+		    
+		    // Inserisci qui l'elenco di tutte le collection che vuoi includere nel backup
+		    const collectionsToBackup = ['tournaments', 'attendances', 'callups', 'players', 'users']; 
+		
+		    try {
+		        console.log("Inizio backup del database...");
+		        
+		        for (const colName of collectionsToBackup) {
+		            const snapshot = await db.collection(colName).get();
+		            backupData[colName] = snapshot.docs.map(doc => ({
+		                id: doc.id,
+		                ...doc.data()
+		            }));
+		        }
+		
+		        // Creazione e download automatico del file JSON
+		        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+		        const downloadAnchorNode = document.createElement('a');
+		        downloadAnchorNode.setAttribute("href", dataStr);
+		        downloadAnchorNode.setAttribute("download", `Spes_Backup_${new Date().toISOString().slice(0,10)}.json`);
+		        document.body.appendChild(downloadAnchorNode);
+		        downloadAnchorNode.click();
+		        downloadAnchorNode.remove();
+		        
+		        console.log("Backup completato con successo!");
+		        alert("Backup del database completato con successo!");
+		    } catch (error) {
+		        console.error("Errore durante il backup:", error);
+		        alert("Errore nel backup: " + error.message);
+		    }
+		};
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
