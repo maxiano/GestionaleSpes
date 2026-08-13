@@ -1044,7 +1044,7 @@
             }
         });
 
-        async function loadCallups() {
+       async function loadCallups() {
             const container = document.getElementById('callups-list-container');
             if (!container || !activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') return;
 
@@ -1065,13 +1065,42 @@
                 container.innerHTML = '';
 
                 docs.forEach(data => {
-					// 1. Pulisci e unisci la lista dei giocatori
-					const playersList = (data.players || [])
-					    .map(p => (p.includes('|') ? p.split('|')[1] : p))
-					    .join(', ');
-					
+                    const callupResponses = data.responses || {};
+                    const invitedPlayers = data.players || [];
+
+                    // Genera la lista dei convocati con i badge dello stato risposta
+                    let playersListHTML = '';
+                    const sortedPlayers = [...invitedPlayers].sort((a, b) => {
+                        const nameA = a.includes('|') ? a.split('|')[1] : a;
+                        const nameB = b.includes('|') ? b.split('|')[1] : b;
+                        return nameA.localeCompare(nameB);
+                    });
+
+                    sortedPlayers.forEach((p, index) => {
+                        const parts = p.includes('|') ? p.split('|') : [null, p];
+                        const playerId = parts[0];
+                        const cleanName = parts[1];
+
+                        // Legge lo stato del genitore da Firebase
+                        const status = (playerId && callupResponses[playerId]) ? callupResponses[playerId] : 'pending';
+
+                        let statusBadge = '<span class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">In attesa ⏳</span>';
+                        if (status === 'confirmed') {
+                            statusBadge = '<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">Confermato ✅</span>';
+                        } else if (status === 'absent') {
+                            statusBadge = '<span class="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">Assente ❌</span>';
+                        }
+
+                        playersListHTML += `
+                            <div class="flex items-center justify-between py-1 px-2 bg-white rounded border border-slate-100 text-xs mb-1">
+                                <span class="text-slate-700">${index + 1}. ${cleanName}</span>
+                                <div>${statusBadge}</div>
+                            </div>
+                        `;
+                    });
+
                     container.innerHTML += `
-                        <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs mb-2 shadow-sm">
+                        <div class="border rounded-xl p-4 bg-gray-50 flex flex-col gap-3 text-xs mb-3 shadow-sm">
                             <div class="space-y-1">
                                 <p class="font-bold text-sm text-black">⚽ Spes Montesacro vs ${data.opponent}</p>
                                 <p class="text-gray-700">
@@ -1080,12 +1109,19 @@
                                     ⏰ <strong>Ritrovo:</strong> ${data.gatheringTime}
                                 </p>
                                 <p class="text-gray-600">📍 <strong>Campo:</strong> ${data.location}</p>
-                                <p class="text-gray-500 pt-1">👥 <strong>Convocati (${data.players ? data.players.length : 0}):</strong> ${playersList}</p>
                             </div>
-                            <div class="flex flex-col space-y-1">
-                                <button data-id="${data.id}" class="btn-share-callup-wa bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-1 rounded text-[10px] transition">📲 WhatsApp</button>
-                                <button data-id="${data.id}" class="btn-print-callup bg-black hover:bg-gray-800 text-white font-bold px-2 py-1 rounded text-[10px] transition">🖨️ Stampa</button>
-                                <button data-id="${data.id}" class="btn-delete-callup bg-red-600 hover:bg-red-700 text-white font-bold px-2 py-1 rounded text-[10px] transition">🗑️ Elimina</button>
+
+                            <div class="bg-slate-100 p-2.5 rounded-lg border border-slate-200">
+                                <p class="font-bold text-slate-800 mb-2">👥 Stato Risposte Convocati (${invitedPlayers.length}):</p>
+                                <div class="flex flex-col max-h-40 overflow-y-auto pr-1">
+                                    ${playersListHTML || '<p class="text-gray-400">Nessun giocatore convocato.</p>'}
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-2 pt-1">
+                                <button data-id="${data.id}" class="btn-share-callup-wa bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">📲 WhatsApp</button>
+                                <button data-id="${data.id}" class="btn-print-callup bg-black hover:bg-gray-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">🖨️ Stampa</button>
+                                <button data-id="${data.id}" class="btn-delete-callup bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">🗑️ Elimina</button>
                             </div>
                         </div>
                     `;
