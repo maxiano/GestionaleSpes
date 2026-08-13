@@ -1,3 +1,9 @@
+/**
+ * @file style.css
+ * @brief Fogli di stile - Gestionale Spes Montesacro
+ * @author Massimiliano Nanni
+ * @copyright © 2026 Spes Montesacro. Tutti i diritti riservati.
+ */
 @media print {
     @page {
         size: A4 portrait;
