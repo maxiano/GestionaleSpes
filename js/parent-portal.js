@@ -152,7 +152,7 @@ function renderPortalUI(eventsList, childId, teamName) {
         const currentResponse = ev.responses?.[childId] || null;
         
         // Badge di stato dinamico
-        let statusBadge = currentResponse === 'confirmed' 
+        let statusBadge = currentResponse === 'confirmed' || currentResponse === 'present'
             ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Stato: Presenza Confermata ✅</span>`
             : currentResponse === 'absent'
             ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>`
@@ -162,6 +162,9 @@ function renderPortalUI(eventsList, childId, teamName) {
         let badgeType = ev.type === 'match' 
             ? '<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">⚽ PARTITA</span>'
             : '<span class="bg-sky-50 text-sky-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-sky-100">🏃‍♂️ ALLENAMENTO</span>';
+
+        // Per gli allenamenti usiamo lo stato 'present' / 'absent', per le partite 'confirmed' / 'absent'
+        const confirmVal = ev.type === 'match' ? 'confirmed' : 'present';
 
         eventsHTML += `
             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-3 last:mb-0 transition hover:shadow-md">
@@ -175,7 +178,7 @@ function renderPortalUI(eventsList, childId, teamName) {
                     <div class="mt-1">${statusBadge}</div>
                 </div>
                 <div class="flex gap-2 mt-3">
-                    <button onclick="window.respondEvent('${ev.collection}', '${ev.id}', '${childId}', 'confirmed')" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
+                    <button onclick="window.respondEvent('${ev.collection}', '${ev.id}', '${childId}', '${confirmVal}')" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
                     <button onclick="window.respondEvent('${ev.collection}', '${ev.id}', '${childId}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-xl text-xs transition border border-rose-200 hover:bg-rose-100">Assente ❌</button>
                 </div>
             </div>
