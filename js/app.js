@@ -1747,31 +1747,22 @@
 		    });
 		});
 		// 3. Esegue il Backup dei dati
+
 		window.downloadDatabaseBackup = async function() {
-		    // Verifica cosa c'è in 'db' o cerca l'istanza globale di Firestore
-		    let database = typeof db !== 'undefined' ? db : null;
-		    
-		    if (!database && typeof firebase !== 'undefined' && firebase.firestore) {
-		        database = firebase.firestore();
-		    }
-		
-		    if (!database || typeof database.collection !== 'function') {
-		        console.error("Oggetto database trovato:", database);
-		        alert("Errore: Impossibile trovare l'istanza di Firestore. Controlla come è inizializzato Firebase nel tuo progetto.");
-		        return;
-		    }
-		
 		    const backupData = {};
-		    const collectionsToBackup = ['tournaments', 'uisers', 'players', 'callups', 'attendances']; 
+		    
+		    // Elenco delle tue collection (ho aggiunto anche 'tournaments' che ho visto nel tuo codice)
+		    const collectionsToBackup = ['tournaments', 'uisers', 'players', 'callups', 'attendances'];  
 		
 		    try {
 		        console.log("Inizio backup del database...");
 		        
 		        for (const colName of collectionsToBackup) {
-		            const snapshot = await database.collection(colName).get();
-		            backupData[colName] = snapshot.docs.map(doc => ({
-		                id: doc.id,
-		                ...doc.data()
+		            // Sintassi Firebase v9+ Modular SDK
+		            const querySnapshot = await getDocs(collection(db, colName));
+		            backupData[colName] = querySnapshot.docs.map(docSnapshot => ({
+		                id: docSnapshot.id,
+		                ...docSnapshot.data()
 		            }));
 		        }
 		
@@ -1790,6 +1781,8 @@
 		        alert("Errore nel backup: " + error.message);
 		    }
 		};
+
+
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
