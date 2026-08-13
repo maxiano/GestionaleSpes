@@ -270,7 +270,7 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (ROBUSTA E PRIVA DI ERRORI DI SINTASSI)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (DEFINITIVA E ANTIDUPLICAZIONE)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     if (!db) {
         alert("Errore di configurazione: Database Firebase non inizializzato.");
@@ -278,7 +278,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 
     const dateInput = document.getElementById('custom-training-date');
-    const selectedDate = dateInput ? dateInput.value : ''; // Aggiunto il fallback corretto
+    const selectedDate = dateInput ? dateInput.value : '';
 
     if (!selectedDate) {
         alert("Seleziona una data valida per l'allenamento.");
@@ -287,9 +287,9 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
     try {
         const [year, month, day] = selectedDate.split('-');
-        const dateIso = selectedDate;
-        const dateIt = `${day}/${month}/${year}`;
-        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`;
+        const dateIso = selectedDate;                             // 2026-08-13
+        const dateIt = `${day}/${month}/${year}`;                 // 13/08/2026
+        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
 
         const querySnapshot = await getDocs(collection(db, 'attendances'));
         
@@ -304,31 +304,48 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
         let docRef;
         let recordList = [];
+        let fieldNameUsed = 'records'; // Usiamo 'records' come standard di default
 
         if (targetDoc) {
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
-            recordList = data.record || data.records || [];
+            
+            // Verifichiamo quale campo usa il documento esistente (record o records)
+            if (Array.isArray(data.records)) {
+                fieldNameUsed = 'records';
+                recordList = [...data.records];
+            } else if (Array.isArray(data.record)) {
+                fieldNameUsed = 'record';
+                recordList = [...data.record];
+            } else {
+                recordList = [];
+            }
         } else {
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
                 date: dateIt,
                 teamId: teamName,
                 notes: 'Seduta scelta da portale famiglia',
-                record: []
+                records: []
             });
+            fieldNameUsed = 'records';
+            recordList = [];
         }
 
-        const index = recordList.findIndex(r => String(r.playerId) === String(childId));
-        
-        if (index > -1) {
-            recordList[index].status = status;
-            recordList[index].name = childName;
-        } else {
-            recordList.push({ playerId: String(childId), name: childName, status: status });
-        }
+        // Pulizia preventiva da eventuali duplicati già presenti nel DB per questo giocatore
+        const cleanList = recordList.filter(r => String(r.playerId) !== String(childId));
 
-        await updateDoc(docRef, { record: recordList });
+        // Aggiungiamo il record aggiornato in modo univoco
+        cleanList.push({
+            playerId: String(childId),
+            name: childName,
+            status: status
+        });
+
+        // Salvataggio sul campo corretto
+        const updatePayload = {};
+        updatePayload[fieldNameUsed] = cleanList;
+        await updateDoc(docRef, updatePayload);
 
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
         window.location.reload();
