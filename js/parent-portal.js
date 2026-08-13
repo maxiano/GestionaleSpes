@@ -270,7 +270,7 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (SALVA UNA SOLA PRESENZA)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (ROBUSTA)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     if (!db) {
         alert("Errore di configurazione: Database Firebase non inizializzato.");
@@ -278,7 +278,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 
     const dateInput = document.getElementById('custom-training-date');
-    const selectedDate = dateInput ? dateInput.value : '';
+    const selectedDate = dateInput ? dateInput.value; // Formato input: AAAA-MM-GG (es. 2026-08-13)
 
     if (!selectedDate) {
         alert("Seleziona una data valida per l'allenamento.");
@@ -286,42 +286,57 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 
     try {
-        const q = query(collection(db, 'attendances'), where("date", "==", selectedDate));
-        const querySnapshot = await getDocs(q);
+        // Conversione della data selezionata per supportare vari formati nel DB
+        const [year, month, day] = selectedDate.split('-');
+        const dateIso = selectedDate;                          // 2026-08-13
+        const dateIt = `${day}/${month}/${year}`;              // 13/08/2026
+        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
+
+        // Scarichiamo tutti i registri per trovare la corrispondenza corretta indipendentemente dal formato
+        const querySnapshot = await getDocs(collection(db, 'attendances'));
+        
+        let targetDoc = null;
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const dbDate = String(data.date || '').trim();
+            if (dbDate === dateIso || dbDate === dateIt || dbDate === dateItAlt) {
+                targetDoc = docSnap;
+            }
+        });
 
         let docRef;
         let recordList = [];
 
-        if (!querySnapshot.empty) {
-            const existingDoc = querySnapshot.docs[0];
-            docRef = doc(db, 'attendances', existingDoc.id);
-            recordList = existingDoc.data().record || existingDoc.data().records || [];
+        if (targetDoc) {
+            // Trovato! Usiamo il documento esistente
+            docRef = doc(db, 'attendances', targetDoc.id);
+            const data = targetDoc.data();
+            recordList = data.record || data.records || [];
         } else {
+            // Non esiste un registro per questa data, ne creiamo uno nuovo
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
-                date: selectedDate,
+                date: dateIt, // Salviamo nel formato standard italiano o iso coerente col resto del gestionale
                 teamId: teamName,
                 notes: 'Seduta scelta da portale famiglia',
                 record: []
             });
         }
 
-        // Cerca se esiste già un record per questo specifico giocatore in questa data
-        const index = recordList.findIndex(r => r.playerId === childId);
+        // Cerca se esiste già il record per questo specifico giocatore
+        const index = recordList.findIndex(r => String(r.playerId) === String(childId));
         
         if (index > -1) {
-            // Aggiorna lo stato esistente senza duplicare la riga
             recordList[index].status = status;
             recordList[index].name = childName;
         } else {
-            // Inserisce il record per la prima volta
-            recordList.push({ playerId: childId, name: childName, status: status });
+            recordList.push({ playerId: String(childId), name: childName, status: status });
         }
 
-        // Salva l'array pulito con un unico elemento per il giocatore
+        // Aggiorna Firestore con la lista dei record pulita
         await updateDoc(docRef, { record: recordList });
 
-        alert(`Preferenza registrata con successo per il ${selectedDate}!`);
+        alert(`Preferenza registrata con successo per il ${dateIt}!`);
         window.location.reload();
 
     } catch (err) {
