@@ -11,9 +11,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// Variabile globale per mantenere in memoria il profilo utente completo
+let currentUserProfile = null;
+
 // 1. FUNZIONE PRINCIPALE DI AVVIO
 export async function initParentPortal(userProfile) {
     console.log("Inizializzazione portale genitori per:", userProfile?.name);
+    currentUserProfile = userProfile; // Salviamo il profilo globale
     
     const dashboard = document.getElementById('app-dashboard');
     if (dashboard) dashboard.classList.add('hidden');
@@ -40,7 +44,7 @@ export async function initParentPortal(userProfile) {
             });
         }
 
-        await loadChildData(userProfile);
+        await loadChildData(currentUserProfile);
 
     } catch (error) {
         console.error("Errore nel caricamento del portale genitori:", error);
@@ -49,10 +53,8 @@ export async function initParentPortal(userProfile) {
 
 // 2. CARICAMENTO DATI (Partite + Storico Presenze Allenamenti)
 async function loadChildData(userProfile) {
-    // CONTROLLO CRITICO: Verifichiamo subito se db è definito
     if (!db) {
-        console.error("❌ ERRORE CRITICO: L'oggetto 'db' importato da 'firebase-config.js' è UNDEFINED.");
-        alert("Errore di configurazione: Impossibile connettersi a Firestore. Verifica firebase-config.js");
+        console.error("❌ ERRORE CRITICO: L'oggetto 'db' è UNDEFINED.");
         return;
     }
 
@@ -71,13 +73,12 @@ async function loadChildData(userProfile) {
         }
 
         const childData = childDoc.data();
-        const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim();
-        const childTeamId = childData.teamId || childData.team || childData.squadra || childData.group || '';
+        const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim() || userProfile?.name;
+        const childTeamId = childData.teamId || childData.team || childData.squadra || childData.group || userProfile?.teamId || '';
 
         const nameEl = document.getElementById('parent-child-name');
         if (nameEl) nameEl.innerText = displayName;
 
-        // Scarichiamo callups (partite) e attendances (allenamenti) in parallelo
         const [callupsSnap, attendancesSnap] = await Promise.all([
             getDocs(collection(db, 'callups')),
             getDocs(collection(db, 'attendances'))
@@ -86,7 +87,7 @@ async function loadChildData(userProfile) {
         let matchesList = [];
         let trainingsHistory = [];
 
-        // A. Elaborazione Partite (Callups)
+        // A. Elaborazione Partite
         callupsSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const callupTeamId = data.teamId || data.team || data.squadra || '';
@@ -112,13 +113,13 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // B. Storico Allenamenti del ragazzo (dalla collezione attendances)
+        // B. Storico Allenamenti
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const recordList = data.record || data.records || [];
             
             if (Array.isArray(recordList)) {
-                const myRecord = recordList.find(r => r.playerId === childId);
+                const myRecord = recordList.find(r => String(r.playerId || r.id) === String(childId));
                 if (myRecord) {
                     trainingsHistory.push({
                         id: docSnap.id,
@@ -131,7 +132,6 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // Ordinamento cronologico
         matchesList.sort((a, b) => (new Date(a.date || 0)).getTime() - (new Date(b.date || 0)).getTime());
         trainingsHistory.sort((a, b) => (new Date(b.date || 0)).getTime() - (new Date(a.date || 0)).getTime());
 
@@ -141,7 +141,7 @@ async function loadChildData(userProfile) {
     }
 }
 
-// 3. RENDER GRAFICO DEL PORTALE GENITORI (SENZA ONCLICK INLINE)
+// 3. RENDER GRAFICO DEL PORTALE GENITORI
 function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
     const container = document.getElementById('parent-content-area');
     if (!container) return;
@@ -170,8 +170,8 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                         <div class="mt-1">${statusBadge}</div>
                     </div>
                     <div class="flex gap-2 mt-2.5">
-                        <button data-action="respond" data-collection="callups" data-id="${ev.id}" data-child="${childId}" data-status="confirmed" class="flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
-                        <button data-action="respond" data-collection="callups" data-id="${ev.id}" data-child="${childId}" data-status="absent" class="flex-1 bg-rose-50 text-rose-700 font-bold py-1.5 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Assente ❌</button>
+                        <button data-id="${ev.id}" data-status="confirmed" class="btn-match-confirm flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
+                        <button data-id="${ev.id}" data-status="absent" class="btn-match-absent flex-1 bg-rose-50 text-rose-700 font-bold py-1.5 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Assente ❌</button>
                     </div>
                 </div>
             `;
@@ -237,7 +237,7 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
         </div>
     `;
 
-    // Aggancio sicuro degli eventi tramite listener nativi (evita qualsiasi blocco html)
+    // Event Listeners per i pulsanti Allenamento
     const btnPresent = document.getElementById('btn-submit-present');
     const btnAbsent = document.getElementById('btn-submit-absent');
 
@@ -247,15 +247,19 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
     if (btnAbsent) {
         btnAbsent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'absent');
     }
+
+    // Event Listeners per i pulsanti Partite (Callups)
+    container.querySelectorAll('.btn-match-confirm').forEach(btn => {
+        btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'confirmed');
+    });
+    container.querySelectorAll('.btn-match-absent').forEach(btn => {
+        btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'absent');
+    });
 };
 
 // 4. GESTIONE RISPOSTE PARTITE
 window.respondEvent = async function(collectionName, eventId, childId, status) {
-    if (!db) {
-        alert("Errore di configurazione: Database Firebase non inizializzato.");
-        return;
-    }
-    const statusBadge = document.getElementById(`status-badge-${eventId}`);
+    if (!db) return;
     try {
         const docRef = doc(db, collectionName, eventId);
         const docSnap = await getDoc(docRef);
@@ -266,14 +270,9 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
             await updateDoc(docRef, { responses: responses });
         }
 
-        if (statusBadge) {
-            if (status === 'confirmed' || status === 'present') {
-                statusBadge.className = "text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200";
-                statusBadge.innerText = "Presenza Confermata ✅";
-            } else {
-                statusBadge.className = "text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200";
-                statusBadge.innerText = "Assenza Comunicata ❌";
-            }
+        alert("Risposta salvata con successo!");
+        if (currentUserProfile) {
+            await loadChildData(currentUserProfile);
         }
     } catch (err) {
         console.error("Errore salvataggio partita:", err);
@@ -281,14 +280,9 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (SENZA RICARICARE LA PAGINA)
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (CON DEBUG PASSO-PASSO)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
-    console.log("🚀 CLICCATO! submitCustomTraining avviata", { childId, teamName, childName, status });
-
     if (!db) {
-        console.error("❌ ERRORE: db è undefined!");
         alert("Errore di configurazione: Database Firebase non inizializzato.");
         return;
     }
@@ -302,21 +296,17 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 
     try {
-        console.log("1️⃣ Data selezionata dall'input:", selectedDate);
         const [year, month, day] = selectedDate.split('-');
         const dateIso = selectedDate;
         const dateIt = `${day}/${month}/${year}`;
         const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`;
 
-        console.log("2️⃣ Scarico la collezione attendances da Firestore...");
         const querySnapshot = await getDocs(collection(db, 'attendances'));
-        console.log(`3️⃣ Trovati ${querySnapshot.size} documenti totali in attendances.`);
         
         let targetDoc = null;
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const dbDate = String(data.date || '').trim();
-            // Verifichiamo se la data corrisponde E se appartiene alla stessa squadra (se teamId è presente)
             const dbTeam = String(data.teamId || data.team || '').trim();
             const matchTeam = !dbTeam || !teamName || dbTeam.toLowerCase() === teamName.toLowerCase();
 
@@ -330,7 +320,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         let fieldNameUsed = 'records';
 
         if (targetDoc) {
-            console.log("4️⃣ A) Trovato documento esistente corrispondente! ID:", targetDoc.id);
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
             
@@ -342,7 +331,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
                 recordList = [...data.record];
             }
         } else {
-            console.log("4️⃣ B) Nessun documento trovato per questa data/squadra. Ne creo uno nuovo.");
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
                 date: dateIt,
@@ -353,8 +341,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             fieldNameUsed = 'records';
             recordList = [];
         }
-
-        console.log("5️⃣ Lista record attuale prima dell'aggiornamento:", recordList);
 
         const cleanList = recordList.filter(r => String(r.playerId || r.id) !== String(childId));
 
@@ -367,16 +353,17 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         const updatePayload = {};
         updatePayload[fieldNameUsed] = cleanList;
 
-        console.log("6️⃣ Scrivo su Firestore con payload:", updatePayload);
         await updateDoc(docRef, updatePayload);
-        console.log("7️⃣ Scrittura completata con successo!");
 
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
         
-        await loadChildData({ childId: childId, name: childName, teamId: teamName });
+        // Aggiorna la schermata in tempo reale usando il profilo globale salvato
+        if (currentUserProfile) {
+            await loadChildData(currentUserProfile);
+        }
 
     } catch (err) {
-        console.error("❌ ERRORE CRITICO NELLA CATCH:", err);
-        alert("Errore durante il salvataggio. Controlla la console per i dettagli.");
+        console.error("❌ Errore durante il salvataggio:", err);
+        alert("Errore durante il salvataggio. Controlla la console.");
     }
 };
