@@ -169,7 +169,7 @@ async function loadChildData(userProfile) {
     }
 }
 
-// 3. RENDER GRAFICO DEL PORTALE GENITORI
+// 3. RENDER GRAFICO DEL PORTALE GENITORI (LAYOUT AFFIANCATO)
 function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
     const container = document.getElementById('parent-content-area');
     if (!container) return;
@@ -228,39 +228,49 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
 
     container.innerHTML = `
         <div class="space-y-4">
+            <!-- Header Squadra -->
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                 <span class="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full">Squadra: ${teamName}</span>
                 <span class="text-[11px] text-slate-400 font-medium">Portale Famiglia</span>
             </div>
 
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
-                    <span class="text-base">⚽</span>
-                    <h3 class="font-bold text-slate-800 text-sm">Partite e Convocazioni</h3>
+            <!-- Griglia Affiancata (Desktop: 2 colonne, Mobile: 1 colonna) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                
+                <!-- Colonna Sinistra: Partite e Convocazioni -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+                    <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
+                        <span class="text-base">⚽</span>
+                        <h3 class="font-bold text-slate-800 text-sm">Partite e Convocazioni</h3>
+                    </div>
+                    <div class="flex flex-col flex-grow">${matchesHTML}</div>
                 </div>
-                <div class="flex flex-col">${matchesHTML}</div>
-            </div>
 
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
-                    <span class="text-base">🏃‍♂️</span>
-                    <h3 class="font-bold text-slate-800 text-sm">Comunica Presenza / Assenza Allenamento</h3>
-                </div>
-                 
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
-                    <label class="block text-xs font-bold text-slate-700">Seleziona la data dell'allenamento:</label>
-                    <input type="date" id="custom-training-date" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-emerald-500">
-                     
-                    <div class="flex gap-2 pt-1">
-                        <button id="btn-submit-present" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
-                        <button id="btn-submit-absent" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
+                <!-- Colonna Destra: Comunicazione Allenamenti + Storico Invii -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
+                            <span class="text-base">🏃‍♂️</span>
+                            <h3 class="font-bold text-slate-800 text-sm">Comunica Presenza / Assenza Allenamento</h3>
+                        </div>
+                        
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                            <label class="block text-xs font-bold text-slate-700">Seleziona la data dell'allenamento:</label>
+                            <input type="date" id="custom-training-date" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-emerald-500">
+                            
+                            <div class="flex gap-2 pt-1">
+                                <button id="btn-submit-present" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
+                                <button id="btn-submit-absent" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">I tuoi ultimi invii:</span>
+                        <div class="flex flex-col max-h-48 overflow-y-auto pr-1">${historyHTML}</div>
                     </div>
                 </div>
 
-                <div class="mt-4">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">I tuoi ultimi invii:</span>
-                    <div class="flex flex-col">${historyHTML}</div>
-                </div>
             </div>
         </div>
     `;
