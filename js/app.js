@@ -1917,6 +1917,31 @@
 	    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 	}
 
+	let editingCallupId = null;
+	function prepareEditCallup(id) {
+	    const callup = loadedCallupsList.find(c => c.id === id);
+	    if (!callup) return;
+	
+	    document.getElementById('match-opponent').value = callup.opponent || '';
+	    document.getElementById('match-location').value = callup.location || '';
+	    document.getElementById('match-date').value = callup.date || '';
+	    document.getElementById('match-time').value = callup.matchTime || '';
+	    document.getElementById('gathering-time').value = callup.gatheringTime || '';
+	
+	    const invited = callup.players || [];
+	    document.querySelectorAll('input[name="callup_player"]').forEach(chk => {
+	        const val = chk.value;
+	        chk.checked = invited.includes(val) || invited.some(p => p.includes(val));
+	    });
+	
+	    editingCallupId = id;
+	
+	    const submitBtn = document.querySelector('#form-callup button[type="submit"]');
+	    if (submitBtn) submitBtn.textContent = "Aggiorna Convocazione 💾";
+	
+	    document.getElementById('form-callup').scrollIntoView({ behavior: 'smooth' });
+	}
+
 
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
