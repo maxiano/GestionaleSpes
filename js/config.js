@@ -7,7 +7,7 @@
  * Questo software è riservato esclusivamente all'uso interno della società 
  * sportiva Spes Montesacro. Ne è vietata la copia, la riproduzione o la 
  * distribuzione non autorizzata.
- */
+ */ 
 
 export const daysOfWeekIT = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 
