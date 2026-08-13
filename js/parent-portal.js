@@ -64,7 +64,7 @@ async function loadChildData(userProfile) {
     }
 
     try {
-        // 1. Legge il documento del ragazzo in 'players' per nome e squadra
+        // 1. Legge il documento del ragazzo in 'players'
         const childDocRef = doc(db, 'players', childId);
         const childDoc = await getDoc(childDocRef);
 
@@ -75,37 +75,64 @@ async function loadChildData(userProfile) {
 
         const childData = childDoc.data();
         const displayName = childData.lastName ? `${childData.lastName} ${childData.firstName}` : (childData.name || `${childData.cognome || ''} ${childData.nome || ''}`.trim());
-        const teamName = childData.teamId || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
+        const teamName = childData.team || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
 
         document.getElementById('parent-child-name').innerText = displayName;
 
-        // 2. Cerca nella collezione 'callups' controllando se l'elemento inizia con l'ID del figlio
+        // 2. Cerca la convocazione attiva per questo figlio
         const callupsRef = collection(db, 'callups');
         const querySnapshot = await getDocs(callupsRef);
 
         let activeCallup = null;
+        let activeCallupId = null;
 
         querySnapshot.forEach((docSnap) => {
             const callupData = docSnap.data();
             const invitedPlayers = callupData.players || callupData.convocati || [];
 
-            // Controlla se almeno una stringa nell'array inizia con "childId|"
+            // Controlla se il figlio è tra i convocati
             const isFound = invitedPlayers.some(p => typeof p === 'string' && p.startsWith(`${childId}|`));
 
             if (isFound) {
                 activeCallup = callupData;
+                activeCallupId = docSnap.id; // Salviamo l'ID del documento della convocazione
             }
         });
 
         let callupHTML = '<p class="text-xs text-slate-500">Nessuna convocazione attiva al momento.</p>';
+        let actionButtonsHTML = '';
 
-        if (activeCallup) {
+        if (activeCallup && activeCallupId) {
+            // Controlla se il genitore ha già risposto in passato
+            const currentResponse = activeCallup.responses ? activeCallup.responses[childId] : null;
+            
+            let statusBadge = '';
+            if (currentResponse === 'confirmed') {
+                statusBadge = '<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Stato: Presenza Confermata ✅</span>';
+            } else if (currentResponse === 'absent') {
+                statusBadge = '<span class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>';
+            } else {
+                statusBadge = '<span class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Stato: In attesa di risposta ⏳</span>';
+            }
+
             callupHTML = `
-                <div class="flex flex-col gap-1">
+                <div class="flex flex-col gap-2">
                     <span class="font-bold text-slate-800 text-sm">📅 Partita vs ${activeCallup.opponent || 'Avversario'}</span>
                     <span class="text-xs text-slate-600">Data: ${activeCallup.date || 'Da definire'} - Ore: ${activeCallup.matchTime || ''}</span>
                     <span class="text-xs text-slate-600">Campo: ${activeCallup.location || 'Da definire'}</span>
-                    <span class="text-xs text-slate-500 mt-1">🕒 Ritrovo: ${activeCallup.gatheringTime || 'Da definire'}</span>
+                    <span class="text-xs text-slate-500">🕒 Ritrovo: ${activeCallup.gatheringTime || 'Da definire'}</span>
+                    <div class="mt-1">${statusBadge}</div>
+                </div>
+            `;
+
+            actionButtonsHTML = `
+                <div class="flex gap-2 mt-2">
+                    <button onclick="window.respondCallup('${activeCallupId}', '${childId}', 'confirmed')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-sm">
+                        Conferma ✅
+                    </button>
+                    <button onclick="window.respondCallup('${activeCallupId}', '${childId}', 'absent')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-2.5 px-4 rounded-xl text-xs transition border border-rose-200">
+                        Assente ❌
+                    </button>
                 </div>
             `;
         }
@@ -122,14 +149,7 @@ async function loadChildData(userProfile) {
                     ${callupHTML}
                 </div>
 
-                <div class="flex gap-2 mt-2">
-                    <button onclick="alert('Presenza confermata!')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition">
-                        Conferma ✅
-                    </button>
-                    <button onclick="alert('Assenza comunicata.')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-2.5 px-4 rounded-xl text-xs transition">
-                        Assente ❌
-                    </button>
-                </div>
+                ${actionButtonsHTML}
             </div>
         `;
 
@@ -137,3 +157,26 @@ async function loadChildData(userProfile) {
         console.error("Errore nel caricamento dei dati convocazione:", error);
     }
 }
+
+// Funzione globale agganciata ai bottoni per scrivere la risposta su Firestore
+window.respondCallup = async function(callupId, childId, status) {
+    try {
+        const callupRef = doc(db, 'callups', callupId);
+        
+        // Aggiorna o inserisce lo stato nella mappa 'responses' del documento Firestore
+        await updateDoc(callupRef, {
+            [`responses.${childId}`]: status
+        });
+
+        // Ricarica i dati per aggiornare la grafica con il nuovo stato
+        const userProfileStr = sessionStorage.getItem('userProfile') || localStorage.getItem('userProfile');
+        if (userProfileStr) {
+            loadChildData(JSON.parse(userProfileStr));
+        }
+
+        alert(status === 'confirmed' ? "Presenza confermata con successo! ✅" : "Assenza comunicata al Mister. ❌");
+    } catch (error) {
+        console.error("Errore durante il salvataggio della risposta:", error);
+        alert("Errore di connessione. Riprova.");
+    }
+};
