@@ -45,7 +45,7 @@ export async function initParentPortal(userProfile) {
     }
 }
 
-// 2. FUNZIONE DI CARICAMENTO DATI (Raccoglie tutte le convocazioni del ragazzo)
+// 2. FUNZIONE DI CARICAMENTO DATI (Raccoglie tutte le convocazioni in modo sicuro)
 async function loadChildData(userProfile) {
     const childId = userProfile.childId; 
     if (!childId) return;
@@ -57,7 +57,9 @@ async function loadChildData(userProfile) {
 
         const childData = childDoc.data();
         const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim();
-        const teamName = childData.teamId || childData.group || childData.gruppo || childData.squadra || '';
+        
+        // Recupera la squadra del ragazzo da qualsiasi campo possibile
+        const childTeamId = childData.teamId || childData.team || childData.squadra || childData.group || '';
 
         document.getElementById('parent-child-name').innerText = displayName;
 
@@ -68,14 +70,13 @@ async function loadChildData(userProfile) {
         let userCallups = [];
 
         querySnapshot.forEach((docSnap) => {
-            const callupData = docSnap.id;
             const callup = docSnap.data();
-            const matchTeam = callup.team || callup.squadra || callup.teamId || '';
+            const callupTeamId = callup.teamId || callup.team || callup.squadra || '';
             const invitedPlayers = callup.players || [];
             
-            // Verifica se il ragazzo è invitato esplicitamente o tramite la squadra
+            // Verifica se il ragazzo è invitato esplicitamente o fa parte della squadra
             const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && (p === childId || p.startsWith(`${childId}|`)));
-            const isTeamMatch = matchTeam && teamName && matchTeam.toLowerCase() === teamName.toLowerCase();
+            const isTeamMatch = callupTeamId && childTeamId && String(callupTeamId).toLowerCase() === String(childTeamId).toLowerCase();
 
             if (isTeamMatch || isExplicitlyInvited) {
                 userCallups.push({
@@ -85,61 +86,78 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // Opzionale: Ordina per data (dalla più vicina alla più lontana o viceversa)
-        userCallups.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+        // Ordinamento sicuro: gestisce senza errori date vuote o "da definire"
+        userCallups.sort((a, b) => {
+            const timeA = (a.date && a.date !== 'da definire') ? new Date(a.date).getTime() : 0;
+            const timeB = (b.date && b.date !== 'da definire') ? new Date(b.date).getTime() : 0;
+            return timeA - timeB;
+        });
 
-        renderPortalUI(userCallups, childId, teamName);
+        renderPortalUI(userCallups, childId, childTeamId || 'Assegnata');
     } catch (error) {
         console.error("Errore caricamento dati:", error);
     }
 }
 
-// 3. FUNZIONE GRAFICA (Render UI)
-function renderPortalUI(activeCallup, activeCallupId, childId, teamName) {
+// 3. FUNZIONE GRAFICA (Render UI per la lista completa)
+function renderPortalUI(callupsList, childId, teamName) {
     const container = document.getElementById('parent-content-area');
     if (!container) return;
 
-    let callupHTML = '<p class="text-xs text-slate-500">Nessuna partita programmata al momento.</p>';
-    let actionButtonsHTML = '';
+    if (!callupsList || callupsList.length === 0) {
+        container.innerHTML = `
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full">Squadra: ${teamName}</span>
+                <p class="text-xs text-slate-500 mt-3">Nessuna partita programmata al momento.</p>
+            </div>
+        `;
+        return;
+    }
 
-    if (activeCallup && activeCallupId) {
-        const currentResponse = activeCallup.responses?.[childId] || null;
+    let callupsHTML = '';
+
+    callupsList.forEach((callup) => {
+        const currentResponse = callup.responses?.[childId] || null;
         
         let statusBadge = currentResponse === 'confirmed' 
-            ? '<span id="status-badge" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Stato: Presenza Confermata ✅</span>'
+            ? `<span id="status-badge-${callup.id}" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Stato: Presenza Confermata ✅</span>`
             : currentResponse === 'absent'
-            ? '<span id="status-badge" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>'
-            : '<span id="status-badge" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Stato: In attesa di risposta ⏳</span>';
+            ? `<span id="status-badge-${callup.id}" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>`
+            : `<span id="status-badge-${callup.id}" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Stato: In attesa di risposta ⏳</span>`;
 
-        callupHTML = `
-            <div class="flex flex-col gap-2">
-                <span class="font-bold text-slate-800 text-sm">📅 Partita vs ${activeCallup.opponent || 'Avversario'}</span>
-                <span class="text-xs text-slate-600">Data: ${activeCallup.date || 'Da definire'} | ${activeCallup.matchTime || ''}</span>
-                <span class="text-xs text-slate-600">📍 Campo: ${activeCallup.location || 'Da definire'}</span>
-                <div class="mt-1">${statusBadge}</div>
+        // Gestione pulita se i campi sono "da definire" o vuoti
+        const matchDate = callup.date ? callup.date : 'Da definire';
+        const matchTime = callup.matchTime ? callup.matchTime : '';
+        const matchLocation = callup.location ? callup.location : 'Da definire';
+        const gatheringTime = callup.gatheringTime ? callup.gatheringTime : 'Da definire';
+
+        callupsHTML += `
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-3 last:mb-0">
+                <div class="flex flex-col gap-1.5">
+                    <span class="font-bold text-slate-800 text-sm">📅 Partita vs ${callup.opponent || 'Avversario'}</span>
+                    <span class="text-xs text-slate-600">Data: ${matchDate} ${matchTime ? '| ' + matchTime : ''}</span>
+                    <span class="text-xs text-slate-600">📍 Campo: ${matchLocation} | ⏰ Ritrovo: ${gatheringTime}</span>
+                    <div class="mt-1">${statusBadge}</div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="window.respondCallup('${callup.id}', '${childId}', 'confirmed')" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs transition">Conferma ✅</button>
+                    <button onclick="window.respondCallup('${callup.id}', '${childId}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-xl text-xs transition border border-rose-200">Assente ❌</button>
+                </div>
             </div>
         `;
-
-        actionButtonsHTML = `
-            <div class="flex gap-2 mt-2">
-                <button onclick="window.respondCallup('${activeCallupId}', '${childId}', 'confirmed')" class="flex-1 bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs transition">Conferma ✅</button>
-                <button onclick="window.respondCallup('${activeCallupId}', '${childId}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2.5 rounded-xl text-xs transition border border-rose-200">Assente ❌</button>
-            </div>
-        `;
-    }
+    });
 
     container.innerHTML = `
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
             <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full">Squadra: ${teamName}</span>
-            <div class="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-100">${callupHTML}</div>
-            ${actionButtonsHTML}
+            <div class="mt-3 flex flex-col">${callupsHTML}</div>
         </div>
     `;
 }
 
-// 4. RISPOSTA (Globale per il click HTML)
+// 4. RISPOSTA (Aggiornato per gestire singoli badge con ID dinamico)
 window.respondCallup = async function(callupId, childId, status) {
-    const badge = document.getElementById('status-badge');
+    const badge = document.getElementById(`status-badge-${callupId}`);
     if (badge) {
         badge.className = status === 'confirmed' 
             ? "text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200"
