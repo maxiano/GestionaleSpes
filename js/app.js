@@ -1208,7 +1208,9 @@
 
             let rows = '';
             sortedPlayers.forEach((p, index) => {
-                rows += `<tr><td class="border border-black p-2 text-center font-bold" style="width: 40px;">${index + 1}</td><td class="border border-black p-2 font-bold text-sm">${p}</td><td class="border border-black p-2"></td></tr>`;
+				// Pulisce la stringa rimuovendo l'ID se presente (es. "abc123xyz|Rossi Mario" -> "Rossi Mario")
+        		const cleanName = p.includes('|') ? p.split('|')[1] : p;
+				rows += `<tr><td class="border border-black p-2 text-center font-bold" style="width: 40px;">${index + 1}</td><td class="border border-black p-2 font-bold text-sm">${cleanName}</td><td class="border border-black p-2"></td></tr>`;
             });
 
             printContainer.innerHTML = `
