@@ -66,15 +66,12 @@ export async function initParentPortal(userProfile) {
 
 // 2. CARICAMENTO DATI (Partite + Storico Presenze Allenamenti)
 async function loadChildData(userProfile) {
-    console.log("🔍 PROFILO RICEVUTO DALL'UTENTE:", userProfile);
-    console.log("🔍 CHILD ID ESTRATTO:", userProfile?.childId);
     if (!db) {
         console.error("❌ ERRORE CRITICO: L'oggetto 'db' è UNDEFINED.");
         return;
     }
 
     const childId = userProfile?.childId; 
-    console.log("Inizio caricamento dati per:", childId);
     if (!childId) {
         console.error("ID del bambino non trovato nel profilo utente.");
         return;
@@ -87,7 +84,7 @@ async function loadChildData(userProfile) {
             console.error("❌ ERRORE: Giocatore non trovato nella collezione 'players' con ID:", childId);
             return;
         }
-        console.log("✅ Giocatore trovato, carico convocazioni e presenze...");
+
         const childData = childDoc.data();
         const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim() || userProfile?.name;
         const childTeamId = childData.teamId || childData.team || childData.squadra || childData.group || userProfile?.teamId || '';
@@ -95,20 +92,11 @@ async function loadChildData(userProfile) {
         const nameEl = document.getElementById('parent-child-name');
         if (nameEl) nameEl.innerText = displayName;
 
-       /* const [callupsSnap, attendancesSnap] = await Promise.all([
+        const [callupsSnap, attendancesSnap] = await Promise.all([
             getDocs(collection(db, 'callups')),
             getDocs(collection(db, 'attendances'))
-        ]);*/
+        ]);
 
-        console.log("Tentativo recupero callups...");
-        const callupsSnap = await getDocs(collection(db, 'callups'));
-        console.log("Callups recuperate con successo!");
-
-        console.log("Tentativo recupero attendances...");
-        const attendancesSnap = await getDocs(collection(db, 'attendances'));
-        console.log("Attendances recuperate con successo!");
-        // --- AGGIUNGI QUESTI CONTROLLI QUI SOTTO ---
-        console.log("Inizio elaborazione partite (callups)...");
         let matchesList = [];
         let trainingsHistory = [];
 
@@ -137,7 +125,7 @@ async function loadChildData(userProfile) {
                 });
             }
         });
-        console.log("Partite elaborate, totale:", matchesList.length);
+
         // B. Storico Allenamenti
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
@@ -156,7 +144,6 @@ async function loadChildData(userProfile) {
                 }
             }
         });
-        console.log("Storico allenamenti elaborato, totale:", trainingsHistory.length);
 
         // Funzione di supporto per convertire qualsiasi formato data in un timestamp ordinabile
         const parseDateToTimestamp = (dateStr) => {
@@ -189,16 +176,12 @@ async function loadChildData(userProfile) {
         matchesList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
         trainingsHistory.sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
 
-        console.log("Chiamata a renderPortalUI in corso...");
         renderPortalUI(matchesList, trainingsHistory, childId, childTeamId || 'Assegnata', displayName);
-        console.log("Portale renderizzato con successo!");
     } catch (error) {
         console.error("❌ ERRORE CRITICO CATTURATO:", error);
-        alert("Errore tecnico: " + error.message); // <--- Ti mostrerà l'errore esatto a schermo
         if (nameEl) nameEl.innerText = "Errore di caricamento dati";
     }
 }
-
 // 3. RENDER GRAFICO DEL PORTALE GENITORI (SEZIONI BEN DISTINTE CON RAGGRUPPAMENTO MENSILE)
 function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
     const container = document.getElementById('parent-content-area');
