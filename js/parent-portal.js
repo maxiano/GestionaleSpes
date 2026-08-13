@@ -194,7 +194,7 @@ function renderPortalUI(eventsList, childId, teamName) {
             <div class="flex flex-col">${eventsHTML}</div>
         </div>
     `;
-}
+};
 
 
 
