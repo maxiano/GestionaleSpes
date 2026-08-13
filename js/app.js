@@ -1747,40 +1747,40 @@
 		    });
 		});
 		// 3. Esegue il Backup dei dati
-		window.downloadDatabaseBackup = async function() {
-		    const db = firebase.firestore();
-		    const backupData = {};
-		    
-		    // Inserisci qui l'elenco di tutte le collection che vuoi includere nel backup
-		    const collectionsToBackup = ['tournaments', 'attendances', 'callups', 'players', 'users']; 
-		
-		    try {
-		        console.log("Inizio backup del database...");
-		        
-		        for (const colName of collectionsToBackup) {
-		            const snapshot = await db.collection(colName).get();
-		            backupData[colName] = snapshot.docs.map(doc => ({
-		                id: doc.id,
-		                ...doc.data()
-		            }));
-		        }
-		
-		        // Creazione e download automatico del file JSON
-		        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-		        const downloadAnchorNode = document.createElement('a');
-		        downloadAnchorNode.setAttribute("href", dataStr);
-		        downloadAnchorNode.setAttribute("download", `Spes_Backup_${new Date().toISOString().slice(0,10)}.json`);
-		        document.body.appendChild(downloadAnchorNode);
-		        downloadAnchorNode.click();
-		        downloadAnchorNode.remove();
-		        
-		        console.log("Backup completato con successo!");
-		        alert("Backup del database completato con successo!");
-		    } catch (error) {
-		        console.error("Errore durante il backup:", error);
-		        alert("Errore nel backup: " + error.message);
-		    }
-		};
+	window.downloadDatabaseBackup = async function() {
+	    // Usa la variabile 'db' già attiva nel tuo app.js
+	    const database = typeof db !== 'undefined' ? db : firebase.firestore();
+	    const backupData = {};
+	    
+	    // Elenco delle tue collection da esportare
+	    const collectionsToBackup = ['partite', 'rosa', 'eventi', 'presenze', 'staff']; 
+	
+	    try {
+	        console.log("Inizio backup del database...");
+	        
+	        for (const colName of collectionsToBackup) {
+	            const snapshot = await database.collection(colName).get();
+	            backupData[colName] = snapshot.docs.map(doc => ({
+	                id: doc.id,
+	                ...doc.data()
+	            }));
+	        }
+	
+	        // Creazione e download automatico del file JSON
+	        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+	        const downloadAnchorNode = document.createElement('a');
+	        downloadAnchorNode.setAttribute("href", dataStr);
+	        downloadAnchorNode.setAttribute("download", `Spes_Backup_${new Date().toISOString().slice(0,10)}.json`);
+	        document.body.appendChild(downloadAnchorNode);
+	        downloadAnchorNode.click();
+	        downloadAnchorNode.remove();
+	        
+	        alert("Backup del database completato con successo!");
+	    } catch (error) {
+	        console.error("Errore durante il backup:", error);
+	        alert("Errore nel backup: " + error.message);
+	    }
+	};
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
