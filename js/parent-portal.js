@@ -5,11 +5,8 @@
  * @copyright © 2026 Spes Montesacro. Tutti i diritti riservati.
  */
 
-// Importa 'db' dal tuo file di inizializzazione centrale
 import { db } from './firebase-init.js';
-
-// Importa solo le funzioni di Firestore necessarie, usando la stessa versione (10.8.0)
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
  * Inizializza e carica l'HTML del portale genitori
@@ -17,10 +14,8 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-
 export async function initParentPortal(userProfile) {
     console.log("Inizializzazione portale genitori per:", userProfile.name);
     
-    // Nasconde la dashboard dei mister
     document.getElementById('app-dashboard').classList.add('hidden');
     
-    // Controlla se il contenitore esiste già, altrimenti lo crea
     let portalWrapper = document.getElementById('dynamic-parent-container');
     if (!portalWrapper) {
         portalWrapper = document.createElement('div');
@@ -29,21 +24,20 @@ export async function initParentPortal(userProfile) {
     }
 
     try {
-        // Scarica il file HTML separato
         const response = await fetch('parent-view.html');
         if (!response.ok) throw new Error("Impossibile caricare la vista genitori.");
         
         const htmlContent = await response.text();
         portalWrapper.innerHTML = htmlContent;
 
-        // Aggiorna il tasto di logout nel portale genitori
+        // Tasto Logout
         document.getElementById('btn-parent-logout').addEventListener('click', () => {
-            import("https://www.gstatic.com/firebasejs/10.x.x/firebase-auth.js").then(({ signOut }) => {
+            import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js").then(({ signOut }) => {
                 signOut(auth);
             });
         });
 
-        // Carica i dati dell'atleta associato
+        // Carica dati figlio e convocazioni
         await loadChildData(userProfile);
 
     } catch (error) {
@@ -62,24 +56,54 @@ async function loadChildData(userProfile) {
         return;
     }
 
-    const childDocRef = doc(db, 'players', childId);
-    const childDoc = await getDoc(childDocRef);
+    try {
+        // 1. Recupera i dati anagrafici del giocatore
+        const childDocRef = doc(db, 'players', childId);
+        const childDoc = await getDoc(childDocRef);
 
-    if (childDoc.exists()) {
+        if (!childDoc.exists()) {
+            document.getElementById('parent-child-name').innerText = "Atleta non trovato";
+            return;
+        }
+
         const childData = childDoc.data();
-        document.getElementById('parent-child-name').innerText = childData.name;
-        
-        // Riempie l'area con i dati di partite e allenamenti
+        document.getElementById('parent-child-name').innerText = childData.name || "Atleta";
+        const teamName = childData.team || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
+
+        // 2. Cerca nella collezione 'callups' le convocazioni che contengono questo childId
+        // (Nota: adatta 'players' o il nome del campo se nella tua collezione callups l'array si chiama diversamente)
+        const callupsRef = collection(db, 'callups');
+        const q = query(callupsRef, where("players", "array-contains", childId));
+        const querySnapshot = await getDocs(q);
+
+        let callupHTML = '<p class="text-xs text-slate-500">Nessuna convocazione attiva al momento.</p>';
+
+        if (!querySnapshot.empty) {
+            // Prende la prima convocazione attiva trovata
+            const callupDoc = querySnapshot.docs[0].data();
+            
+            callupHTML = `
+                <div class="flex flex-col gap-1">
+                    <span class="font-bold text-slate-800 text-sm">📅 ${callupDoc.match || callupDoc.title || 'Partita di Campionato'}</span>
+                    <span class="text-xs text-slate-600">Data/Ora: ${callupDoc.date || callupDoc.orario || 'Da definire'}</span>
+                    <span class="text-xs text-slate-600">Campo: ${callupDoc.location || callupDoc.campo || 'Da definire'}</span>
+                </div>
+            `;
+        }
+
+        // 3. Renderizza la schermata con i dati reali
         document.getElementById('parent-content-area').innerHTML = `
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3">
                 <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full w-max">
-                    Squadra: ${childData.teamId}
+                    Squadra: ${teamName}
                 </span>
+                
                 <h4 class="font-bold text-sm text-slate-800 mt-2">📩 Prossima Convocazione</h4>
-                <p class="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    ${childData.nextCallup || 'Nessuna convocazione attiva.'}
-                </p>
-                <div class="flex gap-2">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    ${callupHTML}
+                </div>
+
+                <div class="flex gap-2 mt-2">
                     <button onclick="alert('Presenza confermata!')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition">
                         Conferma ✅
                     </button>
@@ -89,5 +113,8 @@ async function loadChildData(userProfile) {
                 </div>
             </div>
         `;
+
+    } catch (error) {
+        console.error("Errore nel caricamento dei dati convocazione:", error);
     }
 }
