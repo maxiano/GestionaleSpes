@@ -57,21 +57,14 @@ async function loadChildData(userProfile) {
     }
 
     try {
-        // 1. Recupera i dati anagrafici del giocatore
-        const childDocRef = doc(db, 'players', childId);
-        const childDoc = await getDoc(childDocRef);
+        // Visto che non ci serve più leggere il documento del player per anagrafica 
+        // (a meno che tu non voglia mostrare anche la foto o altri dati), 
+        // impostiamo intanto il nome del genitore o un titolo generico, oppure 
+        // se vuoi puoi comunque recuperare il nome del player se ti serve.
+        
+        document.getElementById('parent-child-name').innerText = `Atleta ID: ${childId}`;
 
-        if (!childDoc.exists()) {
-            document.getElementById('parent-child-name').innerText = "Atleta non trovato";
-            return;
-        }
-
-        const childData = childDoc.data();
-        document.getElementById('parent-child-name').innerText = childData.name || "Atleta";
-        const teamName = childData.team || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
-
-        // 2. Cerca nella collezione 'callups' le convocazioni che contengono questo childId
-        // (Nota: adatta 'players' o il nome del campo se nella tua collezione callups l'array si chiama diversamente)
+        // Cerca direttamente nella collezione 'callups' usando il childId del genitore
         const callupsRef = collection(db, 'callups');
         const q = query(callupsRef, where("players", "array-contains", childId));
         const querySnapshot = await getDocs(q);
@@ -79,7 +72,6 @@ async function loadChildData(userProfile) {
         let callupHTML = '<p class="text-xs text-slate-500">Nessuna convocazione attiva al momento.</p>';
 
         if (!querySnapshot.empty) {
-            // Prende la prima convocazione attiva trovata
             const callupDoc = querySnapshot.docs[0].data();
             
             callupHTML = `
@@ -91,11 +83,11 @@ async function loadChildData(userProfile) {
             `;
         }
 
-        // 3. Renderizza la schermata con i dati reali
+        // Renderizza la schermata
         document.getElementById('parent-content-area').innerHTML = `
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3">
                 <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full w-max">
-                    Squadra: ${teamName}
+                    Codice Atleta: ${childId}
                 </span>
                 
                 <h4 class="font-bold text-sm text-slate-800 mt-2">📩 Prossima Convocazione</h4>
@@ -115,6 +107,6 @@ async function loadChildData(userProfile) {
         `;
 
     } catch (error) {
-        console.error("Errore nel caricamento dei dati convocazione:", error);
+        console.error("Errore nel caricamento della convocazione:", error);
     }
 }
