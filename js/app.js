@@ -1912,7 +1912,7 @@
 	    const callup = loadedCallupsList.find(c => c.id === id);
 	    if (!callup) return;
 	    
-	    // Usiamo il codice Unicode pulito per evitare problemi di codifica del file
+	    // Codici Unicode sicuri per le sirene che non si corrompono mai
 	    const siren = "\uD83D\uDEA8"; 
 	    
 	    const msg = `${siren} CONVOCAZIONE DEFINITIVA - Spes Montesacro ${siren}\n\nPartita: *${callup.opponent}*\nRitrovo: *${callup.gatheringTime}*\n\nLa lista è stata finalizzata. Controllate il portale per i dettagli definitivi!`;
