@@ -73,7 +73,7 @@ async function loadChildData(userProfile) {
         document.getElementById('parent-content-area').innerHTML = `
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3">
                 <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full w-max">
-                    Squadra: ${childData.team}
+                    Squadra: ${childData.teamId}
                 </span>
                 <h4 class="font-bold text-sm text-slate-800 mt-2">📩 Prossima Convocazione</h4>
                 <p class="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
