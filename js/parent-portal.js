@@ -8,8 +8,8 @@ import {
     updateDoc, 
     query, 
     where 
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/10.8.00/firebase-auth.js";
 
 // 1. FUNZIONE PRINCIPALE DI AVVIO
 export async function initParentPortal(userProfile) {
