@@ -238,15 +238,37 @@
 		        }
 		
 		        // --- SMISTAMENTO IN BASE AL RUOLO ---
-		        if (currentUserProfile.role === 'parent') {
-		            document.getElementById('section-login').classList.add('hidden');
-		            document.getElementById('app-dashboard').classList.add('hidden');
-
-    
-				    // Chiama direttamente la funzione importata in alto
+				if (currentUserProfile.role === 'parent') {
+				    document.getElementById('section-login').classList.add('hidden');
+				    document.getElementById('app-dashboard').classList.add('hidden');
+		
+				    // 1. Assicura che esista un contenitore visibile per il portale genitori
+				    let parentContainer = document.getElementById('parent-portal-wrapper');
+				    if (!parentContainer) {
+				        parentContainer = document.createElement('div');
+				        parentContainer.id = 'parent-portal-wrapper';
+				        // Inserisce il contenitore subito dopo la sezione di login o dentro il body
+				        document.body.appendChild(parentContainer);
+				    }
+				    parentContainer.classList.remove('hidden');
+		
+				    // 2. Carica la vista HTML del portale se non è già presente
+				    if (!document.getElementById('parent-content-area')) {
+				        try {
+				            const response = await fetch('parent-view.html');
+				            const htmlContent = await response.text();
+				            parentContainer.innerHTML = htmlContent;
+				        } catch (fetchErr) {
+				            console.error("Errore nel caricamento della vista genitori:", fetchErr);
+				            parentContainer.innerHTML = `<p class="p-4 text-rose-600 font-bold">Errore di caricamento interfaccia genitori.</p>`;
+				            return;
+				        }
+				    }
+		
+				    // 3. Avvia la logica di popolamento dati passando il profilo
 				    initParentPortal(currentUserProfile);
 				    return; 
-		        }
+				}		
 		
 		        // --- FLUSSO STANDARD (Coach / Admin) ---
 		        document.getElementById('user-info').innerText = `${currentUserProfile.name} (${currentUserProfile.role.toUpperCase()})`;
@@ -269,7 +291,8 @@
 		        
 		        document.getElementById('section-login').classList.remove('hidden');
 		        document.getElementById('app-dashboard').classList.add('hidden');
-		
+
+
 		        // Pulisce l'interfaccia genitori se era aperta
 		        const dynamicParentContainer = document.getElementById('dynamic-parent-container');
 		        if (dynamicParentContainer) {
