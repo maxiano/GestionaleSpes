@@ -196,64 +196,7 @@ function renderPortalUI(eventsList, childId, teamName) {
     `;
 }
 
-window.submitTrainingChoice = async function(childId, teamName, status) {
-    const dateInput = document.getElementById('parent-training-date');
-    if (!dateInput || !dateInput.value) {
-        return alert("Seleziona una data valida!");
-    }
 
-    const selectedDate = dateInput.value;
-    const statusText = document.getElementById('training-status-text');
-
-    try {
-        // Cerchiamo se esiste già un documento di presenze per questa squadra in quella data
-        const q = query(
-            collection(db, 'attendances'),
-            where('teamId', '==', teamName),
-            where('date', '==', selectedDate)
-        );
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-            // Se il documento esiste già, aggiorniamo il record del singolo ragazzo nell'array
-            const docSnap = snapshot.docs[0];
-            const docRef = doc(db, 'attendances', docSnap.id);
-            let records = docSnap.data().records || [];
-
-            // Troviamo se il ragazzo ha già un record, altrimenti lo aggiungiamo
-            const index = records.findIndex(r => r.playerId === childId);
-            if (index > -1) {
-                records[index].status = status; // Aggiorna lo stato (es. 'present' o 'absent')
-            } else {
-                records.push({ playerId: childId, status: status });
-            }
-
-            await updateDoc(docRef, { records: records });
-        } else {
-            // Se il Mister non ha ancora creato la sessione per quel giorno, la creiamo noi al volo
-            await addDoc(collection(db, 'attendances'), {
-                teamId: teamName,
-                date: selectedDate,
-                records: [
-                    { playerId: childId, status: status }
-                ],
-                createdAt: new Date().toISOString()
-            });
-        }
-
-        // Feedback visivo immediato al genitore
-        if (statusText) {
-            statusText.className = status === 'present' ? "text-emerald-600 font-bold" : "text-rose-600 font-bold";
-            statusText.innerText = status === 'present' ? "Presenza Confermata ✅" : "Assenza Comunicata ❌";
-        }
-
-        alert(status === 'present' ? "Presenza registrata con successo!" : "Assenza comunicata al Mister.");
-
-    } catch (err) {
-        console.error("Errore salvataggio presenza famiglia:", err);
-        alert("Errore durante il salvataggio. Riprova.");
-    }
-};
 
 // 4. GESTIONE UNIFICATA DELLE RISPOSTE (Funziona sia per callups che trainings)
 window.respondEvent = async function(collectionName, eventId, childId, status) {
@@ -261,7 +204,57 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     if (badge) {
         badge.className = status === 'confirmed' 
             ? "text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200"
-            : "text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200";
+           // Funzione universale per rispondere a Partite o Allenamenti dalla Timeline Unificata
+window.respondEvent = async function(collectionName, eventId, childId, status) {
+    const statusBadge = document.getElementById(`status-badge-${eventId}`);
+
+    try {
+        if (collectionName === 'attendances') {
+            // Gestione specifica per gli Allenamenti nella collezione attendances
+            const docRef = doc(db, 'attendances', eventId);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                let records = docSnap.data().records || [];
+                const index = records.findIndex(r => r.playerId === childId);
+                
+                if (index > -1) {
+                    records[index].status = status;
+                } else {
+                    records.push({ playerId: childId, status: status });
+                }
+
+                await updateDoc(docRef, { records: records });
+            }
+        } else {
+            // Gestione standard per le Partite (o altre collezioni basate sulla mappa 'responses')
+            const docRef = doc(db, collectionName, eventId);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                let responses = docSnap.data().responses || {};
+                responses[childId] = status; // 'confirmed' o 'absent'
+
+                await updateDoc(docRef, { responses: responses });
+            }
+        }
+
+        // Aggiornamento visivo immediato del badge di stato nella pagina
+        if (statusBadge) {
+            if (status === 'confirmed' || status === 'present') {
+                statusBadge.className = "text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200";
+                statusBadge.innerText = "Stato: Presenza Confermata ✅";
+            } else {
+                statusBadge.className = "text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200";
+                statusBadge.innerText = "Stato: Assenza Comunicata ❌";
+            }
+        }
+
+    } catch (err) {
+        console.error("Errore durante l'invio della risposta:", err);
+        alert("Errore di connessione. Riprova.");
+    }
+}; : "text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200";
         badge.innerText = status === 'confirmed' ? "Stato: Presenza Confermata ✅" : "Stato: Assenza Comunicata ❌";
     }
 
