@@ -1,4 +1,4 @@
-import { db, auth } from './firebase-config.js'; // Modifica il percorso se necessario in base alla tua configurazione
+import { db, auth } from './firebase-init.js'; // Modifica il percorso se necessario in base alla tua configurazione
 import { 
     collection, 
     doc, 
