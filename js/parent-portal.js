@@ -5,8 +5,11 @@
  * @copyright © 2026 Spes Montesacro. Tutti i diritti riservati.
  */
 
+// Importa 'db' dal tuo file di inizializzazione centrale
 import { db } from './firebase-init.js';
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-firestore.js";
+
+// Importa solo le funzioni di Firestore necessarie, usando la stessa versione (10.8.0)
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
  * Inizializza e carica l'HTML del portale genitori
