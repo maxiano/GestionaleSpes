@@ -141,14 +141,10 @@ async function loadChildData(userProfile) {
     }
 }
 
-// 3. RENDER GRAFICO CON INPUT DATA PER GLI ALLENAMENTI (E TEXT ESCAPING SICURO)
+// 3. RENDER GRAFICO DEL PORTALE GENITORI (SENZA ONCLICK INLINE)
 function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
     const container = document.getElementById('parent-content-area');
     if (!container) return;
-
-    // Sanificazione per evitare che apostrofi nei nomi blocchino il click
-    const safeTeam = String(teamName || '').replace(/'/g, "\\'");
-    const safeName = String(childName || '').replace(/'/g, "\\'");
 
     let matchesHTML = '';
     if (matchesList.length === 0) {
@@ -157,10 +153,10 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
         matchesList.forEach((ev) => {
             const currentResponse = ev.responses?.[childId] || null;
             let statusBadge = currentResponse === 'confirmed' || currentResponse === 'present'
-                ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Presenza Confermata ✅</span>`
+                ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Presenza Confermata ✅</span>`
                 : currentResponse === 'absent'
-                ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Assenza Comunicata ❌</span>`
-                : `<span id="status-badge-${ev.id}" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">In attesa di risposta ⏳</span>`;
+                ? `<span class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Assenza Comunicata ❌</span>`
+                : `<span class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">In attesa di risposta ⏳</span>`;
 
             matchesHTML += `
                 <div class="bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 mb-2.5 transition">
@@ -174,8 +170,8 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                         <div class="mt-1">${statusBadge}</div>
                     </div>
                     <div class="flex gap-2 mt-2.5">
-                        <button onclick="window.respondEvent('callups', '${ev.id}', '${childId}', 'confirmed')" class="flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
-                        <button onclick="window.respondEvent('callups', '${ev.id}', '${childId}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-1.5 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Assente ❌</button>
+                        <button data-action="respond" data-collection="callups" data-id="${ev.id}" data-child="${childId}" data-status="confirmed" class="flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
+                        <button data-action="respond" data-collection="callups" data-id="${ev.id}" data-child="${childId}" data-status="absent" class="flex-1 bg-rose-50 text-rose-700 font-bold py-1.5 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Assente ❌</button>
                     </div>
                 </div>
             `;
@@ -228,8 +224,8 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                     <input type="date" id="custom-training-date" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-emerald-500">
                     
                     <div class="flex gap-2 pt-1">
-                        <button onclick="window.submitCustomTraining('${childId}', '${safeTeam}', '${safeName}', 'present')" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
-                        <button onclick="window.submitCustomTraining('${childId}', '${safeTeam}', '${safeName}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
+                        <button id="btn-submit-present" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
+                        <button id="btn-submit-absent" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
                     </div>
                 </div>
 
@@ -240,6 +236,17 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
             </div>
         </div>
     `;
+
+    // Aggancio sicuro degli eventi tramite listener nativi (evita qualsiasi blocco html)
+    const btnPresent = document.getElementById('btn-submit-present');
+    const btnAbsent = document.getElementById('btn-submit-absent');
+
+    if (btnPresent) {
+        btnPresent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'present');
+    }
+    if (btnAbsent) {
+        btnAbsent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'absent');
+    }
 };
 
 // 4. GESTIONE RISPOSTE PARTITE
@@ -274,7 +281,7 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (CON LOG DI CONTROLLO IMMEDIATO)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     console.log("🚀 CLICCATO! submitCustomTraining avviata con successo", { childId, teamName, childName, status });
 
@@ -293,9 +300,9 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
     try {
         const [year, month, day] = selectedDate.split('-');
-        const dateIso = selectedDate;                             // 2026-08-13
-        const dateIt = `${day}/${month}/${year}`;                 // 13/08/2026
-        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
+        const dateIso = selectedDate;
+        const dateIt = `${day}/${month}/${year}`;
+        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`;
 
         const querySnapshot = await getDocs(collection(db, 'attendances'));
         
