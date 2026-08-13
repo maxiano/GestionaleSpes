@@ -329,10 +329,10 @@
 
                 <!-- TAB 3: REGISTRO STORICO MENSILE ALLENAMENTI A GRIGLIA -->
                 <div id="tab-monthly" class="tab-content hidden bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 print:shadow-none print:p-0 print:border-none overflow-x-auto">
-                    
+
                     <!-- Header del Tab Organizzato -->
                     <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-5 mb-6 border-b border-slate-100 pb-5 print:hidden">
-                        
+
                         <!-- 🏷️ Titolo e Sottotitolo -->
                         <div class="flex items-start gap-3.5">
                             <div class="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 text-lg shadow-sm flex-shrink-0">
@@ -343,10 +343,10 @@
                                 <p class="text-xs text-slate-500 font-medium mt-0.5">Griglia presenze (P=Presente, A=Assente, AG=Giustificato, INF=Infortunato, R=Ritardo)</p>
                             </div>
                         </div>
-                
+
                         <!-- 🎛️ Controlli e Pulsanti di Azione Organizzati -->
                         <div class="flex flex-wrap items-center gap-2.5">
-                            
+
                             <!-- 📅 Gruppo Selezione Periodo (Mese e Anno) -->
                             <div class="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-2xl border border-slate-200">
                                 <select id="filter-month" class="bg-white border border-slate-200/80 text-slate-700 text-xs px-3 py-2 rounded-xl font-bold shadow-sm focus:outline-none focus:border-emerald-500 cursor-pointer">
@@ -363,33 +363,33 @@
                                     <option value="10">Novembre</option>
                                     <option value="11">Dicembre</option>
                                 </select>
-                
+
                                 <select id="filter-year" class="bg-white border border-slate-200/80 text-slate-700 text-xs px-3 py-2 rounded-xl font-bold shadow-sm focus:outline-none focus:border-emerald-500 cursor-pointer">
                                     <!-- Caricato da JS -->
                                 </select>
                             </div>
-                
+
                             <!-- 📁 Gruppo Utility CSV (Export) -->
                             <div class="flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200">
                                 <button id="btn-export-monthly-csv" class="hover:bg-white text-slate-700 hover:text-slate-900 text-xs px-3.5 py-2 rounded-xl font-bold transition-all duration-150 shadow-sm active:scale-95 flex items-center gap-1.5">
                                     <span>📄</span> Export
                                 </button>
                             </div>
-                
+
                             <!-- 🚀 Gruppo Azioni Principali (WhatsApp / Stampa) -->
                             <div class="flex items-center gap-2">
                                 <button id="btn-share-monthly-wa" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition-all duration-150 shadow-md shadow-emerald-600/20 active:scale-95 flex items-center gap-1.5">
                                     <span>📲</span> WhatsApp
                                 </button>
-                                
+
                                 <button id="btn-print-monthly" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition-all duration-150 shadow-md shadow-slate-900/10 active:scale-95 flex items-center gap-1.5">
                                     <span>🖨️</span> Stampa
                                 </button>
                             </div>
-                
+
                         </div>
                     </div>
-                
+
                     <!-- 📊 Barra Statistiche del Mese -->
                     <div id="monthly-stats-bar" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 text-center text-xs print:hidden">
                         <div class="bg-slate-50 border border-slate-200/80 p-4 rounded-2xl shadow-sm">
@@ -405,7 +405,7 @@
                             <p id="stat-avg-presents" class="text-xl font-black text-slate-900 mt-1">0</p>
                         </div>
                     </div>
-                
+
                     <!-- Tabella / Griglia Principale -->
                     <div id="monthly-sessions-container" class="overflow-x-auto">
                         <!-- Caricato dinamicamente -->
@@ -569,10 +569,10 @@
 
             <!-- TAB 6: TORNEI -->
             <div id="tab-tournaments" class="tab-content hidden bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 print:shadow-none print:p-0 print:border-none">
-                
+
                 <!-- Header del Tab Organizzato -->
                 <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-5 mb-6 border-b border-slate-100 pb-5 print:hidden">
-                    
+
                     <!-- 🏷️ Titolo e Categoria -->
                     <div class="flex items-start gap-3.5">
                         <div class="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 text-lg shadow-sm flex-shrink-0">
@@ -586,49 +586,49 @@
                             <p class="text-xs text-slate-500 font-medium mt-0.5">Gestione calendario, risultati e classifiche di squadra</p>
                         </div>
                     </div>
-            
+
                     <!-- 🎛️ Controlli e Pulsanti di Azione Organizzati -->
                     <div class="flex flex-wrap items-center gap-2.5">
-                        
+
                         <!-- 🔍 Gruppo Filtri (Torneo e Stato) -->
                         <div class="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-2xl border border-slate-200">
                             <select id="filter-tournament-select" onchange="renderTournaments()" class="bg-white border border-slate-200/80 text-slate-700 text-xs px-3 py-2 rounded-xl font-bold shadow-sm focus:outline-none focus:border-emerald-500">
                                 <option value="">Tutti i tornei</option>
                             </select>
-                            
+
                             <select id="filter-status-select" onchange="renderTournaments()" class="bg-white border border-slate-200/80 text-slate-700 text-xs px-3 py-2 rounded-xl font-bold shadow-sm focus:outline-none focus:border-emerald-500">
                                 <option value="">Tutti gli stati</option>
                                 <option value="da_giocare">Da giocare</option>
                                 <option value="giocata">Giocate</option>
                             </select>
                         </div>
-            
+
                         <!-- 📁 Gruppo Utility CSV (Import / Export) -->
                         <div class="flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200">
                             <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="importCSV(this)">
-                            
+
                             <button onclick="exportToCSV()" class="hover:bg-white text-slate-700 hover:text-emerald-700 text-xs px-3 py-2 rounded-xl font-bold transition-all duration-150 shadow-sm active:scale-95 flex items-center gap-1">
                                 <span>📥</span> Export
                             </button>
-                            
+
                             <div class="w-[1px] h-4 bg-slate-300"></div>
-                            
+
                             <button onclick="document.getElementById('csvFileInput').click()" class="hover:bg-white text-slate-700 hover:text-blue-700 text-xs px-3 py-2 rounded-xl font-bold transition-all duration-150 shadow-sm active:scale-95 flex items-center gap-1">
                                 <span>📤</span> Import
                             </button>
                         </div>
-            
+
                         <!-- 🚀 Gruppo Azioni Principali (Aggiungi Partita / WhatsApp) -->
                         <div class="flex items-center gap-2">
                             <button id="btn-open-modal-tournament" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition-all duration-150 shadow-md shadow-slate-900/10 active:scale-95 flex items-center gap-1.5">
                                 <span>➕</span> Aggiungi Partita
                             </button>
-                            
+
                             <button id="btn-share-tournament-wa" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition-all duration-150 shadow-md shadow-emerald-600/20 active:scale-95 flex items-center gap-1.5">
                                 <span>📲</span> WhatsApp
                             </button>
                         </div>
-            
+
                     </div>
                 </div>
 
