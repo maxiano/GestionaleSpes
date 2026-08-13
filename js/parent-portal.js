@@ -169,7 +169,7 @@ async function loadChildData(userProfile) {
     }
 }
 
-// 3. RENDER GRAFICO DEL PORTALE GENITORI (LAYOUT VERTICALE ORIGINALE)
+// 3. RENDER GRAFICO DEL PORTALE GENITORI (SEZIONI BEN DISTINTE)
 function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
     const container = document.getElementById('parent-content-area');
     if (!container) return;
@@ -208,7 +208,7 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
 
     let historyHTML = '';
     if (trainingsHistory.length === 0) {
-        historyHTML = `<p class="text-xs text-slate-400 italic py-1">Nessuna preferenza inviata di recente.</p>`;
+        historyHTML = `<p class="text-xs text-slate-400 italic py-1">Nessun allenamento comunicato di recente.</p>`;
     } else {
         trainingsHistory.forEach((t) => {
             let badge = t.status === 'present' 
@@ -217,7 +217,7 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
             historyHTML += `
                 <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5">
                     <div>
-                        <span class="font-semibold text-slate-700">📅 ${t.date}</span>
+                        <span class="font-semibold text-slate-700">🏃‍♂️ Allenamento del ${t.date}</span>
                         <span class="text-slate-500 ml-2">(${t.notes})</span>
                     </div>
                     <div>${badge}</div>
@@ -257,8 +257,11 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                     </div>
                 </div>
 
-                <div class="mt-4">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">I tuoi ultimi invii:</span>
+                <div class="mt-5 pt-3 border-t border-slate-100">
+                    <div class="flex items-center gap-1.5 mb-2.5">
+                        <span class="text-sm">📋</span>
+                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Storico Presenze Allenamenti</h4>
+                    </div>
                     <div class="flex flex-col">${historyHTML}</div>
                 </div>
             </div>
