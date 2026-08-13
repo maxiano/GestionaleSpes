@@ -101,7 +101,7 @@ async function loadChildData(userProfile) {
             const responses = data.responses || {};
             
             const hasResponded = responses[childId] !== undefined;
-            const isTeamMatch = trainingTeamId && childTeamId && String(trainingTeamId).toLowerCase() === String(trainingTeamId).toLowerCase();
+            const isTeamMatch = trainingTeamId && childTeamId && String(trainingTeamId).toLowerCase() === String(childTeamId).toLowerCase();
 
             if (hasResponded || isTeamMatch) {
                 unifiedEvents.push({
@@ -196,46 +196,26 @@ function renderPortalUI(eventsList, childId, teamName) {
     `;
 };
 
-
-// 4. GESTIONE UNIFICATA DELLE RISPOSTE (Funziona sia per callups che trainings/attendances)
+// 4. GESTIONE UNIFICATA DELLE RISPOSTE
 window.respondEvent = async function(collectionName, eventId, childId, status) {
     const statusBadge = document.getElementById(`status-badge-${eventId}`);
 
     try {
-        if (collectionName === 'attendances') {
-            // Gestione specifica per gli Allenamenti nella collezione attendances
-            const docRef = doc(db, 'attendances', eventId);
-            const docSnap = await getDoc(docRef);
+        // Gestione standard basata sulla mappa 'responses' (usata sia per callups che per trainings)
+        const docRef = doc(db, collectionName, eventId);
+        const docSnap = await getDoc(docRef);
 
-            if (docSnap.exists()) {
-                let records = docSnap.data().records || [];
-                const index = records.findIndex(r => r.playerId === childId);
-                
-                if (index > -1) {
-                    records[index].status = status;
-                } else {
-                    records.push({ playerId: childId, status: status });
-                }
+        if (docSnap.exists()) {
+            let responses = docSnap.data().responses || {};
+            responses[childId] = status; 
 
-                await updateDoc(docRef, { records: records });
-            }
-        } else {
-            // Gestione standard per le Partite o Trainings basate sulla mappa 'responses'
-            const docRef = doc(db, collectionName, eventId);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                let responses = docSnap.data().responses || {};
-                responses[childId] = status; 
-
-                await updateDoc(docRef, { responses: responses });
-            }
+            await updateDoc(docRef, { responses: responses });
         }
 
         // Aggiornamento visivo immediato del badge di stato nella pagina
         if (statusBadge) {
             if (status === 'confirmed' || status === 'present') {
-                statusBadge.className = "text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200";
+                statusBadge.className = "text-xs font-bold text-emerald-650 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200";
                 statusBadge.innerText = "Stato: Presenza Confermata ✅";
             } else {
                 statusBadge.className = "text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200";
