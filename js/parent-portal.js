@@ -181,7 +181,9 @@ async function loadChildData(userProfile) {
 
         renderPortalUI(matchesList, trainingsHistory, childId, childTeamId || 'Assegnata', displayName);
     } catch (error) {
-        console.error("Errore caricamento dati:", error);
+        console.error("❌ ERRORE CRITICO CATTURATO:", error);
+        alert("Errore tecnico: " + error.message); // <--- Ti mostrerà l'errore esatto a schermo
+        if (nameEl) nameEl.innerText = "Errore di caricamento dati";
     }
 }
 
