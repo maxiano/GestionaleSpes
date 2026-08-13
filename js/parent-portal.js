@@ -22,11 +22,11 @@ export async function initParentPortal(userProfile) {
     const dashboard = document.getElementById('app-dashboard');
     if (dashboard) dashboard.classList.add('hidden');
      
+    // Cerchiamo il contenitore già esistente in index.html
     let portalWrapper = document.getElementById('dynamic-parent-container');
     if (!portalWrapper) {
-        portalWrapper = document.createElement('div');
-        portalWrapper.id = 'dynamic-parent-container';
-        document.body.appendChild(portalWrapper);
+        console.error("Errore: Elemento #dynamic-parent-container non trovato in index.html");
+        return;
     }
 
     try {
