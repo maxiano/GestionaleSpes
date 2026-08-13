@@ -270,7 +270,7 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (SALVA UNA SOLA PRESENZA)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     if (!db) {
         alert("Errore di configurazione: Database Firebase non inizializzato.");
@@ -306,14 +306,19 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             });
         }
 
+        // Cerca se esiste già un record per questo specifico giocatore in questa data
         const index = recordList.findIndex(r => r.playerId === childId);
+        
         if (index > -1) {
+            // Aggiorna lo stato esistente senza duplicare la riga
             recordList[index].status = status;
             recordList[index].name = childName;
         } else {
+            // Inserisce il record per la prima volta
             recordList.push({ playerId: childId, name: childName, status: status });
         }
 
+        // Salva l'array pulito con un unico elemento per il giocatore
         await updateDoc(docRef, { record: recordList });
 
         alert(`Preferenza registrata con successo per il ${selectedDate}!`);
