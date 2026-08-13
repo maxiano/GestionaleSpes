@@ -1066,6 +1066,11 @@
 
                 docs.forEach(data => {
                     const playersList = (data.players || []).join(', ');
+					// 1. Pulisci e unisci la lista dei giocatori
+					const playersList = (data.players || [])
+					    .map(p => (p.includes('|') ? p.split('|')[1] : p))
+					    .join(', ');
+					
                     container.innerHTML += `
                         <div class="border rounded p-3 bg-gray-50 flex justify-between items-start text-xs mb-2 shadow-sm">
                             <div class="space-y-1">
