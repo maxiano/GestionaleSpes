@@ -264,8 +264,14 @@
 				            return;
 				        }
 				    }
+
+					// 3. AGGIUNGI QUI L'INSERIMENTO DEL NOME DEL GENITORE NELLA VIEW
+				    const parentNameEl = document.getElementById('parent-user-name'); // Se hai un elemento specifico per il genitore
+				    if (parentNameEl) {
+				        parentNameEl.innerText = currentUserProfile.name || currentUserProfile.email;
+				    }
 		
-				    // 3. Avvia la logica di popolamento dati passando il profilo
+				    // 4. Avvia la logica di popolamento dati passando il profilo
 				    initParentPortal(currentUserProfile);
 				    return; 
 				}		
