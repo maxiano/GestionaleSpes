@@ -280,7 +280,7 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (RICERCA DATA FLESSIBILE)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (SINCRONIZZATA CON IL REGISTRO DEL MISTER)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     console.log("🚀 submitCustomTraining avviata", { childId, teamName, childName, status });
 
@@ -290,7 +290,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 
     const dateInput = document.getElementById('custom-training-date');
-    const selectedDate = dateInput ? dateInput.value : ''; // Formato input HTML: AAAA-MM-GG
+    const selectedDate = dateInput ? dateInput.value : '';
 
     if (!selectedDate) {
         alert("Seleziona una data valida per l'allenamento.");
@@ -311,7 +311,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             const dbDate = String(data.date || '').trim();
             const dbTeam = String(data.teamId || data.team || '').trim();
             
-            // Controlliamo se la data coincide (in qualsiasi formato) e se la squadra corrisponde
             const matchDate = (dbDate === dateIso || dbDate === dateIt || dbDate === dateItAlt);
             const matchTeam = !dbTeam || !teamName || dbTeam.toLowerCase() === teamName.toLowerCase();
 
@@ -322,49 +321,49 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
         let docRef;
         let recordList = [];
-        let fieldNameUsed = 'records';
 
         if (targetDoc) {
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
             console.log("✅ Trovato documento esistente ID:", targetDoc.id, data);
             
-            if (Array.isArray(data.records)) {
-                fieldNameUsed = 'records';
-                recordList = [...data.records];
-            } else if (Array.isArray(data.record)) {
-                fieldNameUsed = 'record';
-                recordList = [...data.record];
-            }
+            // Preleviamo la lista esistente da whichever campo il mister stia usando
+            recordList = data.records || data.record || data.presenze || [];
         } else {
             console.log("⚠️ Nessun documento trovato per la data. Ne creo uno nuovo.");
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
-                date: dateIt, // Salviamo nel formato standard italiano coerente col gestionale
+                date: dateIt,
                 teamId: teamName,
                 notes: 'Seduta scelta da portale famiglia',
-                records: []
+                records: [],
+                record: []
             });
-            fieldNameUsed = 'records';
             recordList = [];
         }
 
         // Rimuoviamo eventuali vecchi record dello stesso giocatore per evitare duplicati
-        const cleanList = recordList.filter(r => String(r.playerId || r.id) !== String(childId));
-
-        // Aggiungiamo il nuovo stato aggiornato
-        cleanList.push({
-            playerId: String(childId),
-            name: childName,
-            status: status
+        const cleanList = recordList.filter(r => {
+            const rId = String(r.playerId || r.id || '');
+            return rId !== String(childId);
         });
 
-        const updatePayload = {};
-        updatePayload[fieldNameUsed] = cleanList;
+        // Aggiungiamo il record completo di tutti i possibili campi letti dai mister
+        cleanList.push({
+            id: String(childId),
+            playerId: String(childId),
+            name: childName,
+            status: status,
+            present: status === 'present' // Alcuni registri leggono direttamente un booleano
+        });
 
-        await updateDoc(docRef, updatePayload);
+        // Scriviamo contemporaneamente sia 'records' che 'record' per massima compatibilità con il pannello allenatore
+        await updateDoc(docRef, {
+            records: cleanList,
+            record: cleanList
+        });
 
-        console.log("🎉 Salvataggio completato con successo!");
+        console.log("🎉 Salvataggio sincronizzato con il registro mister completato!");
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
         
         if (currentUserProfile) {
