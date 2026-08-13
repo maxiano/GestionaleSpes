@@ -280,10 +280,13 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (CON CONTROLLI DI SICUREZZA)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
+    console.log("🚀 submitCustomTraining avviata", { childId, teamName, childName, status });
+
     if (!db) {
-        alert("Errore di configurazione: Database Firebase non inizializzato.");
+        console.error("❌ ERRORE CRITICO: 'db' non è definito.");
+        alert("Errore: Connessione al database non disponibile.");
         return;
     }
 
@@ -301,6 +304,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         const dateIt = `${day}/${month}/${year}`;
         const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`;
 
+        console.log("🔍 Ricerca documenti in attendances...");
         const querySnapshot = await getDocs(collection(db, 'attendances'));
         
         let targetDoc = null;
@@ -320,6 +324,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         let fieldNameUsed = 'records';
 
         if (targetDoc) {
+            console.log("✅ Trovato documento esistente ID:", targetDoc.id);
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
             
@@ -331,6 +336,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
                 recordList = [...data.record];
             }
         } else {
+            console.log("⚠️ Documento non trovato. Creo un nuovo documento per la data:", dateIt);
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
                 date: dateIt,
@@ -353,17 +359,18 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         const updatePayload = {};
         updatePayload[fieldNameUsed] = cleanList;
 
+        console.log("💾 Eseguisco updateDoc su Firestore...", updatePayload);
         await updateDoc(docRef, updatePayload);
+        console.log("🎉 Salvataggio su Firestore completato con successo!");
 
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
         
-        // Aggiorna la schermata in tempo reale usando il profilo globale salvato
         if (currentUserProfile) {
             await loadChildData(currentUserProfile);
         }
 
     } catch (err) {
-        console.error("❌ Errore durante il salvataggio:", err);
-        alert("Errore durante il salvataggio. Controlla la console.");
+        console.error("❌ ERRORE DURANTE IL SALVATAGGIO SU FIRESTORE:", err);
+        alert("Impossibile salvare: controlla la console per i dettagli sull'errore.");
     }
 };
