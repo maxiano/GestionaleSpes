@@ -223,37 +223,59 @@
             }
         }
 
-        // GESTIONE AUTENTICAZIONE UTENTE
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const userDocRef = doc(db, 'users', user.uid);
-                const userDoc = await getDoc(userDocRef);
-
-                if (userDoc.exists()) {
-                    currentUserProfile = normalizeUserProfile(userDoc.data());
-                } else {
-                    currentUserProfile = normalizeUserProfile({ name: user.email, role: 'coach', teams: [] });
-                }
-
-                document.getElementById('user-info').innerText = `${currentUserProfile.name} (${currentUserProfile.role.toUpperCase()})`;
-                document.getElementById('btn-logout').classList.remove('hidden');
-                document.getElementById('section-login').classList.add('hidden');
-                document.getElementById('app-dashboard').classList.remove('hidden');
-
-                setupTeamSelectorUI();
-            } else {
-                currentUserProfile = null;
-                activeTeamId = null;
-                document.getElementById('btn-logout').classList.add('hidden');
-                document.getElementById('nav-btn-staff').classList.add('hidden');
-                document.getElementById('btn-tab-staff').classList.add('hidden');
-				// --- AGGIUNGI QUESTO PER NASCONDERE IL BACKUP AI COACH ---
-            	const backupBtn = document.getElementById('nav-btn-backup');
-            	if (backupBtn) backupBtn.classList.add('hidden');
-                document.getElementById('section-login').classList.remove('hidden');
-                document.getElementById('app-dashboard').classList.add('hidden');
-            }
-        });
+		// GESTIONE AUTENTICAZIONE UTENTE
+		onAuthStateChanged(auth, async (user) => {
+		    if (user) {
+		        const userDocRef = doc(db, 'users', user.uid);
+		        const userDoc = await getDoc(userDocRef);
+		
+		        if (userDoc.exists()) {
+		            currentUserProfile = normalizeUserProfile(userDoc.data());
+		        } else {
+		            currentUserProfile = normalizeUserProfile({ name: user.email, role: 'coach', teams: [] });
+		        }
+		
+		        // --- SMISTAMENTO IN BASE AL RUOLO ---
+		        if (currentUserProfile.role === 'parent') {
+		            document.getElementById('section-login').classList.add('hidden');
+		            document.getElementById('app-dashboard').classList.add('hidden');
+		            
+		            // Carica e avvia il portale genitori in modo dinamico
+		            import('./parent-portal.js').then(module => {
+		                module.initParentPortal(currentUserProfile);
+		            });
+		            return; // Interrompe il flusso standard per evitare di caricare elementi da mister
+		        }
+		
+		        // --- FLUSSO STANDARD (Coach / Admin) ---
+		        document.getElementById('user-info').innerText = `${currentUserProfile.name} (${currentUserProfile.role.toUpperCase()})`;
+		        document.getElementById('btn-logout').classList.remove('hidden');
+		        document.getElementById('section-login').classList.add('hidden');
+		        document.getElementById('app-dashboard').classList.remove('hidden');
+		
+		        setupTeamSelectorUI();
+		    } else {
+		        currentUserProfile = null;
+		        activeTeamId = null;
+		        document.getElementById('btn-logout').classList.add('hidden');
+		        
+		        // Controlla che gli elementi esistano prima di modificarne le classi (evita errori in console)
+		        document.getElementById('nav-btn-staff')?.classList.add('hidden');
+		        document.getElementById('btn-tab-staff')?.classList.add('hidden');
+		        
+		        const backupBtn = document.getElementById('nav-btn-backup');
+		        if (backupBtn) backupBtn.classList.add('hidden');
+		        
+		        document.getElementById('section-login').classList.remove('hidden');
+		        document.getElementById('app-dashboard').classList.add('hidden');
+		
+		        // Pulisce l'interfaccia genitori se era aperta
+		        const dynamicParentContainer = document.getElementById('dynamic-parent-container');
+		        if (dynamicParentContainer) {
+		            dynamicParentContainer.remove();
+		        }
+		    }
+		});
 
         document.getElementById('form-login').addEventListener('submit', async (e) => {
             e.preventDefault();
