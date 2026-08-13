@@ -107,7 +107,8 @@ async function loadChildData(userProfile) {
         console.log("Tentativo recupero attendances...");
         const attendancesSnap = await getDocs(collection(db, 'attendances'));
         console.log("Attendances recuperate con successo!");
-
+        // --- AGGIUNGI QUESTI CONTROLLI QUI SOTTO ---
+        console.log("Inizio elaborazione partite (callups)...");
         let matchesList = [];
         let trainingsHistory = [];
 
@@ -136,7 +137,7 @@ async function loadChildData(userProfile) {
                 });
             }
         });
-
+        console.log("Partite elaborate, totale:", matchesList.length);
         // B. Storico Allenamenti
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
@@ -155,6 +156,7 @@ async function loadChildData(userProfile) {
                 }
             }
         });
+        console.log("Storico allenamenti elaborato, totale:", trainingsHistory.length);
 
         // Funzione di supporto per convertire qualsiasi formato data in un timestamp ordinabile
         const parseDateToTimestamp = (dateStr) => {
@@ -187,7 +189,9 @@ async function loadChildData(userProfile) {
         matchesList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
         trainingsHistory.sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
 
+        console.log("Chiamata a renderPortalUI in corso...");
         renderPortalUI(matchesList, trainingsHistory, childId, childTeamId || 'Assegnata', displayName);
+        console.log("Portale renderizzato con successo!");
     } catch (error) {
         console.error("❌ ERRORE CRITICO CATTURATO:", error);
         alert("Errore tecnico: " + error.message); // <--- Ti mostrerà l'errore esatto a schermo
