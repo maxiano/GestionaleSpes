@@ -169,11 +169,12 @@ async function loadChildData(userProfile) {
     }
 }
 
-// 3. RENDER GRAFICO DEL PORTALE GENITORI (SEZIONI BEN DISTINTE)
+// 3. RENDER GRAFICO DEL PORTALE GENITORI (SEZIONI BEN DISTINTE CON RAGGRUPPAMENTO MENSILE)
 function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
     const container = document.getElementById('parent-content-area');
     if (!container) return;
 
+    // --- Elaborazione Partite ---
     let matchesHTML = '';
     if (matchesList.length === 0) {
         matchesHTML = `<p class="text-xs text-slate-400 italic py-2">Nessuna convocazione attiva.</p>`;
@@ -206,26 +207,40 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
         });
     }
 
+    // --- Elaborazione Storico Allenamenti (Raggruppato) ---
     let historyHTML = '';
     if (trainingsHistory.length === 0) {
         historyHTML = `<p class="text-xs text-slate-400 italic py-1">Nessun allenamento comunicato di recente.</p>`;
     } else {
-        trainingsHistory.forEach((t) => {
-            let badge = t.status === 'present' 
-                ? '<span class="text-emerald-600 font-bold">Presente ✅</span>' 
-                : '<span class="text-rose-600 font-bold">Assente ❌</span>';
-            historyHTML += `
-                <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5">
-                    <div>
-                        <span class="font-semibold text-slate-700">🏃‍♂️ Allenamento del ${t.date}</span>
-                        <span class="text-slate-500 ml-2">(${t.notes})</span>
+        // Raggruppamento dinamico per Mese/Anno
+        const grouped = trainingsHistory.reduce((acc, t) => {
+            const parts = t.date.split('/');
+            const monthYear = parts.length === 3 ? `${parts[1]}/${parts[2]}` : 'Altro';
+            if (!acc[monthYear]) acc[monthYear] = [];
+            acc[monthYear].push(t);
+            return acc;
+        }, {});
+
+        for (const [monthYear, records] of Object.entries(grouped)) {
+            historyHTML += `<div class="mt-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">🗓️ ${monthYear}</div>`;
+            records.forEach((t) => {
+                let badge = t.status === 'present' 
+                    ? '<span class="text-emerald-600 font-bold">Presente ✅</span>' 
+                    : '<span class="text-rose-600 font-bold">Assente ❌</span>';
+                historyHTML += `
+                    <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5 transition">
+                        <div>
+                            <span class="font-semibold text-slate-700">${t.date}</span>
+                            <span class="text-slate-500 ml-2 italic">(${t.notes})</span>
+                        </div>
+                        <div>${badge}</div>
                     </div>
-                    <div>${badge}</div>
-                </div>
-            `;
-        });
+                `;
+            });
+        }
     }
 
+    // --- Render Finale ---
     container.innerHTML = `
         <div class="space-y-4">
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
@@ -246,11 +261,11 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                     <span class="text-base">🏃‍♂️</span>
                     <h3 class="font-bold text-slate-800 text-sm">Comunica Presenza / Assenza Allenamento</h3>
                 </div>
-                 
+                
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
                     <label class="block text-xs font-bold text-slate-700">Seleziona la data dell'allenamento:</label>
                     <input type="date" id="custom-training-date" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-emerald-500">
-                     
+                    
                     <div class="flex gap-2 pt-1">
                         <button id="btn-submit-present" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
                         <button id="btn-submit-absent" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
@@ -268,18 +283,13 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
         </div>
     `;
 
-    // Event Listeners per i pulsanti Allenamento
+    // Event Listeners
     const btnPresent = document.getElementById('btn-submit-present');
     const btnAbsent = document.getElementById('btn-submit-absent');
 
-    if (btnPresent) {
-        btnPresent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'present');
-    }
-    if (btnAbsent) {
-        btnAbsent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'absent');
-    }
+    if (btnPresent) btnPresent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'present');
+    if (btnAbsent) btnAbsent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'absent');
 
-    // Event Listeners per i pulsanti Partite (Callups)
     container.querySelectorAll('.btn-match-confirm').forEach(btn => {
         btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'confirmed');
     });
