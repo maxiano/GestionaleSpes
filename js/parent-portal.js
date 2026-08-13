@@ -163,7 +163,7 @@ function renderPortalUI(eventsList, childId, teamName) {
             ? '<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">⚽ PARTITA</span>'
             : '<span class="bg-sky-50 text-sky-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-sky-100">🏃‍♂️ ALLENAMENTO</span>';
 
-        // Per gli allenamenti usiamo lo stato 'present' / 'absent', per le partite 'confirmed' / 'absent'
+        // Per gli allenamenti usiamo lo stato 'present', per le partite 'confirmed'
         const confirmVal = ev.type === 'match' ? 'confirmed' : 'present';
 
         eventsHTML += `
@@ -197,14 +197,7 @@ function renderPortalUI(eventsList, childId, teamName) {
 };
 
 
-
-// 4. GESTIONE UNIFICATA DELLE RISPOSTE (Funziona sia per callups che trainings)
-window.respondEvent = async function(collectionName, eventId, childId, status) {
-    const badge = document.getElementById(`status-badge-${eventId}`);
-    if (badge) {
-        badge.className = status === 'confirmed' 
-            ? "text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200"
-           // Funzione universale per rispondere a Partite o Allenamenti dalla Timeline Unificata
+// 4. GESTIONE UNIFICATA DELLE RISPOSTE (Funziona sia per callups che trainings/attendances)
 window.respondEvent = async function(collectionName, eventId, childId, status) {
     const statusBadge = document.getElementById(`status-badge-${eventId}`);
 
@@ -227,13 +220,13 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
                 await updateDoc(docRef, { records: records });
             }
         } else {
-            // Gestione standard per le Partite (o altre collezioni basate sulla mappa 'responses')
+            // Gestione standard per le Partite o Trainings basate sulla mappa 'responses'
             const docRef = doc(db, collectionName, eventId);
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
                 let responses = docSnap.data().responses || {};
-                responses[childId] = status; // 'confirmed' o 'absent'
+                responses[childId] = status; 
 
                 await updateDoc(docRef, { responses: responses });
             }
@@ -254,6 +247,4 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
         console.error("Errore durante l'invio della risposta:", err);
         alert("Errore di connessione. Riprova.");
     }
-};
-    await updateDoc(doc(db, collectionName, eventId), { [`responses.${childId}`]: status });
 };
