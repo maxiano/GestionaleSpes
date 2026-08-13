@@ -6,7 +6,7 @@
  */
 
 import { db, auth } from './firebase-init.js';
-import { doc, getDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { doc, getDoc, collection, getDocs, updateDoc, addDoc, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // 1. FUNZIONE PRINCIPALE DI AVVIO
