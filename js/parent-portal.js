@@ -66,6 +66,8 @@ export async function initParentPortal(userProfile) {
 
 // 2. CARICAMENTO DATI (Partite + Storico Presenze Allenamenti)
 async function loadChildData(userProfile) {
+    console.log("🔍 PROFILO RICEVUTO DALL'UTENTE:", userProfile);
+    console.log("🔍 CHILD ID ESTRATTO:", userProfile?.childId);
     if (!db) {
         console.error("❌ ERRORE CRITICO: L'oggetto 'db' è UNDEFINED.");
         return;
