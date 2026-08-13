@@ -1161,15 +1161,28 @@
 		    output += "```";
 		    return output;
 		}
-        function shareCallupWhatsApp(callupId) {
-            const callup = loadedCallupsList.find(c => c.id === callupId);
-            if (!callup) return;
-            const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
-            let text = `📢 *CONVOCAZIONE GARA UFFICIALE*\n⚽ *Spes Montesacro vs ${callup.opponent}*\n\n📅 *Giorno:* ${formatDateIT(callup.date)}\n🕒 *Inizio Partita:* ${callup.matchTime}\n⏰ *Ora Ritrovo:* ${callup.gatheringTime}\n📍 *Luogo:* ${callup.location}\n\n👥 *ELENCO CONVOCATI (${sortedPlayers.length}):*\n`;
-            sortedPlayers.forEach((p, i) => text += `${i + 1}. ${p}\n`);
-            text += `\n⚠️ *Massima puntualità!*`;
-            sendToWhatsApp(text, `Convocazione vs ${callup.opponent}`);
-        }
+		function shareCallupWhatsApp(callupId) {
+		    const callup = loadedCallupsList.find(c => c.id === callupId);
+		    if (!callup) return;
+		    
+		    // Ordina alfabeticamente basandosi sul nome pulito (dopo il '|')
+		    const sortedPlayers = [...(callup.players || [])].sort((a, b) => {
+		        const nameA = a.includes('|') ? a.split('|')[1] : a;
+		        const nameB = b.includes('|') ? b.split('|')[1] : b;
+		        return nameA.localeCompare(nameB);
+		    });
+		
+		    let text = `📢 *CONVOCAZIONE GARA UFFICIALE*\n⚽ *Spes Montesacro vs ${callup.opponent}*\n\n📅 *Giorno:* ${formatDateIT(callup.date)}\n🕒 *Inizio Partita:* ${callup.matchTime}\n⏰ *Ora Ritrovo:* ${callup.gatheringTime}\n📍 *Luogo:* ${callup.location}\n\n👥 *ELENCO CONVOCATI (${sortedPlayers.length}):*\n`;
+		    
+		    sortedPlayers.forEach((p, i) => {
+		        // Pulisce la stringa rimuovendo l'ID prima di scriverla su WhatsApp
+		        const cleanName = p.includes('|') ? p.split('|')[1] : p;
+		        text += `${i + 1}. ${cleanName}\n`;
+		    });
+		    
+		    text += `\n⚠️ *Massima puntualità!*`;
+		    sendToWhatsApp(text, `Convocazione vs ${callup.opponent}`);
+		}
 
 		document.getElementById('btn-share-monthly-wa').addEventListener('click', () => {
 		    if (!activeTeamId) return;
@@ -1204,7 +1217,12 @@
             if (!callup) return;
             const printContainer = document.getElementById('callup-print-container');
             document.getElementById('print-report-period').innerText = 'Modulo Convocazione Gara Ufficiale';
-            const sortedPlayers = [...(callup.players || [])].sort((a, b) => a.localeCompare(b));
+			// Ordina estraendo la parte dopo il '|' (il nome pulito), così l'ordinamento alfabetico funziona perfettamente
+			    const sortedPlayers = [...(callup.players || [])].sort((a, b) => {
+			        const nameA = a.includes('|') ? a.split('|')[1] : a;
+			        const nameB = b.includes('|') ? b.split('|')[1] : b;
+			        return nameA.localeCompare(nameB);
+			    });
 
             let rows = '';
             sortedPlayers.forEach((p, index) => {
