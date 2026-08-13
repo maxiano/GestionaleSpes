@@ -118,6 +118,12 @@
                 return alert("Accesso non autorizzato alla Gestione Staff.");
             }
 
+			// Esempio da inserire all'inizio delle funzioni dei tab o del caricamento dati
+			if (!activeTeamId || activeTeamId === "SELECT_TEAM" || activeTeamId === "ALL") {
+    			alert("⚠️ Attenzione: Devi prima selezionare una squadra dal menu a tendina per procedere!");
+    			return; // Interrompe l'azione impedendo errori
+			}
+
             const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
 			// 1. Nascondi tutti i tab
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
