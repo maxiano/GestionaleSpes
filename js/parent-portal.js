@@ -45,7 +45,7 @@ export async function initParentPortal(userProfile) {
     }
 }
 
-// 2. FUNZIONE DI CARICAMENTO DATI (Logica della partita/convocazione)
+// 2. FUNZIONE DI CARICAMENTO DATI (Raccoglie tutte le convocazioni del ragazzo)
 async function loadChildData(userProfile) {
     const childId = userProfile.childId; 
     if (!childId) return;
@@ -61,26 +61,34 @@ async function loadChildData(userProfile) {
 
         document.getElementById('parent-child-name').innerText = displayName;
 
-        // Cerca la partita per la squadra
+        // Cerca tutte le convocazioni
         const callupsRef = collection(db, 'callups');
         const querySnapshot = await getDocs(callupsRef);
 
-        let activeCallup = null;
-        let activeCallupId = null;
+        let userCallups = [];
 
         querySnapshot.forEach((docSnap) => {
-            const callupData = docSnap.data();
-            const matchTeam = callupData.team || callupData.squadra || '';
-            const invitedPlayers = callupData.players || [];
-            const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && p.startsWith(`${childId}|`));
+            const callupData = docSnap.id;
+            const callup = docSnap.data();
+            const matchTeam = callup.team || callup.squadra || callup.teamId || '';
+            const invitedPlayers = callup.players || [];
+            
+            // Verifica se il ragazzo è invitato esplicitamente o tramite la squadra
+            const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && (p === childId || p.startsWith(`${childId}|`)));
+            const isTeamMatch = matchTeam && teamName && matchTeam.toLowerCase() === teamName.toLowerCase();
 
-            if ((matchTeam && teamName && matchTeam.toLowerCase() === teamName.toLowerCase()) || isExplicitlyInvited) {
-                activeCallup = callupData;
-                activeCallupId = docSnap.id;
+            if (isTeamMatch || isExplicitlyInvited) {
+                userCallups.push({
+                    id: docSnap.id,
+                    ...callup
+                });
             }
         });
 
-        renderPortalUI(activeCallup, activeCallupId, childId, teamName);
+        // Opzionale: Ordina per data (dalla più vicina alla più lontana o viceversa)
+        userCallups.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+
+        renderPortalUI(userCallups, childId, teamName);
     } catch (error) {
         console.error("Errore caricamento dati:", error);
     }
