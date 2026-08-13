@@ -120,7 +120,7 @@
 
 			// Esempio da inserire all'inizio delle funzioni dei tab o del caricamento dati
 			if (!activeTeamId || activeTeamId === "SELECT_TEAM" || activeTeamId === "ALL") {
-    			alert("⚠️ Attenzione: Devi prima selezionare una squadra dal menu a tendina per procedere!");
+    			alert("⚠️ Attenzione: Devi prima selezionare una Categoria / Gruppo dal menu a tendina per procedere!");
     			return; // Interrompe l'azione impedendo errori
 			}
 
