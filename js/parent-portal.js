@@ -141,10 +141,14 @@ async function loadChildData(userProfile) {
     }
 }
 
-// 3. RENDER GRAFICO CON INPUT DATA PER GLI ALLENAMENTI
+// 3. RENDER GRAFICO CON INPUT DATA PER GLI ALLENAMENTI (E TEXT ESCAPING SICURO)
 function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
     const container = document.getElementById('parent-content-area');
     if (!container) return;
+
+    // Sanificazione per evitare che apostrofi nei nomi blocchino il click
+    const safeTeam = String(teamName || '').replace(/'/g, "\\'");
+    const safeName = String(childName || '').replace(/'/g, "\\'");
 
     let matchesHTML = '';
     if (matchesList.length === 0) {
@@ -224,8 +228,8 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                     <input type="date" id="custom-training-date" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-emerald-500">
                     
                     <div class="flex gap-2 pt-1">
-                        <button onclick="window.submitCustomTraining('${childId}', '${teamName}', '${childName}', 'present')" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
-                        <button onclick="window.submitCustomTraining('${childId}', '${teamName}', '${childName}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
+                        <button onclick="window.submitCustomTraining('${childId}', '${safeTeam}', '${safeName}', 'present')" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
+                        <button onclick="window.submitCustomTraining('${childId}', '${safeTeam}', '${safeName}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
                     </div>
                 </div>
 
@@ -270,15 +274,17 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (CON DEBUG IN CONSOLE)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (CON LOG DI CONTROLLO IMMEDIATO)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
+    console.log("🚀 CLICCATO! submitCustomTraining avviata con successo", { childId, teamName, childName, status });
+
     if (!db) {
         alert("Errore di configurazione: Database Firebase non inizializzato.");
         return;
     }
 
     const dateInput = document.getElementById('custom-training-date');
-    const selectedDate = dateInput ? dateInput.value : ''; // Es. 2026-08-13
+    const selectedDate = dateInput ? dateInput.value : '';
 
     if (!selectedDate) {
         alert("Seleziona una data valida per l'allenamento.");
@@ -291,15 +297,12 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         const dateIt = `${day}/${month}/${year}`;                 // 13/08/2026
         const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
 
-        console.log("🔍 Cerco presenze per le date:", { dateIso, dateIt, dateItAlt, teamName });
-
         const querySnapshot = await getDocs(collection(db, 'attendances'));
         
         let targetDoc = null;
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const dbDate = String(data.date || '').trim();
-            // Controlliamo anche se corrisponde alla squadra o se la data coincide
             if (dbDate === dateIso || dbDate === dateIt || dbDate === dateItAlt) {
                 targetDoc = docSnap;
             }
@@ -334,10 +337,8 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             recordList = [];
         }
 
-        // Rimuoviamo eventuali vecchi record dello stesso utente per evitare doppioni
         const cleanList = recordList.filter(r => String(r.playerId || r.id) !== String(childId));
 
-        // Aggiungiamo lo stato aggiornato
         cleanList.push({
             playerId: String(childId),
             name: childName,
@@ -347,14 +348,14 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         const updatePayload = {};
         updatePayload[fieldNameUsed] = cleanList;
 
-        console.log("💾 Salvataggio su Firestore:", updatePayload);
+        console.log("💾 Scrittura in corso su Firestore...", updatePayload);
         await updateDoc(docRef, updatePayload);
 
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
         window.location.reload();
 
     } catch (err) {
-        console.error("❌ Errore salvataggio allenamento personalizzato:", err);
-        alert("Errore durante il salvataggio. Controlla la console per i dettagli.");
+        console.error("❌ Errore durante il salvataggio:", err);
+        alert("Errore durante il salvataggio. Controlla la console.");
     }
 };
