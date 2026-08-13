@@ -1044,7 +1044,7 @@
             }
         });
 
-   async function loadCallups() {
+  async function loadCallups() {
             const container = document.getElementById('callups-list-container');
             if (!container || !activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') return;
 
@@ -1103,6 +1103,7 @@
                         `;
                     });
 
+                    // INSERITO QUI IL NUOVO BLOCCO PULSANTI NELLA SCHEDA
                     container.innerHTML += `
                         <div class="border rounded-xl p-4 bg-gray-50 flex flex-col gap-3 text-xs mb-3 shadow-sm">
                             <div class="space-y-1">
@@ -1122,8 +1123,10 @@
                                 </div>
                             </div>
 
-                            <div class="flex justify-end gap-2 pt-1">
-                                <button data-id="${data.id}" class="btn-share-callup-wa bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">📲 WhatsApp</button>
+                            <div class="flex flex-wrap justify-end gap-2 pt-1">
+                                <button data-id="${data.id}" class="btn-share-invite bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">📲 Invito</button>
+                                <button data-id="${data.id}" class="btn-final-callup bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">📢 Definitiva</button>
+                                <button data-id="${data.id}" class="btn-edit-callup bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">✏️ Modifica</button>
                                 <button data-id="${data.id}" class="btn-print-callup bg-black hover:bg-gray-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">🖨️ Stampa</button>
                                 <button data-id="${data.id}" class="btn-delete-callup bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">🗑️ Elimina</button>
                             </div>
@@ -1131,8 +1134,15 @@
                     `;
                 });
 
-                container.querySelectorAll('.btn-share-callup-wa').forEach(b => {
-                    b.addEventListener('click', (e) => shareCallupWhatsApp(e.target.getAttribute('data-id')));
+                // INSERITO QUI IL COLLEGAMENTO DEGLI EVENTI IN FONDO
+                container.querySelectorAll('.btn-share-invite').forEach(b => {
+                    b.addEventListener('click', (e) => sendInviteWhatsApp(e.target.getAttribute('data-id')));
+                });
+                container.querySelectorAll('.btn-final-callup').forEach(b => {
+                    b.addEventListener('click', (e) => sendFinalCallupWhatsApp(e.target.getAttribute('data-id')));
+                });
+                container.querySelectorAll('.btn-edit-callup').forEach(b => {
+                    b.addEventListener('click', (e) => prepareEditCallup(e.target.getAttribute('data-id')));
                 });
                 container.querySelectorAll('.btn-print-callup').forEach(b => {
                     b.addEventListener('click', (e) => printCallupReport(e.target.getAttribute('data-id')));
@@ -1145,7 +1155,6 @@
                 container.innerHTML = `<p class="text-xs text-red-500">Errore: ${err.message}</p>`;
             }
         }
-
 		function getMonthlyTableAsText() {
 		    const table = document.querySelector('#monthly-sessions-container table');
 		    if (!table) return "Nessun dato disponibile.";
