@@ -254,9 +254,6 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
         console.error("Errore durante l'invio della risposta:", err);
         alert("Errore di connessione. Riprova.");
     }
-}; : "text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200";
-        badge.innerText = status === 'confirmed' ? "Stato: Presenza Confermata ✅" : "Stato: Assenza Comunicata ❌";
-    }
-
+};
     await updateDoc(doc(db, collectionName, eventId), { [`responses.${childId}`]: status });
 };
