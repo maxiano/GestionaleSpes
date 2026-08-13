@@ -64,42 +64,53 @@ async function loadChildData(userProfile) {
     }
 
     try {
-        // 1. Legge i dati anagrafici del ragazzo usando il childId come ID del documento in 'players'
+        // 1. Legge il documento del ragazzo in 'players' per nome e squadra
         const childDocRef = doc(db, 'players', childId);
         const childDoc = await getDoc(childDocRef);
 
-        let childName = "Atleta";
-        let teamName = "Non assegnata";
-
-        if (childDoc.exists()) {
-            const childData = childDoc.data();
-            childName = childData.name || childData.nome || "Atleta";
-            teamName = childData.teamId || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
+        if (!childDoc.exists()) {
+            document.getElementById('parent-child-name').innerText = "Atleta non trovato";
+            return;
         }
 
-        // Mostra il nome del figlio nell'intestazione
-        document.getElementById('parent-child-name').innerText = childName;
+        const childData = childDoc.data();
+        const displayName = childData.lastName ? `${childData.lastName} ${childData.firstName}` : (childData.name || `${childData.cognome || ''} ${childData.nome || ''}`.trim());
+        const teamName = childData.team || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
 
-        // 2. Cerca nella collezione 'callups' le convocazioni che contengono questo childId nell'array
+        document.getElementById('parent-child-name').innerText = displayName;
+
+        // 2. Cerca nella collezione 'callups' controllando se l'elemento inizia con l'ID del figlio
         const callupsRef = collection(db, 'callups');
-        const q = query(callupsRef, where("players", "array-contains", childId));
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(callupsRef);
+
+        let activeCallup = null;
+
+        querySnapshot.forEach((docSnap) => {
+            const callupData = docSnap.data();
+            const invitedPlayers = callupData.players || callupData.convocati || [];
+
+            // Controlla se almeno una stringa nell'array inizia con "childId|"
+            const isFound = invitedPlayers.some(p => typeof p === 'string' && p.startsWith(`${childId}|`));
+
+            if (isFound) {
+                activeCallup = callupData;
+            }
+        });
 
         let callupHTML = '<p class="text-xs text-slate-500">Nessuna convocazione attiva al momento.</p>';
 
-        if (!querySnapshot.empty) {
-            const callupDoc = querySnapshot.docs[0].data();
-            
+        if (activeCallup) {
             callupHTML = `
                 <div class="flex flex-col gap-1">
-                    <span class="font-bold text-slate-800 text-sm">📅 ${callupDoc.match || callupDoc.title || 'Partita di Campionato'}</span>
-                    <span class="text-xs text-slate-600">Data/Ora: ${callupDoc.date || callupDoc.orario || 'Da definire'}</span>
-                    <span class="text-xs text-slate-600">Campo: ${callupDoc.location || callupDoc.campo || 'Da definire'}</span>
+                    <span class="font-bold text-slate-800 text-sm">📅 Partita vs ${activeCallup.opponent || 'Avversario'}</span>
+                    <span class="text-xs text-slate-600">Data: ${activeCallup.date || 'Da definire'} - Ore: ${activeCallup.matchTime || ''}</span>
+                    <span class="text-xs text-slate-600">Campo: ${activeCallup.location || 'Da definire'}</span>
+                    <span class="text-xs text-slate-500 mt-1">🕒 Ritrovo: ${activeCallup.gatheringTime || 'Da definire'}</span>
                 </div>
             `;
         }
 
-        // 3. Renderizza la schermata con nome, squadra e convocazione corretta
+        // 3. Renderizza la schermata
         document.getElementById('parent-content-area').innerHTML = `
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3">
                 <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full w-max">
@@ -123,6 +134,6 @@ async function loadChildData(userProfile) {
         `;
 
     } catch (error) {
-        console.error("Errore nel caricamento dei dati:", error);
+        console.error("Errore nel caricamento dei dati convocazione:", error);
     }
 }
