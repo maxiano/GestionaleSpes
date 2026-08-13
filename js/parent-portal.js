@@ -64,7 +64,6 @@ async function loadChildData(userProfile) {
     }
 
     try {
-        // 1. Legge il documento del ragazzo in 'players'
         const childDocRef = doc(db, 'players', childId);
         const childDoc = await getDoc(childDocRef);
 
@@ -75,11 +74,11 @@ async function loadChildData(userProfile) {
 
         const childData = childDoc.data();
         const displayName = childData.lastName ? `${childData.lastName} ${childData.firstName}` : (childData.name || `${childData.cognome || ''} ${childData.nome || ''}`.trim());
-        const teamName = childData.teamId || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
+        const teamName = childData.team || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
 
         document.getElementById('parent-child-name').innerText = displayName;
 
-        // 2. Cerca la convocazione attiva per questo figlio
+        // Cerca la convocazione attiva
         const callupsRef = collection(db, 'callups');
         const querySnapshot = await getDocs(callupsRef);
 
@@ -90,93 +89,106 @@ async function loadChildData(userProfile) {
             const callupData = docSnap.data();
             const invitedPlayers = callupData.players || callupData.convocati || [];
 
-            // Controlla se il figlio è tra i convocati
             const isFound = invitedPlayers.some(p => typeof p === 'string' && p.startsWith(`${childId}|`));
 
             if (isFound) {
                 activeCallup = callupData;
-                activeCallupId = docSnap.id; // Salviamo l'ID del documento della convocazione
+                activeCallupId = docSnap.id;
             }
         });
 
-        let callupHTML = '<p class="text-xs text-slate-500">Nessuna convocazione attiva al momento.</p>';
-        let actionButtonsHTML = '';
-
-        if (activeCallup && activeCallupId) {
-            // Controlla se il genitore ha già risposto in passato
-            const currentResponse = activeCallup.responses ? activeCallup.responses[childId] : null;
-            
-            let statusBadge = '';
-            if (currentResponse === 'confirmed') {
-                statusBadge = '<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Stato: Presenza Confermata ✅</span>';
-            } else if (currentResponse === 'absent') {
-                statusBadge = '<span class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>';
-            } else {
-                statusBadge = '<span class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Stato: In attesa di risposta ⏳</span>';
-            }
-
-            callupHTML = `
-                <div class="flex flex-col gap-2">
-                    <span class="font-bold text-slate-800 text-sm">📅 Partita vs ${activeCallup.opponent || 'Avversario'}</span>
-                    <span class="text-xs text-slate-600">Data: ${activeCallup.date || 'Da definire'} - Ore: ${activeCallup.matchTime || ''}</span>
-                    <span class="text-xs text-slate-600">Campo: ${activeCallup.location || 'Da definire'}</span>
-                    <span class="text-xs text-slate-500">🕒 Ritrovo: ${activeCallup.gatheringTime || 'Da definire'}</span>
-                    <div class="mt-1">${statusBadge}</div>
-                </div>
-            `;
-
-            actionButtonsHTML = `
-                <div class="flex gap-2 mt-2">
-                    <button onclick="window.respondCallup('${activeCallupId}', '${childId}', 'confirmed')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-sm">
-                        Conferma ✅
-                    </button>
-                    <button onclick="window.respondCallup('${activeCallupId}', '${childId}', 'absent')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-2.5 px-4 rounded-xl text-xs transition border border-rose-200">
-                        Assente ❌
-                    </button>
-                </div>
-            `;
-        }
-
-        // 3. Renderizza la schermata
-        document.getElementById('parent-content-area').innerHTML = `
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3">
-                <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full w-max">
-                    Squadra: ${teamName}
-                </span>
-                
-                <h4 class="font-bold text-sm text-slate-800 mt-2">📩 Prossima Convocazione</h4>
-                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    ${callupHTML}
-                </div>
-
-                ${actionButtonsHTML}
-            </div>
-        `;
+        renderPortalUI(activeCallup, activeCallupId, childId, teamName);
 
     } catch (error) {
         console.error("Errore nel caricamento dei dati convocazione:", error);
     }
 }
 
-// Funzione globale agganciata ai bottoni per scrivere la risposta su Firestore
-window.respondCallup = async function(callupId, childId, status) {
-    try {
-        const callupRef = doc(db, 'callups', callupId);
+// Funzione dedicata a disegnare la UI (così possiamo richiamarla istantaneamente)
+function renderPortalUI(activeCallup, activeCallupId, childId, teamName) {
+    let callupHTML = '<p class="text-xs text-slate-500">Nessuna convocazione attiva al momento.</p>';
+    let actionButtonsHTML = '';
+
+    if (activeCallup && activeCallupId) {
+        const currentResponse = activeCallup.responses && activeCallup.responses[childId] ? activeCallup.responses[childId] : null;
         
-        // Aggiorna o inserisce lo stato nella mappa 'responses' del documento Firestore
+        let statusBadge = '';
+        if (currentResponse === 'confirmed') {
+            statusBadge = '<span id="status-badge" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Stato: Presenza Confermata ✅</span>';
+        } else if (currentResponse === 'absent') {
+            statusBadge = '<span id="status-badge" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>';
+        } else {
+            statusBadge = '<span id="status-badge" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Stato: In attesa di risposta ⏳</span>';
+        }
+
+        callupHTML = `
+            <div class="flex flex-col gap-2">
+                <span class="font-bold text-slate-800 text-sm">📅 Partita vs ${activeCallup.opponent || 'Avversario'}</span>
+                <span class="text-xs text-slate-600">Data: ${activeCallup.date || 'Da definire'} - Ore: ${activeCallup.matchTime || ''}</span>
+                <span class="text-xs text-slate-600">Campo: ${activeCallup.location || 'Da definire'}</span>
+                <span class="text-xs text-slate-500">🕒 Ritrovo: ${activeCallup.gatheringTime || 'Da definire'}</span>
+                <div class="mt-1">${statusBadge}</div>
+            </div>
+        `;
+
+        actionButtonsHTML = `
+            <div class="flex gap-2 mt-2">
+                <button onclick="window.respondCallup('${activeCallupId}', '${childId}', 'confirmed')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-sm">
+                    Conferma ✅
+                </button>
+                <button onclick="window.respondCallup('${activeCallupId}', '${childId}', 'absent')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-2.5 px-4 rounded-xl text-xs transition border border-rose-200">
+                    Assente ❌
+                </button>
+            </div>
+        `;
+    }
+
+    document.getElementById('parent-content-area').innerHTML = `
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3">
+            <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full w-max">
+                Squadra: ${teamName}
+            </span>
+            
+            <h4 class="font-bold text-sm text-slate-800 mt-2">📩 Prossima Convocazione</h4>
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                ${callupHTML}
+            </div>
+
+            ${actionButtonsHTML}
+        </div>
+    `;
+}
+
+// Funzione di risposta con aggiornamento grafico immediato (Optimistic UI)
+window.respondCallup = async function(callupId, childId, status) {
+    // 1. AGGIORNAMENTO GRAFICO ISTANTANEO (Zero attesa)
+    const badge = document.getElementById('status-badge');
+    if (badge) {
+        if (status === 'confirmed') {
+            badge.className = "text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200";
+            badge.innerText = "Stato: Presenza Confermata ✅";
+        } else {
+            badge.className = "text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200";
+            badge.innerText = "Stato: Assenza Comunicata ❌";
+        }
+    }
+
+    try {
+        // 2. SALVATAGGIO IN BACKGROUND SU FIRESTORE
+        const callupRef = doc(db, 'callups', callupId);
         await updateDoc(callupRef, {
             [`responses.${childId}`]: status
         });
+        console.log("Risposta salvata con successo su Firestore!");
 
-        // Ricarica i dati per aggiornare la grafica con il nuovo stato
+    } catch (error) {
+        console.error("Errore durante il salvataggio della risposta:", error);
+        alert("Errore di connessione durante il salvataggio. Riprova.");
+        
+        // In caso di errore di rete, ricarichiamo i dati originali
         const userProfileStr = sessionStorage.getItem('userProfile') || localStorage.getItem('userProfile');
         if (userProfileStr) {
             loadChildData(JSON.parse(userProfileStr));
         }
-
-        alert(status === 'confirmed' ? "Presenza confermata con successo! ✅" : "Assenza comunicata al Mister. ❌");
-    } catch (error) {
-        console.error("Errore durante il salvataggio della risposta:", error);
-        alert("Errore di connessione. Riprova.");
     }
 };
