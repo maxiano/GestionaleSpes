@@ -57,14 +57,23 @@ async function loadChildData(userProfile) {
     }
 
     try {
-        // Visto che non ci serve più leggere il documento del player per anagrafica 
-        // (a meno che tu non voglia mostrare anche la foto o altri dati), 
-        // impostiamo intanto il nome del genitore o un titolo generico, oppure 
-        // se vuoi puoi comunque recuperare il nome del player se ti serve.
-        
-        document.getElementById('parent-child-name').innerText = `Atleta ID: ${childId}`;
+        // 1. Legge i dati anagrafici del ragazzo usando il childId come ID del documento in 'players'
+        const childDocRef = doc(db, 'players', childId);
+        const childDoc = await getDoc(childDocRef);
 
-        // Cerca direttamente nella collezione 'callups' usando il childId del genitore
+        let childName = "Atleta";
+        let teamName = "Non assegnata";
+
+        if (childDoc.exists()) {
+            const childData = childDoc.data();
+            childName = childData.name || childData.nome || "Atleta";
+            teamName = childData.team || childData.group || childData.gruppo || childData.squadra || 'Non assegnata';
+        }
+
+        // Mostra il nome del figlio nell'intestazione
+        document.getElementById('parent-child-name').innerText = childName;
+
+        // 2. Cerca nella collezione 'callups' le convocazioni che contengono questo childId nell'array
         const callupsRef = collection(db, 'callups');
         const q = query(callupsRef, where("players", "array-contains", childId));
         const querySnapshot = await getDocs(q);
@@ -83,11 +92,11 @@ async function loadChildData(userProfile) {
             `;
         }
 
-        // Renderizza la schermata
+        // 3. Renderizza la schermata con nome, squadra e convocazione corretta
         document.getElementById('parent-content-area').innerHTML = `
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3">
                 <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full w-max">
-                    Codice Atleta: ${childId}
+                    Squadra: ${teamName}
                 </span>
                 
                 <h4 class="font-bold text-sm text-slate-800 mt-2">📩 Prossima Convocazione</h4>
@@ -107,6 +116,6 @@ async function loadChildData(userProfile) {
         `;
 
     } catch (error) {
-        console.error("Errore nel caricamento della convocazione:", error);
+        console.error("Errore nel caricamento dei dati:", error);
     }
 }
