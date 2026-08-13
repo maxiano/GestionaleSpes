@@ -74,6 +74,7 @@ async function loadChildData(userProfile) {
     }
 
     const childId = userProfile?.childId; 
+    console.log("Inizio caricamento dati per:", childId);
     if (!childId) {
         console.error("ID del bambino non trovato nel profilo utente.");
         return;
@@ -83,10 +84,10 @@ async function loadChildData(userProfile) {
         const childDocRef = doc(db, 'players', childId);
         const childDoc = await getDoc(childDocRef);
         if (!childDoc.exists()) {
-            console.error("Scheda giocatore non trovata su Firestore.");
+            console.error("❌ ERRORE: Giocatore non trovato nella collezione 'players' con ID:", childId);
             return;
         }
-
+        console.log("✅ Giocatore trovato, carico convocazioni e presenze...");
         const childData = childDoc.data();
         const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim() || userProfile?.name;
         const childTeamId = childData.teamId || childData.team || childData.squadra || childData.group || userProfile?.teamId || '';
