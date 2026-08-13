@@ -270,7 +270,7 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (DEFINITIVA E ANTIDUPLICAZIONE)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (CON DEBUG IN CONSOLE)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     if (!db) {
         alert("Errore di configurazione: Database Firebase non inizializzato.");
@@ -278,7 +278,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 
     const dateInput = document.getElementById('custom-training-date');
-    const selectedDate = dateInput ? dateInput.value : '';
+    const selectedDate = dateInput ? dateInput.value : ''; // Es. 2026-08-13
 
     if (!selectedDate) {
         alert("Seleziona una data valida per l'allenamento.");
@@ -291,12 +291,15 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         const dateIt = `${day}/${month}/${year}`;                 // 13/08/2026
         const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
 
+        console.log("🔍 Cerco presenze per le date:", { dateIso, dateIt, dateItAlt, teamName });
+
         const querySnapshot = await getDocs(collection(db, 'attendances'));
         
         let targetDoc = null;
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const dbDate = String(data.date || '').trim();
+            // Controlliamo anche se corrisponde alla squadra o se la data coincide
             if (dbDate === dateIso || dbDate === dateIt || dbDate === dateItAlt) {
                 targetDoc = docSnap;
             }
@@ -304,23 +307,22 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
         let docRef;
         let recordList = [];
-        let fieldNameUsed = 'records'; // Usiamo 'records' come standard di default
+        let fieldNameUsed = 'records';
 
         if (targetDoc) {
+            console.log("✅ Trovato documento esistente ID:", targetDoc.id);
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
             
-            // Verifichiamo quale campo usa il documento esistente (record o records)
             if (Array.isArray(data.records)) {
                 fieldNameUsed = 'records';
                 recordList = [...data.records];
             } else if (Array.isArray(data.record)) {
                 fieldNameUsed = 'record';
                 recordList = [...data.record];
-            } else {
-                recordList = [];
             }
         } else {
+            console.log("⚠️ Nessun documento trovato per questa data. Ne creo uno nuovo.");
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
                 date: dateIt,
@@ -332,26 +334,27 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             recordList = [];
         }
 
-        // Pulizia preventiva da eventuali duplicati già presenti nel DB per questo giocatore
-        const cleanList = recordList.filter(r => String(r.playerId) !== String(childId));
+        // Rimuoviamo eventuali vecchi record dello stesso utente per evitare doppioni
+        const cleanList = recordList.filter(r => String(r.playerId || r.id) !== String(childId));
 
-        // Aggiungiamo il record aggiornato in modo univoco
+        // Aggiungiamo lo stato aggiornato
         cleanList.push({
             playerId: String(childId),
             name: childName,
             status: status
         });
 
-        // Salvataggio sul campo corretto
         const updatePayload = {};
         updatePayload[fieldNameUsed] = cleanList;
+
+        console.log("💾 Salvataggio su Firestore:", updatePayload);
         await updateDoc(docRef, updatePayload);
 
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
         window.location.reload();
 
     } catch (err) {
-        console.error("Errore salvataggio allenamento personalizzato:", err);
-        alert("Errore durante il salvataggio. Riprova.");
+        console.error("❌ Errore salvataggio allenamento personalizzato:", err);
+        alert("Errore durante il salvataggio. Controlla la console per i dettagli.");
     }
 };
