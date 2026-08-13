@@ -282,8 +282,9 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
 };
 
 // 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (SENZA RICARICARE LA PAGINA)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
-    console.log("🚀 CLICCATO! submitCustomTraining avviata con successo", { childId, teamName, childName, status });
+    console.log("🚀 CLICCATO! submitCustomTraining avviata", { childId, teamName, childName, status });
 
     if (!db) {
         alert("Errore di configurazione: Database Firebase non inizializzato.");
@@ -320,7 +321,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         let fieldNameUsed = 'records';
 
         if (targetDoc) {
-            console.log("✅ Trovato documento esistente ID:", targetDoc.id);
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
             
@@ -332,7 +332,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
                 recordList = [...data.record];
             }
         } else {
-            console.log("⚠️ Nessun documento trovato per questa data. Ne creo uno nuovo.");
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
                 date: dateIt,
@@ -355,11 +354,12 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         const updatePayload = {};
         updatePayload[fieldNameUsed] = cleanList;
 
-        console.log("💾 Scrittura in corso su Firestore...", updatePayload);
         await updateDoc(docRef, updatePayload);
 
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
-        window.location.reload();
+        
+        // Invece di ricaricare la pagina, ricarichiamo silenziosamente i dati del figlio
+        await loadChildData({ childId: childId, name: childName });
 
     } catch (err) {
         console.error("❌ Errore durante il salvataggio:", err);
