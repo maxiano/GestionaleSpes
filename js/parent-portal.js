@@ -270,7 +270,7 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (ROBUSTA)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (ROBUSTA E PRIVA DI ERRORI DI SINTASSI)
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     if (!db) {
         alert("Errore di configurazione: Database Firebase non inizializzato.");
@@ -278,7 +278,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 
     const dateInput = document.getElementById('custom-training-date');
-    const selectedDate = dateInput ? dateInput.value; // Formato input: AAAA-MM-GG (es. 2026-08-13)
+    const selectedDate = dateInput ? dateInput.value : ''; // Aggiunto il fallback corretto
 
     if (!selectedDate) {
         alert("Seleziona una data valida per l'allenamento.");
@@ -286,13 +286,11 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 
     try {
-        // Conversione della data selezionata per supportare vari formati nel DB
         const [year, month, day] = selectedDate.split('-');
-        const dateIso = selectedDate;                          // 2026-08-13
-        const dateIt = `${day}/${month}/${year}`;              // 13/08/2026
-        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
+        const dateIso = selectedDate;
+        const dateIt = `${day}/${month}/${year}`;
+        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`;
 
-        // Scarichiamo tutti i registri per trovare la corrispondenza corretta indipendentemente dal formato
         const querySnapshot = await getDocs(collection(db, 'attendances'));
         
         let targetDoc = null;
@@ -308,22 +306,19 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         let recordList = [];
 
         if (targetDoc) {
-            // Trovato! Usiamo il documento esistente
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
             recordList = data.record || data.records || [];
         } else {
-            // Non esiste un registro per questa data, ne creiamo uno nuovo
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
-                date: dateIt, // Salviamo nel formato standard italiano o iso coerente col resto del gestionale
+                date: dateIt,
                 teamId: teamName,
                 notes: 'Seduta scelta da portale famiglia',
                 record: []
             });
         }
 
-        // Cerca se esiste già il record per questo specifico giocatore
         const index = recordList.findIndex(r => String(r.playerId) === String(childId));
         
         if (index > -1) {
@@ -333,7 +328,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             recordList.push({ playerId: String(childId), name: childName, status: status });
         }
 
-        // Aggiorna Firestore con la lista dei record pulita
         await updateDoc(docRef, { record: recordList });
 
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
