@@ -1,4 +1,4 @@
-import { db, auth } from './firebase-init.js';
+import { db, auth } from './firebase-config.js';
 import { 
     collection, 
     doc, 
@@ -49,6 +49,13 @@ export async function initParentPortal(userProfile) {
 
 // 2. CARICAMENTO DATI (Partite + Storico Presenze Allenamenti)
 async function loadChildData(userProfile) {
+    // CONTROLLO CRITICO: Verifichiamo subito se db è definito
+    if (!db) {
+        console.error("❌ ERRORE CRITICO: L'oggetto 'db' importato da 'firebase-config.js' è UNDEFINED.");
+        alert("Errore di configurazione: Impossibile connettersi a Firestore. Verifica firebase-config.js");
+        return;
+    }
+
     const childId = userProfile?.childId; 
     if (!childId) {
         console.error("ID del bambino non trovato nel profilo utente.");
@@ -69,11 +76,6 @@ async function loadChildData(userProfile) {
 
         const nameEl = document.getElementById('parent-child-name');
         if (nameEl) nameEl.innerText = displayName;
-
-        // Verifica di sicurezza su db prima di chiamare collection()
-        if (!db) {
-            throw new Error("L'istanza del database Firestore (db) non è definita.");
-        }
 
         // Scarichiamo callups (partite) e attendances (allenamenti) in parallelo
         const [callupsSnap, attendancesSnap] = await Promise.all([
@@ -238,6 +240,10 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
 
 // 4. GESTIONE RISPOSTE PARTITE
 window.respondEvent = async function(collectionName, eventId, childId, status) {
+    if (!db) {
+        alert("Errore di configurazione: Database Firebase non inizializzato.");
+        return;
+    }
     const statusBadge = document.getElementById(`status-badge-${eventId}`);
     try {
         const docRef = doc(db, collectionName, eventId);
@@ -266,6 +272,11 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
 
 // 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
+    if (!db) {
+        alert("Errore di configurazione: Database Firebase non inizializzato.");
+        return;
+    }
+
     const dateInput = document.getElementById('custom-training-date');
     const selectedDate = dateInput ? dateInput.value : '';
 
