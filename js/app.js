@@ -1912,7 +1912,10 @@
 	    const callup = loadedCallupsList.find(c => c.id === id);
 	    if (!callup) return;
 	    
-	    const msg = `🚨 CONVOCAZIONE DEFINITIVA - Spes Montesacro 🚨\n\nPartita: *${callup.opponent}*\nRitrovo: *${callup.gatheringTime}*\n\nLa lista è stata finalizzata. Controllate il portale per i dettagli definitivi!`;
+	    // Usiamo il codice Unicode pulito per evitare problemi di codifica del file
+	    const siren = "\uD83D\uDEA8"; 
+	    
+	    const msg = `${siren} CONVOCAZIONE DEFINITIVA - Spes Montesacro ${siren}\n\nPartita: *${callup.opponent}*\nRitrovo: *${callup.gatheringTime}*\n\nLa lista è stata finalizzata. Controllate il portale per i dettagli definitivi!`;
 	    
 	    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 	}
