@@ -57,7 +57,7 @@ async function loadChildData(userProfile) {
 
         const childData = childDoc.data();
         const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim();
-        const teamName = childData.team || childData.group || childData.gruppo || childData.squadra || '';
+        const teamName = childData.teamId || childData.group || childData.gruppo || childData.squadra || '';
 
         document.getElementById('parent-child-name').innerText = displayName;
 
