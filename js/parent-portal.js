@@ -44,7 +44,7 @@ export async function initParentPortal(userProfile) {
     }
 }
 
-// 2. CARICAMENTO E DIVISIONE DATI (Partite e Allenamenti Separati)
+// 2. CARICAMENTO DATI (Partite + Storico Presenze Allenamenti)
 async function loadChildData(userProfile) {
     const childId = userProfile.childId; 
     if (!childId) return;
@@ -67,7 +67,7 @@ async function loadChildData(userProfile) {
         ]);
 
         let matchesList = [];
-        let trainingsList = [];
+        let trainingsHistory = [];
 
         // A. Elaborazione Partite (Callups)
         callupsSnap.forEach((docSnap) => {
@@ -95,97 +95,94 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // B. Elaborazione Allenamenti (Attendances - leggendo l'array 'record')
+        // B. Storico Allenamenti del ragazzo (dalla collezione attendances)
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const trainingTeamId = data.teamId || data.team || data.squadra || '';
             
-            // Mappiamo l'array 'record' o 'records'
-            let responses = {};
             const recordList = data.record || data.records || [];
             if (Array.isArray(recordList)) {
-                recordList.forEach(r => {
-                    if (r.playerId) {
-                        responses[r.playerId] = r.status;
-                    }
-                });
-            }
-            
-            const hasResponded = responses[childId] !== undefined;
-            const isTeamMatch = !trainingTeamId || !childTeamId || 
-                String(trainingTeamId).toLowerCase().trim() === String(childTeamId).toLowerCase().trim();
-
-            if (isTeamMatch || hasResponded) {
-                trainingsList.push({
-                    id: docSnap.id,
-                    collection: 'attendances',
-                    type: 'training',
-                    title: `Allenamento (${data.notes || 'Seduta regolare'})`,
-                    date: data.date || 'Da definire',
-                    time: data.time || '',
-                    location: data.location || 'Da definire',
-                    subInfo: data.notes ? `Note: ${data.notes}` : 'Campo principale',
-                    responses: responses
-                });
+                const myRecord = recordList.find(r => r.playerId === childId);
+                if (myRecord) {
+                    trainingsHistory.push({
+                        id: docSnap.id,
+                        collection: 'attendances',
+                        date: data.date || 'Da definire',
+                        notes: data.notes || 'Seduta regolare',
+                        status: myRecord.status
+                    });
+                }
             }
         });
 
-        // Ordinamento cronologico per entrambe le liste
+        // Ordinamento cronologico
         matchesList.sort((a, b) => (new Date(a.date || 0)).getTime() - (new Date(b.date || 0)).getTime());
-        trainingsList.sort((a, b) => (new Date(a.date || 0)).getTime() - (new Date(b.date || 0)).getTime());
+        trainingsHistory.sort((a, b) => (new Date(b.date || 0)).getTime() - (new Date(a.date || 0)).getTime()); // Dal più recente
 
-        renderSeparatedPortalUI(matchesList, trainingsList, childId, childTeamId || 'Assegnata');
+        renderPortalUI(matchesList, trainingsHistory, childId, childTeamId || 'Assegnata', displayName);
     } catch (error) {
-        console.error("Errore caricamento dati separati:", error);
+        console.error("Errore caricamento dati:", error);
     }
 }
 
-// 3. RENDER GRAFICO CON SEZIONI SEPARATE (Partite vs Allenamenti)
-function renderSeparatedPortalUI(matchesList, trainingsList, childId, teamName) {
+// 3. RENDER GRAFICO CON INPUT DATA PER GLI ALLENAMENTI
+function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
     const container = document.getElementById('parent-content-area');
     if (!container) return;
 
-    // Helper per generare l'HTML di una lista di eventi
-    function generateEventsHTML(eventsList) {
-        if (!eventsList || eventsList.length === 0) {
-            return `<p class="text-xs text-slate-400 italic py-2">Nessun impegno programmato.</p>`;
-        }
-
-        let html = '';
-        eventsList.forEach((ev) => {
+    // HTML Partite
+    let matchesHTML = '';
+    if (matchesList.length === 0) {
+        matchesHTML = `<p class="text-xs text-slate-400 italic py-2">Nessuna convocazione attiva.</p>`;
+    } else {
+        matchesList.forEach((ev) => {
             const currentResponse = ev.responses?.[childId] || null;
-            
             let statusBadge = currentResponse === 'confirmed' || currentResponse === 'present'
-                ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Stato: Presenza Confermata ✅</span>`
+                ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Presenza Confermata ✅</span>`
                 : currentResponse === 'absent'
-                ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>`
-                : `<span id="status-badge-${ev.id}" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Stato: In attesa di risposta ⏳</span>`;
+                ? `<span id="status-badge-${ev.id}" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Assenza Comunicata ❌</span>`
+                : `<span id="status-badge-${ev.id}" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">In attesa di risposta ⏳</span>`;
 
-            let badgeType = ev.type === 'match' 
-                ? '<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">⚽ PARTITA</span>'
-                : '<span class="bg-sky-50 text-sky-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-sky-100">🏃‍♂️ ALLENAMENTO</span>';
-
-            const confirmVal = ev.type === 'match' ? 'confirmed' : 'present';
-
-            html += `
-                <div class="bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 mb-2.5 last:mb-0 transition hover:bg-white hover:shadow-sm">
+            const confirmVal = 'confirmed';
+            matchesHTML += `
+                <div class="bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 mb-2.5 transition">
                     <div class="flex flex-col gap-1">
                         <div class="flex justify-between items-center">
                             <span class="font-bold text-slate-800 text-sm">${ev.title}</span>
-                            ${badgeType}
+                            <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">⚽ PARTITA</span>
                         </div>
                         <span class="text-xs text-slate-600">📅 Data: ${ev.date} ${ev.time ? '| ⏰ ' + ev.time : ''}</span>
-                        <span class="text-xs text-slate-600">📍 Campo: ${ev.location} | ${ev.subInfo}</span>
+                        <span class="text-xs text-slate-600">📍 Campo: ${ev.location}</span>
                         <div class="mt-1">${statusBadge}</div>
                     </div>
                     <div class="flex gap-2 mt-2.5">
-                        <button onclick="window.respondEvent('${ev.collection}', '${ev.id}', '${childId}', '${confirmVal}')" class="flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
-                        <button onclick="window.respondEvent('${ev.collection}', '${ev.id}', '${childId}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-1.5 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Assente ❌</button>
+                        <button onclick="window.respondEvent('callups', '${ev.id}', '${childId}', '${confirmVal}')" class="flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
+                        <button onclick="window.respondEvent('callups', '${ev.id}', '${childId}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-1.5 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Assente ❌</button>
                     </div>
                 </div>
             `;
         });
-        return html;
+    }
+
+    // HTML Storico Allenamenti gestiti dal genitore
+    let historyHTML = '';
+    if (trainingsHistory.length === 0) {
+        historyHTML = `<p class="text-xs text-slate-400 italic py-1">Nessuna preferenza inviata di recente.</p>`;
+    } else {
+        trainingsHistory.forEach((t) => {
+            let badge = t.status === 'present' 
+                ? '<span class="text-emerald-600 font-bold">Presente ✅</span>' 
+                : '<span class="text-rose-600 font-bold">Assente ❌</span>';
+            historyHTML += `
+                <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5">
+                    <div>
+                        <span class="font-semibold text-slate-700">📅 ${t.date}</span>
+                        <span class="text-slate-500 ml-2">(${t.notes})</span>
+                    </div>
+                    <div>${badge}</div>
+                </div>
+            `;
+        });
     }
 
     container.innerHTML = `
@@ -202,65 +199,112 @@ function renderSeparatedPortalUI(matchesList, trainingsList, childId, teamName) 
                     <span class="text-base">⚽</span>
                     <h3 class="font-bold text-slate-800 text-sm">Partite e Convocazioni</h3>
                 </div>
-                <div class="flex flex-col">${generateEventsHTML(matchesList)}</div>
+                <div class="flex flex-col">${matchesHTML}</div>
             </div>
 
-            <!-- BOX ALLENAMENTI -->
+            <!-- BOX AUTONOMIA ALLENAMENTI (TRAMITE DATEPICKER) -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                 <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
                     <span class="text-base">🏃‍♂️</span>
-                    <h3 class="font-bold text-slate-800 text-sm">Sedute di Allenamento</h3>
+                    <h3 class="font-bold text-slate-800 text-sm">Comunica Presenza / Assenza Allenamento</h3>
                 </div>
-                <div class="flex flex-col">${generateEventsHTML(trainingsList)}</div>
+                
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                    <label class="block text-xs font-bold text-slate-700">Seleziona la data dell'allenamento:</label>
+                    <input type="date" id="custom-training-date" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-emerald-500">
+                    
+                    <div class="flex gap-2 pt-1">
+                        <button onclick="window.submitCustomTraining('${childId}', '${teamName}', '${childName}', 'present')" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
+                        <button onclick="window.submitCustomTraining('${childId}', '${teamName}', '${childName}', 'absent')" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">I tuoi ultimi invii:</span>
+                    <div class="flex flex-col">${historyHTML}</div>
+                </div>
             </div>
         </div>
     `;
 };
 
-// 4. GESTIONE UNIFICATA DELLE RISPOSTE (Aggiorna array 'record' per attendances e mappa per callups)
+// 4. GESTIONE RISPOSTE PARTITE
 window.respondEvent = async function(collectionName, eventId, childId, status) {
     const statusBadge = document.getElementById(`status-badge-${eventId}`);
-
     try {
         const docRef = doc(db, collectionName, eventId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            if (collectionName === 'attendances') {
-                // Aggiornamento array 'record' (o 'records') per gli allenamenti
-                let data = docSnap.data();
-                let recordList = data.record || data.records || [];
-                const index = recordList.findIndex(r => r.playerId === childId);
-                
-                if (index > -1) {
-                    recordList[index].status = status;
-                } else {
-                    recordList.push({ playerId: childId, status: status, name: '' });
-                }
-
-                // Salviamo sul campo corretto in base a quale dei due esiste nel doc
-                const updateField = data.record ? { record: recordList } : { records: recordList };
-                await updateDoc(docRef, updateField);
-            } else {
-                // Salvataggio standard su mappa 'responses' per le partite
-                let responses = docSnap.data().responses || {};
-                responses[childId] = status; 
-                await updateDoc(docRef, { responses: responses });
-            }
+            let responses = docSnap.data().responses || {};
+            responses[childId] = status; 
+            await updateDoc(docRef, { responses: responses });
         }
 
         if (statusBadge) {
             if (status === 'confirmed' || status === 'present') {
                 statusBadge.className = "text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200";
-                statusBadge.innerText = "Stato: Presenza Confermata ✅";
+                statusBadge.innerText = "Presenza Confermata ✅";
             } else {
                 statusBadge.className = "text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200";
-                statusBadge.innerText = "Stato: Assenza Comunicata ❌";
+                statusBadge.innerText = "Assenza Comunicata ❌";
             }
         }
+    } catch (err) {
+        console.error("Errore salvataggio partita:", err);
+        alert("Errore di connessione. Riprova.");
+    }
+};
+
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO CON DATA SCELTA DAL FAMILIARE
+window.submitCustomTraining = async function(childId, teamName, childName, status) {
+    const dateInput = document.getElementById('custom-training-date');
+    const selectedDate = dateInput ? dateInput.value : '';
+
+    if (!selectedDate) {
+        alert("Seleziona una data valida per l'allenamento.");
+        return;
+    }
+
+    try {
+        const q = query(collection(db, 'attendances'), where("date", "==", selectedDate));
+        const querySnapshot = await getDocs(q);
+
+        let docRef;
+        let recordList = [];
+
+        if (!querySnapshot.empty) {
+            // Se esiste già un documento per questa data, lo aggiorniamo
+            const existingDoc = querySnapshot.docs[0];
+            docRef = doc(db, 'attendances', existingDoc.id);
+            recordList = existingDoc.data().record || existingDoc.data().records || [];
+        } else {
+            // Altrimenti creiamo un nuovo documento in attendances per quella data
+            docRef = doc(collection(db, 'attendances'));
+            await setDoc(docRef, {
+                date: selectedDate,
+                teamId: teamName,
+                notes: 'Seduta scelta da portale famiglia',
+                record: []
+            });
+        }
+
+        // Aggiorniamo o aggiungiamo il record del ragazzo
+        const index = recordList.findIndex(r => r.playerId === childId);
+        if (index > -1) {
+            recordList[index].status = status;
+            recordList[index].name = childName;
+        } else {
+            recordList.push({ playerId: childId, name: childName, status: status });
+        }
+
+        await updateDoc(docRef, { record: recordList });
+
+        alert(`Preferenza registrata con successo per il ${selectedDate}!`);
+        window.location.reload(); // Ricarica per aggiornare lo storico
 
     } catch (err) {
-        console.error("Errore durante l'invio della risposta:", err);
-        alert("Errore di connessione. Riprova.");
+        console.error("Errore salvataggio allenamento personalizzato:", err);
+        alert("Errore durante il salvataggio. Riprova.");
     }
 };
