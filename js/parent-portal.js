@@ -5,7 +5,7 @@
  * @copyright © 2026 Spes Montesacro. Tutti i diritti riservati.
  */
 
-import { db } from './firebase-config.js';
+import { db } from './firebase-init.js';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.x.x/firebase-firestore.js";
 
 /**
