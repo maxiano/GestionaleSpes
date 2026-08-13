@@ -9,7 +9,7 @@ import { db, auth } from './firebase-init.js';
 import { doc, getDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// 1. FUNZIONE PRINCIPALE DI AVVIO (quella che app.js chiama)
+// 1. FUNZIONE PRINCIPALE DI AVVIO
 export async function initParentPortal(userProfile) {
     console.log("Inizializzazione portale genitori per:", userProfile.name);
     
@@ -33,11 +33,10 @@ export async function initParentPortal(userProfile) {
         if (logoutBtn) {
             logoutBtn.addEventListener('click', async () => {
                 await signOut(auth);
-                window.location.reload(); // Ricarica per tornare al login
+                window.location.reload();
             });
         }
 
-        // Avvia il caricamento dati
         await loadChildData(userProfile);
 
     } catch (error) {
@@ -45,7 +44,7 @@ export async function initParentPortal(userProfile) {
     }
 }
 
-// 2. FUNZIONE DI CARICAMENTO DATI (Raccoglie tutte le convocazioni in modo sicuro e persistente)
+// 2. FUNZIONE DI CARICAMENTO DATI
 async function loadChildData(userProfile) {
     const childId = userProfile.childId; 
     if (!childId) return;
@@ -58,12 +57,10 @@ async function loadChildData(userProfile) {
         const childData = childDoc.data();
         const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim();
         
-        // Recupera la squadra del ragazzo da qualsiasi campo possibile
         const childTeamId = childData.teamId || childData.team || childData.squadra || childData.group || '';
 
         document.getElementById('parent-child-name').innerText = displayName;
 
-        // Cerca tutte le convocazioni
         const callupsRef = collection(db, 'callups');
         const querySnapshot = await getDocs(callupsRef);
 
@@ -75,20 +72,15 @@ async function loadChildData(userProfile) {
             const invitedPlayers = callup.players || [];
             const responses = callup.responses || {};
             
-            // 1. Il ragazzo è nella lista dei convocati attuale
             const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && (p === childId || p.startsWith(`${childId}|`)));
-            
-            // 2. Il genitore ha già risposto in passato (quindi la partita non deve sparire anche se il Mister modifica la lista)
             const hasResponded = responses[childId] !== undefined;
             
-            // 3. Corrispondenza di squadra (flessibile)
             const isTeamMatch = callupTeamId && childTeamId && (
                 String(callupTeamId).toLowerCase() === String(childTeamId).toLowerCase() ||
                 String(childTeamId).includes(String(callupTeamId)) ||
                 String(callupTeamId).includes(String(childTeamId))
             );
 
-            // Se BASTA UNA di queste condizioni, la partita viene mostrata al genitore
             if (isExplicitlyInvited || hasResponded || isTeamMatch) {
                 userCallups.push({
                     id: docSnap.id,
@@ -97,7 +89,6 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // Ordinamento sicuro delle date
         userCallups.sort((a, b) => {
             const timeA = (a.date && a.date !== 'da definire') ? new Date(a.date).getTime() : 0;
             const timeB = (b.date && b.date !== 'da definire') ? new Date(b.date).getTime() : 0;
@@ -110,7 +101,7 @@ async function loadChildData(userProfile) {
     }
 }
 
-// 3. FUNZIONE GRAFICA (Render UI per la lista completa)
+// 3. FUNZIONE GRAFICA
 function renderPortalUI(callupsList, childId, teamName) {
     const container = document.getElementById('parent-content-area');
     if (!container) return;
@@ -136,7 +127,6 @@ function renderPortalUI(callupsList, childId, teamName) {
             ? `<span id="status-badge-${callup.id}" class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-200">Stato: Assenza Comunicata ❌</span>`
             : `<span id="status-badge-${callup.id}" class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">Stato: In attesa di risposta ⏳</span>`;
 
-        // Gestione pulita se i campi sono "da definire" o vuoti
         const matchDate = callup.date ? callup.date : 'Da definire';
         const matchTime = callup.matchTime ? callup.matchTime : '';
         const matchLocation = callup.location ? callup.location : 'Da definire';
@@ -166,7 +156,7 @@ function renderPortalUI(callupsList, childId, teamName) {
     `;
 }
 
-// 4. RISPOSTA (Aggiornato per gestire singoli badge con ID dinamico)
+// 4. RISPOSTA
 window.respondCallup = async function(callupId, childId, status) {
     const badge = document.getElementById(`status-badge-${callupId}`);
     if (badge) {
