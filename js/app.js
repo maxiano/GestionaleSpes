@@ -631,364 +631,432 @@
             });
         }
 
-        async function checkAndLoadExistingAttendance() {
-            const dateInput = document.getElementById('attendance-date');
-            const container = document.getElementById('attendance-status-container');
-            const badge = document.getElementById('attendance-status-badge');
-            const deleteBtn = document.getElementById('btn-delete-session');
+      async function checkAndLoadExistingAttendance() {
+        const dateInput = document.getElementById('attendance-date');
+        const container = document.getElementById('attendance-status-container');
+        const badge = document.getElementById('attendance-status-badge');
+        const deleteBtn = document.getElementById('btn-delete-session');
 
-            if (!dateInput || !dateInput.value || !activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') {
-                if (container) container.classList.add('hidden');
+        if (!dateInput || !dateInput.value || !activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') {
+            if (container) container.classList.add('hidden');
+            currentSessionDocId = null;
+            return;
+        }
+
+        const date = dateInput.value; // Formato AAAA-MM-GG (es. 2026-08-13)
+        const [year, month, day] = date.split('-');
+        const dateIt = `${day}/${month}/${year}`;         // Formato 13/08/2026
+        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // Formato 13/8/2026
+
+        try {
+            // Cerchiamo tutti i documenti della squadra per confrontare le date in modo flessibile
+            const q = query(
+                collection(db, 'attendances'),
+                where('teamId', '==', activeTeamId)
+            );
+            const snapshot = await getDocs(q);
+
+            let targetDocSnap = null;
+            snapshot.forEach(docSnap => {
+                const docData = docSnap.data();
+                const dbDate = String(docData.date || '').trim();
+                if (dbDate === date || dbDate === dateIt || dbDate === dateItAlt) {
+                    targetDocSnap = docSnap;
+                }
+            });
+
+            if (targetDocSnap) {
+                const docSnap = targetDocSnap;
+                currentSessionDocId = docSnap.id;
+                const records = docSnap.data().records || docSnap.data().record || [];
+
+                records.forEach(rec => {
+                    const pId = rec.playerId || rec.id;
+                    const radio = document.querySelector(`input[name="att_${pId}"][value="${rec.status}"]`);
+                    if (radio) radio.checked = true;
+                });
+
+                if (container) container.classList.remove('hidden');
+                if (badge) {
+                    badge.className = "text-xs font-bold text-amber-800";
+                    badge.innerHTML = `⚠️ Presenze per il <strong>${formatDateIT(date)}</strong> già salvate (aggiornate anche da portale famiglia).`;
+                }
+                if (deleteBtn) deleteBtn.classList.remove('hidden');
+
+            } else {
                 currentSessionDocId = null;
-                return;
+                resetAttendanceRadios();
+
+                if (container) container.classList.remove('hidden');
+                if (badge) {
+                    badge.className = "text-xs font-bold text-emerald-800";
+                    badge.innerHTML = `✨ Nuova giornata del <strong>${formatDateIT(date)}</strong> (nessun dato salvato).`;
+                }
+                if (deleteBtn) deleteBtn.classList.add('hidden');
+            }
+        } catch (err) {
+            console.error("Errore controllo presenze:", err);
+        }
+    }
+
+    document.getElementById('attendance-date').addEventListener('change', checkAndLoadExistingAttendance);
+
+    document.getElementById('form-attendance').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!activeTeamId || activeTeamPlayers.length === 0) return alert('Nessuna squadra o giocatore presente!');
+
+        const date = document.getElementById('attendance-date').value;
+        if (!date) return alert('Seleziona una data valida!');
+
+        const [year, month, day] = date.split('-');
+        const dateIt = `${day}/${month}/${year}`;
+
+        try {
+            // Ricerca flessibile per individuare il documento esistente
+            const snapshot = await getDocs(query(collection(db, 'attendances'), where('teamId', '==', activeTeamId)));
+            
+            let existingDocId = null;
+            snapshot.forEach(docSnap => {
+                const docData = docSnap.data();
+                const dbDate = String(docData.date || '').trim();
+                if (dbDate === date || dbDate === dateIt || dbDate === `${parseInt(day)}/${parseInt(month)}/${year}`) {
+                    existingDocId = docSnap.id;
+                }
+            });
+
+            if (existingDocId) {
+                if (!confirm(`⚠️ Hai già salvato le presenze per il ${formatDateIT(date)}.\nVuoi sovrascriverle?`)) return;
             }
 
-            const date = dateInput.value;
+            const records = [];
+            activeTeamPlayers.forEach(player => {
+                const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
+                if (radio) {
+                    const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                    records.push({ 
+                        id: player.id,
+                        playerId: player.id, 
+                        name: displayName, 
+                        status: radio.value,
+                        present: radio.value === 'present',
+                        absent: radio.value === 'absent'
+                    });
+                }
+            });
 
-            try {
+            if (existingDocId) {
+                const docRef = doc(db, 'attendances', existingDocId);
+                await updateDoc(docRef, {
+                    records: records,
+                    record: records,
+                    updatedAt: serverTimestamp()
+                });
+                alert('Presenze aggiornate con successo!');
+            } else {
+                await addDoc(collection(db, 'attendances'), {
+                    teamId: activeTeamId,
+                    date: date, // Salva in formato ISO standard
+                    records: records,
+                    record: records,
+                    createdAt: serverTimestamp()
+                });
+                alert('Presenze salvate con successo!');
+            }
+
+            AppCache.clearAttendances(activeTeamId);
+            const savedDateObj = new Date(date + 'T00:00:00');
+            document.getElementById('filter-month').value = savedDateObj.getMonth();
+            document.getElementById('filter-year').value = savedDateObj.getFullYear();
+
+            checkAndLoadExistingAttendance();
+            loadMonthlyAttendances(true);
+
+        } catch (err) {
+            alert("Errore salvataggio presenze: " + err.message);
+        }
+    });
+
+    document.getElementById('btn-delete-session').addEventListener('click', async () => {
+        if (!currentSessionDocId) return;
+        const dateStr = document.getElementById('attendance-date').value;
+        if (!confirm(`Eliminare definitivamente l'allenamento del ${formatDateIT(dateStr)}?`)) return;
+
+        try {
+            await deleteDoc(doc(db, 'attendances', currentSessionDocId));
+            alert('Giornata eliminata con successo!');
+            AppCache.clearAttendances(activeTeamId);
+            currentSessionDocId = null;
+            checkAndLoadExistingAttendance();
+            loadMonthlyAttendances(true);
+        } catch (err) {
+            alert("Errore eliminazione: " + err.message);
+        }
+    });
+        async function loadMonthlyAttendances(forceRefresh = false) {
+        if (!activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') return;
+
+        const selectedMonth = parseInt(document.getElementById('filter-month').value);
+        const selectedYear = parseInt(document.getElementById('filter-year').value);
+        const container = document.getElementById('monthly-sessions-container');
+
+        document.getElementById('print-report-period').innerText = `Periodo: ${monthNamesIT[selectedMonth]} ${selectedYear}`;
+
+        const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+
+        try {
+            let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth);
+
+            if (!sessions || forceRefresh) {
+                container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
+                
+                // Scarichiamo tutte le presenze della squadra per gestirle in modo flessibile indipendentemente dal formato data
                 const q = query(
                     collection(db, 'attendances'),
-                    where('teamId', '==', activeTeamId),
-                    where('date', '==', date)
+                    where('teamId', '==', activeTeamId)
                 );
                 const snapshot = await getDocs(q);
 
-                if (!snapshot.empty) {
-                    const docSnap = snapshot.docs[0];
-                    currentSessionDocId = docSnap.id;
-                    const records = docSnap.data().records || [];
+                const allSessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    records.forEach(rec => {
-                        const radio = document.querySelector(`input[name="att_${rec.playerId}"][value="${rec.status}"]`);
-                        if (radio) radio.checked = true;
-                    });
+                // Filtriamo e normalizziamo le sessioni per il mese e anno selezionati
+                sessions = allSessions.filter(s => {
+                    const dbDateStr = String(s.date || '').trim();
+                    let sYear, sMonth, sDay;
 
-                    if (container) container.classList.remove('hidden');
-                    if (badge) {
-                        badge.className = "text-xs font-bold text-amber-800";
-                        badge.innerHTML = `⚠️ Presenze per il <strong>${formatDateIT(date)}</strong> già salvate. Salvando ora sovrascriverai i dati.`;
+                    if (dbDateStr.includes('-')) {
+                        // Formato ISO: YYYY-MM-DD
+                        const parts = dbDateStr.split('-');
+                        if (parts.length === 3) {
+                            sYear = parseInt(parts[0], 10);
+                            sMonth = parseInt(parts[1], 10) - 1;
+                            sDay = parseInt(parts[2], 10);
+                        }
+                    } else if (dbDateStr.includes('/')) {
+                        // Formato IT: DD/MM/YYYY
+                        const parts = dbDateStr.split('/');
+                        if (parts.length === 3) {
+                            sDay = parseInt(parts[0], 10);
+                            sMonth = parseInt(parts[1], 10) - 1;
+                            sYear = parseInt(parts[2], 10);
+                        }
                     }
-                    if (deleteBtn) deleteBtn.classList.remove('hidden');
 
-                } else {
-                    currentSessionDocId = null;
-                    resetAttendanceRadios();
-
-                    if (container) container.classList.remove('hidden');
-                    if (badge) {
-                        badge.className = "text-xs font-bold text-emerald-800";
-                        badge.innerHTML = `✨ Nuova giornata del <strong>${formatDateIT(date)}</strong> (nessun dato salvato).`;
-                    }
-                    if (deleteBtn) deleteBtn.classList.add('hidden');
-                }
-            } catch (err) {
-                console.error("Errore controllo presenze:", err);
-            }
-        }
-
-        document.getElementById('attendance-date').addEventListener('change', checkAndLoadExistingAttendance);
-
-        document.getElementById('form-attendance').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!activeTeamId || activeTeamPlayers.length === 0) return alert('Nessuna squadra o giocatore presente!');
-
-            const date = document.getElementById('attendance-date').value;
-            if (!date) return alert('Seleziona una data valida!');
-
-            try {
-                const q = query(
-                    collection(db, 'attendances'),
-                    where('teamId', '==', activeTeamId),
-                    where('date', '==', date)
-                );
-                const existingCheck = await getDocs(q);
-
-                let docToUpdateId = null;
-                if (!existingCheck.empty) {
-                    if (!confirm(`⚠️ Hai già salvato le presenze per il ${formatDateIT(date)}.\nVuoi sovrascriverle?`)) return;
-                    docToUpdateId = existingCheck.docs[0].id;
-                }
-
-                const records = [];
-                activeTeamPlayers.forEach(player => {
-                    const radio = document.querySelector(`input[name="att_${player.id}"]:checked`);
-                    if (radio) {
-                        const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
-                        records.push({ playerId: player.id, name: displayName, status: radio.value });
-                    }
+                    return sYear === selectedYear && sMonth === selectedMonth;
                 });
 
-                if (docToUpdateId) {
-                    const docRef = doc(db, 'attendances', docToUpdateId);
-                    await updateDoc(docRef, {
-                        records: records,
-                        updatedAt: serverTimestamp()
-                    });
-                    alert('Presenze aggiornate con successo!');
-                } else {
-                    await addDoc(collection(db, 'attendances'), {
-                        teamId: activeTeamId,
-                        date: date,
-                        records: records,
-                        createdAt: serverTimestamp()
-                    });
-                    alert('Presenze salvate con successo!');
+                AppCache.setAttendances(activeTeamId, selectedYear, selectedMonth, sessions);
+            }
+
+            const sessionsByDay = {};
+            let totalPresentsCount = 0;
+
+            sessions.forEach(s => {
+                const dbDateStr = String(s.date || '').trim();
+                let dayNum;
+                if (dbDateStr.includes('-')) {
+                    dayNum = parseInt(dbDateStr.split('-')[2], 10);
+                } else if (dbDateStr.includes('/')) {
+                    dayNum = parseInt(dbDateStr.split('/')[0], 10);
                 }
 
-                AppCache.clearAttendances(activeTeamId);
-                const savedDateObj = new Date(date + 'T00:00:00');
-                document.getElementById('filter-month').value = savedDateObj.getMonth();
-                document.getElementById('filter-year').value = savedDateObj.getFullYear();
-
-                checkAndLoadExistingAttendance();
-                loadMonthlyAttendances(true);
-
-            } catch (err) {
-                alert("Errore salvataggio presenze: " + err.message);
-            }
-        });
-
-        document.getElementById('btn-delete-session').addEventListener('click', async () => {
-            if (!currentSessionDocId) return;
-            const dateStr = document.getElementById('attendance-date').value;
-            if (!confirm(`Eliminare definitivamente l'allenamento del ${formatDateIT(dateStr)}?`)) return;
-
-            try {
-                await deleteDoc(doc(db, 'attendances', currentSessionDocId));
-                alert('Giornata eliminata con successo!');
-                AppCache.clearAttendances(activeTeamId);
-                currentSessionDocId = null;
-                checkAndLoadExistingAttendance();
-                loadMonthlyAttendances(true);
-            } catch (err) {
-                alert("Errore eliminazione: " + err.message);
-            }
-        });
-
-        async function loadMonthlyAttendances(forceRefresh = false) {
-            if (!activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') return;
-
-            const selectedMonth = parseInt(document.getElementById('filter-month').value);
-            const selectedYear = parseInt(document.getElementById('filter-year').value);
-            const container = document.getElementById('monthly-sessions-container');
-
-            document.getElementById('print-report-period').innerText = `Periodo: ${monthNamesIT[selectedMonth]} ${selectedYear}`;
-
-            const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-            const startOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
-            const endOfMonth = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(totalDaysInMonth).padStart(2, '0')}`;
-
-            try {
-                let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth);
-
-                if (!sessions || forceRefresh) {
-                    container.innerHTML = '<p class="text-sm text-gray-500 py-4">Caricamento registro allenamenti...</p>';
-                    const q = query(
-                        collection(db, 'attendances'),
-                        where('teamId', '==', activeTeamId),
-                        where('date', '>=', startOfMonth),
-                        where('date', '<=', endOfMonth)
-                    );
-                    const snapshot = await getDocs(q);
-
-                    sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    AppCache.setAttendances(activeTeamId, selectedYear, selectedMonth, sessions);
-                }
-
-                const sessionsByDay = {};
-                let totalPresentsCount = 0;
-
-                sessions.forEach(s => {
-                    const dayNum = parseInt(s.date.split('-')[2], 10);
+                if (dayNum && !isNaN(dayNum)) {
                     sessionsByDay[dayNum] = s;
-                    if (s.records) {
-                        totalPresentsCount += s.records.filter(r => r.status === 'present' || r.status === 'late').length;
-                    }
-                });
-
-                document.getElementById('stat-total-sessions').innerText = sessions.length;
-                document.getElementById('stat-total-presents').innerText = totalPresentsCount;
-                document.getElementById('stat-avg-presents').innerText = sessions.length > 0 ? (totalPresentsCount / sessions.length).toFixed(1) : '0';
-
-                let tableHtml = `
-                    <table class="w-full text-xs border-collapse border border-gray-400 bg-white">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-700">
-                                <th class="border border-gray-400 p-1 text-left">Giocatore</th>
-                `;
-
-                for (let d = 1; d <= totalDaysInMonth; d++) {
-                    const dateObj = new Date(selectedYear, selectedMonth, d);
-                    const dayName = daysOfWeekIT[dateObj.getDay()];
-                    const isSession = !!sessionsByDay[d];
-                    const bgClass = isSession ? 'bg-gray-200 text-black font-bold' : '';
-                    tableHtml += `<th class="border border-gray-400 p-1 text-center capitalize ${bgClass}">${dayName}</th>`;
+                    const records = s.records || s.record || [];
+                    totalPresentsCount += records.filter(r => r.status === 'present' || r.status === 'late').length;
                 }
+            });
 
-                tableHtml += `</tr><tr class="bg-gray-200 text-gray-800"><th class="border border-gray-400 p-1 text-left">Cognome e Nome</th>`;
+            document.getElementById('stat-total-sessions').innerText = sessions.length;
+            document.getElementById('stat-total-presents').innerText = totalPresentsCount;
+            document.getElementById('stat-avg-presents').innerText = sessions.length > 0 ? (totalPresentsCount / sessions.length).toFixed(1) : '0';
 
-                for (let d = 1; d <= totalDaysInMonth; d++) {
-                    const isSession = !!sessionsByDay[d];
-                    const bgClass = isSession ? 'bg-gray-300 text-black font-bold' : '';
-                    tableHtml += `<th class="border border-gray-400 p-1 text-center ${bgClass}">${d}</th>`;
-                }
+            let tableHtml = `
+                <table class="w-full text-xs border-collapse border border-gray-400 bg-white">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-700">
+                            <th class="border border-gray-400 p-1 text-left">Giocatore</th>
+            `;
 
-                tableHtml += `</tr></thead><tbody>`;
+            for (let d = 1; d <= totalDaysInMonth; d++) {
+                const dateObj = new Date(selectedYear, selectedMonth, d);
+                const dayName = daysOfWeekIT[dateObj.getDay()];
+                const isSession = !!sessionsByDay[d];
+                const bgClass = isSession ? 'bg-gray-200 text-black font-bold' : '';
+                tableHtml += `<th class="border border-gray-400 p-1 text-center capitalize ${bgClass}">${dayName}</th>`;
+            }
 
-                if (!activeTeamPlayers || activeTeamPlayers.length === 0) {
-                    tableHtml += `<tr><td colspan="${totalDaysInMonth + 1}" class="text-center p-4 text-gray-400">Nessun giocatore in rosa.</td></tr>`;
-                } else {
-                    activeTeamPlayers.forEach(player => {
-                        const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
-                        tableHtml += `<tr class="hover:bg-gray-50"><td class="border border-gray-400 p-1.5 font-bold text-gray-800 whitespace-nowrap">${displayName}</td>`;
+            tableHtml += `</tr><tr class="bg-gray-200 text-gray-800"><th class="border border-gray-400 p-1 text-left">Cognome e Nome</th>`;
 
-                        for (let d = 1; d <= totalDaysInMonth; d++) {
-                            const session = sessionsByDay[d];
-                            let statusSymbol = '-';
-                            let statusColor = 'text-gray-300';
+            for (let d = 1; d <= totalDaysInMonth; d++) {
+                const isSession = !!sessionsByDay[d];
+                const bgClass = isSession ? 'bg-gray-300 text-black font-bold' : '';
+                tableHtml += `<th class="border border-gray-400 p-1 text-center ${bgClass}">${d}</th>`;
+            }
 
-                            if (session && session.records) {
-                                const rec = session.records.find(r => r.playerId === player.id);
-                                if (rec) {
-                                    switch(rec.status) {
-                                        case 'present': statusSymbol = 'P'; statusColor = 'text-emerald-700 font-bold bg-emerald-50'; break;
-                                        case 'absent': statusSymbol = 'A'; statusColor = 'text-red-600 font-bold bg-red-50'; break;
-                                        case 'justified': statusSymbol = 'AG'; statusColor = 'text-amber-600 font-bold bg-amber-50'; break;
-                                        case 'injured': statusSymbol = 'INF'; statusColor = 'text-purple-600 font-bold bg-purple-50'; break;
-                                        case 'late': statusSymbol = 'R'; statusColor = 'text-blue-600 font-bold bg-blue-50'; break;
-                                    }
+            tableHtml += `</tr></thead><tbody>`;
+
+            if (!activeTeamPlayers || activeTeamPlayers.length === 0) {
+                tableHtml += `<tr><td colspan="${totalDaysInMonth + 1}" class="text-center p-4 text-gray-400">Nessun giocatore in rosa.</td></tr>`;
+            } else {
+                activeTeamPlayers.forEach(player => {
+                    const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+                    tableHtml += `<tr class="hover:bg-gray-50"><td class="border border-gray-400 p-1.5 font-bold text-gray-800 whitespace-nowrap">${displayName}</td>`;
+
+                    for (let d = 1; d <= totalDaysInMonth; d++) {
+                        const session = sessionsByDay[d];
+                        let statusSymbol = '-';
+                        let statusColor = 'text-gray-300';
+
+                        if (session) {
+                            const records = session.records || session.record || [];
+                            const rec = records.find(r => (r.playerId === player.id || r.id === player.id));
+                            if (rec) {
+                                switch(rec.status) {
+                                    case 'present': statusSymbol = 'P'; statusColor = 'text-emerald-700 font-bold bg-emerald-50'; break;
+                                    case 'absent': statusSymbol = 'A'; statusColor = 'text-red-600 font-bold bg-red-50'; break;
+                                    case 'justified': statusSymbol = 'AG'; statusColor = 'text-amber-600 font-bold bg-amber-50'; break;
+                                    case 'injured': statusSymbol = 'INF'; statusColor = 'text-purple-600 font-bold bg-purple-50'; break;
+                                    case 'late': statusSymbol = 'R'; statusColor = 'text-blue-600 font-bold bg-blue-50'; break;
                                 }
                             }
-                            tableHtml += `<td class="border border-gray-400 p-1 text-center ${statusColor}">${statusSymbol}</td>`;
                         }
-                        tableHtml += `</tr>`;
-                    });
-                }
-                tableHtml += `</tbody></table>`;
-                container.innerHTML = tableHtml;
-
-            } catch (err) {
-                console.error("Errore caricamento allenamenti:", err);
-                container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore durante il caricamento dei dati.</p>`;
+                        tableHtml += `<td class="border border-gray-400 p-1 text-center ${statusColor}">${statusSymbol}</td>`;
+                    }
+                    tableHtml += `</tr>`;
+                });
             }
+            tableHtml += `</tbody></table>`;
+            container.innerHTML = tableHtml;
+
+        } catch (err) {
+            console.error("Errore caricamento allenamenti:", err);
+            container.innerHTML = `<p class="text-sm text-red-500 py-4 font-semibold">Errore durante il caricamento dei dati.</p>`;
         }
+    }
 
-        document.getElementById('filter-month').addEventListener('change', () => loadMonthlyAttendances());
-        document.getElementById('filter-year').addEventListener('change', () => loadMonthlyAttendances());
+    document.getElementById('filter-month').addEventListener('change', () => loadMonthlyAttendances());
+    document.getElementById('filter-year').addEventListener('change', () => loadMonthlyAttendances());
 
-        // ESPORTAZIONE E CONDIVISIONE MENSILE
-        document.getElementById('btn-export-monthly-csv').addEventListener('click', () => {
-            if (!activeTeamId) return alert("Seleziona prima una squadra!");
-            const selectedMonth = parseInt(document.getElementById('filter-month').value);
-            const selectedYear = parseInt(document.getElementById('filter-year').value);
-            const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    // ESPORTAZIONE E CONDIVISIONE MENSILE
+    document.getElementById('btn-export-monthly-csv').addEventListener('click', () => {
+        if (!activeTeamId) return alert("Seleziona prima una squadra!");
+        const selectedMonth = parseInt(document.getElementById('filter-month').value);
+        const selectedYear = parseInt(document.getElementById('filter-year').value);
+        const totalDaysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
 
-            let csv = `Registro Presenze - ${activeTeamId} - ${monthNamesIT[selectedMonth]} ${selectedYear}\n\nGiocatore;`;
-            for (let d = 1; d <= totalDaysInMonth; d++) csv += `${d};`;
-            csv += "\n";
+        let csv = `Registro Presenze - ${activeTeamId} - ${monthNamesIT[selectedMonth]} ${selectedYear}\n\nGiocatore;`;
+        for (let d = 1; d <= totalDaysInMonth; d++) csv += `${d};`;
+        csv += "\n";
 
-            let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth) || [];
-            const sessionsByDay = {};
-            sessions.forEach(s => { sessionsByDay[parseInt(s.date.split('-')[2], 10)] = s; });
+        let sessions = AppCache.getAttendances(activeTeamId, selectedYear, selectedMonth) || [];
+        const sessionsByDay = {};
+        sessions.forEach(s => { 
+            const dbDateStr = String(s.date || '').trim();
+            let dayNum;
+            if (dbDateStr.includes('-')) dayNum = parseInt(dbDateStr.split('-')[2], 10);
+            else if (dbDateStr.includes('/')) dayNum = parseInt(dbDateStr.split('/')[0], 10);
+            if (dayNum) sessionsByDay[dayNum] = s; 
+        });
 
-            activeTeamPlayers.forEach(player => {
-                const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
-                csv += `"${displayName}";`;
-                for (let d = 1; d <= totalDaysInMonth; d++) {
-                    const session = sessionsByDay[d];
-                    let val = "-";
-                    if (session && session.records) {
-                        const rec = session.records.find(r => r.playerId === player.id);
-                        if (rec) {
-                            const map = { present: 'P', absent: 'A', justified: 'AG', injured: 'INF', late: 'R' };
-                            val = map[rec.status] || '-';
-                        }
+        activeTeamPlayers.forEach(player => {
+            const displayName = player.lastName ? `${player.lastName} ${player.firstName}` : player.name;
+            csv += `"${displayName}";`;
+            for (let d = 1; d <= totalDaysInMonth; d++) {
+                const session = sessionsByDay[d];
+                let val = "-";
+                if (session) {
+                    const records = session.records || session.record || [];
+                    const rec = records.find(r => (r.playerId === player.id || r.id === player.id));
+                    if (rec) {
+                        const map = { present: 'P', absent: 'A', justified: 'AG', injured: 'INF', late: 'R' };
+                        val = map[rec.status] || '-';
                     }
-                    csv += `${val};`;
                 }
-                csv += "\n";
-            });
-
-            downloadCSV(`Presenze_${activeTeamId}_${monthNamesIT[selectedMonth]}_${selectedYear}.csv`, csv);
+                csv += `${val};`;
+            }
+            csv += "\n";
         });
 
-        document.getElementById('btn-export-roster-csv').addEventListener('click', () => {
-            if (!activeTeamId || activeTeamPlayers.length === 0) return alert("Nessun giocatore in rosa!");
-            let csv = `Cognome;Nome;Numero Maglia;Data Nascita;Ruolo;Scadenza Certificato;Tel. Genitore\n`;
-            activeTeamPlayers.forEach(p => {
-                csv += `"${p.lastName || ''}";"${p.firstName || ''}";"${p.jersey || ''}";"${p.dob || ''}";"${p.role || ''}";"${p.medicalExp || ''}";"${p.parentPhone || ''}"\n`;
-            });
-            downloadCSV(`Rosa_${activeTeamId}.csv`, csv);
+        downloadCSV(`Presenze_${activeTeamId}_${monthNamesIT[selectedMonth]}_${selectedYear}.csv`, csv);
+    });
+
+    document.getElementById('btn-export-roster-csv').addEventListener('click', () => {
+        if (!activeTeamId || activeTeamPlayers.length === 0) return alert("Nessun giocatore in rosa!");
+        let csv = `Cognome;Nome;Numero Maglia;Data Nascita;Ruolo;Scadenza Certificato;Tel. Genitore\n`;
+        activeTeamPlayers.forEach(p => {
+            csv += `"${p.lastName || ''}";"${p.firstName || ''}";"${p.jersey || ''}";"${p.dob || ''}";"${p.role || ''}";"${p.medicalExp || ''}";"${p.parentPhone || ''}"\n`;
         });
+        downloadCSV(`Rosa_${activeTeamId}.csv`, csv);
+    });
 
-        // IMPORTAZIONE GIOCATORI DA FILE CSV
-        const btnImportCsv = document.getElementById('btn-import-roster-csv');
-        const inputImportCsv = document.getElementById('input-import-roster-csv');
+    // IMPORTAZIONE GIOCATORI DA FILE CSV
+    const btnImportCsv = document.getElementById('btn-import-roster-csv');
+    const inputImportCsv = document.getElementById('input-import-roster-csv');
 
-        btnImportCsv.addEventListener('click', () => {
-            if (!activeTeamId) return alert('Seleziona prima una squadra per poter importare i giocatori!');
-            inputImportCsv.click();
-        });
+    btnImportCsv.addEventListener('click', () => {
+        if (!activeTeamId) return alert('Seleziona prima una squadra per poter importare i giocatori!');
+        inputImportCsv.click();
+    });
 
-        inputImportCsv.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+    inputImportCsv.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: async function(results) {
-                    const rows = results.data;
-                    if (!rows || rows.length === 0) {
-                        return alert("Il file CSV sembra vuoto o non formattato correttamente.");
-                    }
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async function(results) {
+                const rows = results.data;
+                if (!rows || rows.length === 0) {
+                    return alert("Il file CSV sembra vuoto o non formattato correttamente.");
+                }
 
-                    if (!confirm(`Trovati ${rows.length} giocatori nel file CSV.\nConfermi l'importazione nel gruppo "${activeTeamId}"?`)) {
-                        inputImportCsv.value = '';
-                        return;
-                    }
+                if (!confirm(`Trovati ${rows.length} giocatori nel file CSV.\nConfermi l'importazione nel gruppo "${activeTeamId}"?`)) {
+                    inputImportCsv.value = '';
+                    return;
+                }
 
-                    try {
-                        let count = 0;
-                        for (const row of rows) {
-                            const lastName = (row['Cognome'] || row['cognome'] || '').trim();
-                            const firstName = (row['Nome'] || row['nome'] || '').trim();
+                try {
+                    let count = 0;
+                    for (const row of rows) {
+                        const lastName = (row['Cognome'] || row['cognome'] || '').trim();
+                        const firstName = (row['Nome'] || row['nome'] || '').trim();
 
-                            if (lastName || firstName) {
-                                const playerData = {
-                                    lastName: lastName,
-                                    firstName: firstName,
-                                    name: `${lastName} ${firstName}`.trim(),
-                                    jersey: (row['Numero Maglia'] || row['Maglia'] || row['jersey'] || '').toString().trim(),
-                                    dob: (row['Data Nascita'] || row['dob'] || '').trim(),
-                                    role: (row['Ruolo'] || row['role'] || '').trim(),
-                                    medicalExp: (row['Scadenza Certificato'] || row['medicalExp'] || '').trim(),
-                                    parentPhone: (row['Tel. Genitore'] || row['parentPhone'] || '').toString().trim(),
-                                    teamId: activeTeamId,
-                                    createdAt: serverTimestamp()
-                                };
+                        if (lastName || firstName) {
+                            const playerData = {
+                                lastName: lastName,
+                                firstName: firstName,
+                                name: `${lastName} ${firstName}`.trim(),
+                                jersey: (row['Numero Maglia'] || row['Maglia'] || row['jersey'] || '').toString().trim(),
+                                dob: (row['Data Nascita'] || row['dob'] || '').trim(),
+                                role: (row['Ruolo'] || row['role'] || '').trim(),
+                                medicalExp: (row['Scadenza Certificato'] || row['medicalExp'] || '').trim(),
+                                parentPhone: (row['Tel. Genitore'] || row['parentPhone'] || '').toString().trim(),
+                                teamId: activeTeamId,
+                                createdAt: serverTimestamp()
+                            };
 
-                                await addDoc(collection(db, 'players'), playerData);
-                                count++;
-                            }
+                            await addDoc(collection(db, 'players'), playerData);
+                            count++;
                         }
-
-                        alert(`✅ Importazione completata! Aggiunti ${count} giocatori al gruppo ${activeTeamId}.`);
-                        AppCache.clearPlayers(activeTeamId);
-                        loadTeamData(true);
-
-                    } catch (err) {
-                        alert("Errore durante l'importazione dei dati: " + err.message);
-                    } finally {
-                        inputImportCsv.value = '';
                     }
-                },
-                error: function(err) {
-                    alert("Errore nella lettura del file CSV: " + err.message);
+
+                    alert(`✅ Importazione completata! Aggiunti ${count} giocatori al gruppo ${activeTeamId}.`);
+                    AppCache.clearPlayers(activeTeamId);
+                    loadTeamData(true);
+
+                } catch (err) {
+                    alert("Errore durante l'importazione dei dati: " + err.message);
+                } finally {
                     inputImportCsv.value = '';
                 }
-            });
+            },
+            error: function(err) {
+                alert("Errore nella lettura del file CSV: " + err.message);
+                inputImportCsv.value = '';
+            }
         });
+    });
 
         // CONVOCAZIONI E GESTIONE
 		document.getElementById('form-callup').addEventListener('submit', async (e) => {
