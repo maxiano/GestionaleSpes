@@ -266,7 +266,7 @@
 				    }
 
 					// 3. AGGIUNGI QUI L'INSERIMENTO DEL NOME DEL GENITORE NELLA VIEW
-				    const parentNameEl = document.getElementById('parent-user-name'); // Se hai un elemento specifico per il genitore
+				    const parentNameEl = document.getElementById('user-info'); // Se hai un elemento specifico per il genitore
 				    if (parentNameEl) {
 				        parentNameEl.innerText = currentUserProfile.name || currentUserProfile.email;
 				    }
