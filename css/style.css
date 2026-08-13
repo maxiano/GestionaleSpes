@@ -10,6 +10,11 @@
         margin: 10mm;
     }
 
+    /* Nasconde il footer con il copyright durante la stampa */
+    footer, .footer-copyright {
+        display: none !important;
+    }
+
     body.print-landscape @page {
         size: A4 landscape;
         margin: 8mm;
