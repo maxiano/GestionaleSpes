@@ -299,12 +299,19 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
     const teamBadgeEl = document.getElementById('parent-team-badge');
     if (teamBadgeEl) teamBadgeEl.innerText = `Squadra: ${teamName}`;
 
-    // --- Elaborazione Partite ---
+// --- 1. Elaborazione Partite Attive e Storico ---
     let matchesHTML = '';
-    if (matchesList.length === 0) {
+    let matchesHistoryHTML = '';
+    
+    // Filtriamo: le 'callups' sono attive, le altre (match_history) sono storico
+    const activeMatches = matchesList.filter(m => m.collection === 'callups');
+    const pastMatches = matchesList.filter(m => m.collection === 'match_history');
+
+    // RENDER PARTITE ATTIVE
+    if (activeMatches.length === 0) {
         matchesHTML = `<p class="text-xs text-slate-400 italic py-2 text-center">Nessuna convocazione attiva.</p>`;
     } else {
-        matchesList.forEach((ev) => {
+        activeMatches.forEach((ev) => {
             const currentResponse = ev.responses?.[activeChildId] || null;
             let statusBadge = currentResponse === 'confirmed' || currentResponse === 'present'
                 ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Presenza Confermata ✅</span>`
@@ -313,7 +320,7 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
                 : `<span class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">In attesa di risposta ⏳</span>`;
 
             matchesHTML += `
-                <div class="bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 mb-2.5 transition">
+                <div class="bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 mb-2.5">
                     <div class="flex flex-col gap-1">
                         <div class="flex justify-between items-center">
                             <span class="font-bold text-slate-800 text-sm">${ev.title}</span>
@@ -324,53 +331,38 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
                         <div class="mt-1">${statusBadge}</div>
                     </div>
                     <div class="flex gap-2 mt-2.5">
-                        <button data-id="${ev.id}" data-status="confirmed" class="btn-match-confirm flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Conferma ✅</button>
-                        <button data-id="${ev.id}" data-status="absent" class="btn-match-absent flex-1 bg-rose-50 text-rose-700 font-bold py-1.5 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Assente ❌</button>
+                        <button data-id="${ev.id}" data-status="confirmed" class="btn-match-confirm flex-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-xs hover:bg-emerald-700">Conferma ✅</button>
+                        <button data-id="${ev.id}" data-status="absent" class="btn-match-absent flex-1 bg-rose-50 text-rose-700 font-bold py-1.5 rounded-lg text-xs border border-rose-200 hover:bg-rose-100">Assente ❌</button>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
     }
 
-    // --- Elaborazione Storico Allenamenti ---
-    let historyHTML = '';
-    if (trainingsHistory.length === 0) {
-        historyHTML = `<p class="text-xs text-slate-400 italic py-1 text-center">Nessun allenamento comunicato di recente.</p>`;
-    } else {
-        const mesi = [
-            "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-            "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
-        ];
-
-        const grouped = trainingsHistory.reduce((acc, t) => {
-            const parts = t.date.split('/');
+    // RENDER STORICO PARTITE (RAGGRUPPATO COME ALLENAMENTI)
+    if (pastMatches.length > 0) {
+        const mesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+        const grouped = pastMatches.reduce((acc, p) => {
+            const parts = p.date.split('/');
             if (parts.length === 3) {
                 const meseIndex = parseInt(parts[1], 10) - 1;
-                const nomeMese = mesi[meseIndex] || "Altro";
-                const anno = parts[2];
-                const key = `${nomeMese} ${anno}`;
-                 
+                const key = `${mesi[meseIndex]} ${parts[2]}`;
                 if (!acc[key]) acc[key] = [];
-                acc[key].push(t);
+                acc[key].push(p);
             }
             return acc;
         }, {});
 
         for (const [monthYear, records] of Object.entries(grouped)) {
-            historyHTML += `<div class="mt-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">🗓️ ${monthYear}</div>`;
-            records.forEach((t) => {
-                let badge = t.status === 'present' 
-                    ? '<span class="text-emerald-600 font-bold">Presente ✅</span>' 
+            matchesHistoryHTML += `<div class="mt-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">🗓️ ${monthYear}</div>`;
+            records.forEach((p) => {
+                const status = p.responses?.[activeChildId] === 'confirmed' || p.responses?.[activeChildId] === 'present' 
+                    ? '<span class="text-emerald-600 font-bold">Giocata ✅</span>' 
                     : '<span class="text-rose-600 font-bold">Assente ❌</span>';
-                historyHTML += `
-                    <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5 transition">
-                        <div>
-                            <span class="font-semibold text-slate-700">${t.date}</span>
-                            <span class="text-slate-500 ml-2 italic">(${t.notes})</span>
-                        </div>
-                        <div>${badge}</div>
-                    </div>
-                `;
+                matchesHistoryHTML += `
+                    <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5">
+                        <span class="font-semibold text-slate-700">${p.title}</span>
+                        <div>${status}</div>
+                    </div>`;
             });
         }
     }
@@ -379,12 +371,13 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
     const matchesContainer = document.getElementById('tab-content-matches');
     if (matchesContainer) {
         matchesContainer.innerHTML = `
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mb-4">
+                <h3 class="font-bold text-slate-800 text-sm mb-3">⚽ Prossime Convocazioni</h3>
+                ${matchesHTML}
+            </div>
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
-                    <span class="text-base">⚽</span>
-                    <h3 class="font-bold text-slate-800 text-sm">Partite e Convocazioni</h3>
-                </div>
-                <div class="flex flex-col">${matchesHTML}</div>
+                <h3 class="font-bold text-slate-800 text-sm mb-3">📜 Storico Partite</h3>
+                ${matchesHistoryHTML || '<p class="text-xs text-slate-400 italic text-center">Nessuna partita passata.</p>'}
             </div>
         `;
     }
