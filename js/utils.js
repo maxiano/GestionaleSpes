@@ -39,3 +39,20 @@ export function downloadCSV(filename, csvContent) {
         document.body.removeChild(link);
     }
 }
+
+export function exportToExcel(filename, rows) {
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF serve per leggere correttamente i caratteri accentati in Excel
+    
+    rows.forEach(function(rowArray) {
+        let row = rowArray.map(item => `"${(item || '').toString().replace(/"/g, '""')}"`).join(";");
+        csvContent += row + "\r\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
