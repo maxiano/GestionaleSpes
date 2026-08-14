@@ -301,7 +301,8 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
 
 // --- 1. Elaborazione Partite Attive e Storico ---
     let matchesHTML = '';
-    let matchesHistoryHTML = '';
+    let matchesHistoryHTML = ''; // Se aggiungi la nuova sezione
+    let historyHTML = '';
     
     // Filtriamo: le 'callups' sono attive, le altre (match_history) sono storico
     const activeMatches = matchesList.filter(m => m.collection === 'callups');
