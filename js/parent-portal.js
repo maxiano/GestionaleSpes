@@ -179,18 +179,21 @@ async function loadChildData(userProfile) {
         renderPortalUI(matchesList, trainingsHistory, childId, childTeamId || 'Assegnata', displayName);
     } catch (error) {
         console.error("❌ ERRORE CRITICO CATTURATO:", error);
+        const nameEl = document.getElementById('parent-child-name');
         if (nameEl) nameEl.innerText = "Errore di caricamento dati";
     }
 }
-// 3. RENDER GRAFICO DEL PORTALE GENITORI (SEZIONI BEN DISTINTE CON RAGGRUPPAMENTO MENSILE)
+
+// 3. RENDER GRAFICO DEL PORTALE GENITORI (SEZIONI NEI TAB DEDICATI)
 function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
-    const container = document.getElementById('parent-content-area');
-    if (!container) return;
+    // Aggiorna l'etichetta della squadra se presente nell'HTML
+    const teamBadgeEl = document.getElementById('parent-team-badge');
+    if (teamBadgeEl) teamBadgeEl.innerText = `Squadra: ${teamName}`;
 
     // --- Elaborazione Partite ---
     let matchesHTML = '';
     if (matchesList.length === 0) {
-        matchesHTML = `<p class="text-xs text-slate-400 italic py-2">Nessuna convocazione attiva.</p>`;
+        matchesHTML = `<p class="text-xs text-slate-400 italic py-2 text-center">Nessuna convocazione attiva.</p>`;
     } else {
         matchesList.forEach((ev) => {
             const currentResponse = ev.responses?.[childId] || null;
@@ -223,14 +226,13 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
     // --- Elaborazione Storico Allenamenti (Raggruppato con mesi in italiano) ---
     let historyHTML = '';
     if (trainingsHistory.length === 0) {
-        historyHTML = `<p class="text-xs text-slate-400 italic py-1">Nessun allenamento comunicato di recente.</p>`;
+        historyHTML = `<p class="text-xs text-slate-400 italic py-1 text-center">Nessun allenamento comunicato di recente.</p>`;
     } else {
         const mesi = [
             "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
             "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
         ];
 
-        // Raggruppamento dinamico per Mese Anno
         const grouped = trainingsHistory.reduce((acc, t) => {
             const parts = t.date.split('/');
             if (parts.length === 3) {
@@ -264,14 +266,10 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
         }
     }
 
-    // --- Render Finale ---
-    container.innerHTML = `
-        <div class="space-y-4">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-                <span class="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full">Squadra: ${teamName}</span>
-                <span class="text-[11px] text-slate-400 font-medium">Portale Famiglia</span>
-            </div>
-
+    // --- Inserimento nei rispettivi TAB ---
+    const matchesContainer = document.getElementById('tab-content-matches');
+    if (matchesContainer) {
+        matchesContainer.innerHTML = `
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                 <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
                     <span class="text-base">⚽</span>
@@ -279,9 +277,14 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                 </div>
                 <div class="flex flex-col">${matchesHTML}</div>
             </div>
+        `;
+    }
 
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
+    const trainingsContainer = document.getElementById('tab-content-trainings');
+    if (trainingsContainer) {
+        trainingsContainer.innerHTML = `
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                <div class="flex items-center gap-2 border-b border-slate-100 pb-2">
                     <span class="text-base">🏃‍♂️</span>
                     <h3 class="font-bold text-slate-800 text-sm">Comunica Presenza / Assenza Allenamento</h3>
                 </div>
@@ -304,22 +307,25 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                     <div class="flex flex-col">${historyHTML}</div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
-    // Event Listeners
-    const btnPresent = document.getElementById('btn-submit-present');
-    const btnAbsent = document.getElementById('btn-submit-absent');
+        // Ri-aggancia gli eventi per i pulsanti di invio allenamento appena creati nel DOM
+        const btnPresent = document.getElementById('btn-submit-present');
+        const btnAbsent = document.getElementById('btn-submit-absent');
 
-    if (btnPresent) btnPresent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'present');
-    if (btnAbsent) btnAbsent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'absent');
+        if (btnPresent) btnPresent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'present');
+        if (btnAbsent) btnAbsent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'absent');
+    }
 
-    container.querySelectorAll('.btn-match-confirm').forEach(btn => {
-        btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'confirmed');
-    });
-    container.querySelectorAll('.btn-match-absent').forEach(btn => {
-        btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'absent');
-    });
+    // Event Listeners per le partite
+    if (matchesContainer) {
+        matchesContainer.querySelectorAll('.btn-match-confirm').forEach(btn => {
+            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'confirmed');
+        });
+        matchesContainer.querySelectorAll('.btn-match-absent').forEach(btn => {
+            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'absent');
+        });
+    }
 };
 
 // 4. GESTIONE RISPOSTE PARTITE
@@ -443,16 +449,18 @@ window.switchParentTab = function(tabName) {
     const btnTrainings = document.getElementById('tab-btn-trainings');
     const btnMatches = document.getElementById('tab-btn-matches');
 
+    if (!trainingsTab || !matchesTab) return;
+
     if (tabName === 'trainings') {
         trainingsTab.classList.remove('hidden');
         matchesTab.classList.add('hidden');
-        btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
-        btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
+        if (btnTrainings) btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
+        if (btnMatches) btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
     } else {
         matchesTab.classList.remove('hidden');
         trainingsTab.classList.add('hidden');
-        btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
-        btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
+        if (btnMatches) btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
+        if (btnTrainings) btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
     }
 };
 
