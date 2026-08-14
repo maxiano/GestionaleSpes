@@ -140,7 +140,7 @@ async function loadChildData(userProfile) {
         const nameEl = document.getElementById('parent-child-name');
         if (nameEl) {
             if (childIds.length > 1) {
-                let selectHtml = `<select id="parent-child-switcher" class="bg-slate-800 text-emerald-400 font-bold text-[11px] md:text-sm border border-slate-700 rounded-lg p-1 w-full focus:outline-none focus:border-emerald-500 cursor-pointer">`;
+                let selectHtml = `<select id="parent-child-switcher" class="bg-slate-800 text-emerald-400 font-extrabold text-sm md:text-lg border border-slate-700 rounded-lg p-1.5 w-full focus:outline-none focus:border-emerald-500 cursor-pointer">`;
                 // Variabile per raccogliere il messaggio di avviso
                 let alertMessage = ""; 
         
