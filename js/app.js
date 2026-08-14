@@ -1394,32 +1394,39 @@
             window.print();
         }
 
-async function deleteCallup(callupId) {
-    if (!confirm("Vuoi archiviare questa partita nello storico ed eliminarla dalle convocazioni attive?")) return;
-    try {
-        // 1. Recupera i dati della convocazione prima di eliminarla
-        const callupRef = doc(db, 'callups', callupId);
-        const callupSnap = await getDoc(callupRef);
-
-        if (callupSnap.exists()) {
-            const callupData = callupSnap.data();
-
-            // 2. Salvala nella collezione 'match_history'
-            await addDoc(collection(db, 'match_history'), {
-                ...callupData,
-                archivedAt: new Date().toISOString()
-            });
-        }
-
-        // 3. Elimina la convocazione attiva
-        await deleteDoc(callupRef);
-        
-        alert("Partita archiviata nello storico con successo!");
-        loadCallups();
-    } catch (err) { 
-        alert("Errore durante l'archiviazione: " + err.message); 
-    }
-}
+		async function deleteCallup(callupId) {
+		    console.log("🚀 Avvio eliminazione/archiviazione per ID:", callupId);
+		    if (!confirm("Vuoi archiviare questa partita nello storico ed eliminarla dalle convocazioni attive?")) return;
+		    
+		    try {
+		        const callupRef = doc(db, 'callups', callupId);
+		        const callupSnap = await getDoc(callupRef);
+		
+		        if (callupSnap.exists()) {
+		            const callupData = callupSnap.data();
+		            console.log("📦 Dati trovati, procedo alla scrittura in match_history:", callupData);
+		
+		            // Scrittura nella nuova collection
+		            await addDoc(collection(db, 'match_history'), {
+		                ...callupData,
+		                archivedAt: new Date().toISOString()
+		            });
+		            console.log("✅ Scrittura in match_history completata con successo!");
+		        } else {
+		            console.warn("⚠️ Attenzione: Il documento non esiste in callups!");
+		        }
+		
+		        // Eliminazione dalla collection originale
+		        await deleteDoc(callupRef);
+		        console.log("🗑️ Documento eliminato con successo da callups.");
+		        
+		        alert("Partita archiviata nello storico con successo!");
+		        loadCallups();
+		    } catch (err) { 
+		        console.error("❌ ERRORE CRITICO DURANTE L'ARCHIVIAZIONE:", err);
+		        alert("Errore: " + err.message); 
+		    }
+		}
 
         document.getElementById('btn-print-roster').addEventListener('click', () => {
             document.body.classList.remove('print-landscape', 'print-monthly', 'print-callup');
