@@ -1394,14 +1394,32 @@
             window.print();
         }
 
-        async function deleteCallup(callupId) {
-            if (!confirm("Eliminare questa convocazione?")) return;
-            try {
-                await deleteDoc(doc(db, 'callups', callupId));
-                alert("Convocazione eliminata!");
-                loadCallups();
-            } catch (err) { alert("Errore: " + err.message); }
+async function deleteCallup(callupId) {
+    if (!confirm("Vuoi archiviare questa partita nello storico ed eliminarla dalle convocazioni attive?")) return;
+    try {
+        // 1. Recupera i dati della convocazione prima di eliminarla
+        const callupRef = doc(db, 'callups', callupId);
+        const callupSnap = await getDoc(callupRef);
+
+        if (callupSnap.exists()) {
+            const callupData = callupSnap.data();
+
+            // 2. Salvala nella collezione 'match_history'
+            await addDoc(collection(db, 'match_history'), {
+                ...callupData,
+                archivedAt: new Date().toISOString()
+            });
         }
+
+        // 3. Elimina la convocazione attiva
+        await deleteDoc(callupRef);
+        
+        alert("Partita archiviata nello storico con successo!");
+        loadCallups();
+    } catch (err) { 
+        alert("Errore durante l'archiviazione: " + err.message); 
+    }
+}
 
         document.getElementById('btn-print-roster').addEventListener('click', () => {
             document.body.classList.remove('print-landscape', 'print-monthly', 'print-callup');
