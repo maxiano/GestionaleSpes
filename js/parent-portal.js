@@ -10,6 +10,7 @@ import {
     where 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { exportToExcel} from './utils.js';
 
 // Variabile globale per mantenere in memoria il profilo utente completo
 let currentUserProfile = null;
@@ -538,18 +539,25 @@ window.exportTrainingsHistory = function() {
         return;
     }
 
-    let textContent = `Riepilogo Presenze Allenamenti\nData Export: ${new Date().toLocaleDateString()}\n\n`;
+    // Creiamo le righe della tabella per Excel
+    let csvData = [
+        ["Data", "Stato Presenza", "Note / Dettagli"] // Intestazione delle colonne
+    ];
+
     records.forEach(r => {
-        textContent += r.innerText.replace(/\n/g, ' - ') + "\n";
+        const textParts = r.innerText.split('\n');
+        const dataStr = textParts[0] ? textParts[0].trim() : '';
+        const isPresent = r.innerText.includes('Presente ✅');
+        const stato = isPresent ? 'Presente' : 'Assente';
+        
+        let noteStr = r.innerText.replace(dataStr, '').replace('Presente ✅', '').replace('Assente ❌', '').trim();
+        noteStr = noteStr.replace(/[()]/g, '').trim();
+
+        csvData.push([dataStr, stato, noteStr]);
     });
 
-    const blob = new Blob([textContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Presenze_Allenamento_${new Date().getTime()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Chiamiamo la funzione centralizzata in util.js
+    exportToExcel(`Presenze_Allenamenti_${new Date().getTime()}.csv`, csvData);
 };
 
 window.switchParentTab = function(tabName) {
