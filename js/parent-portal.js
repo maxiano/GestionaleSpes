@@ -420,26 +420,59 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
     }
 };
 
-// 4. GESTIONE RISPOSTE PARTITE
-window.respondEvent = async function(collectionName, eventId, childId, status) {
-    if (!db) return;
+// 4. GESTIONE RISPOSTA CONVOCAZIONE (Con salvataggio nello Storico Permanente)
+window.respondEvent = async function(collectionName, docId, activeChildId, status) {
     try {
-        const docRef = doc(db, collectionName, eventId);
+        const docRef = doc(db, collectionName, docId);
         const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            let responses = docSnap.data().responses || {};
-            responses[childId] = status; 
-            await updateDoc(docRef, { responses: responses });
+        
+        if (!docSnap.exists()) {
+            alert("⚠️ Questa convocazione non è più attiva o è stata rimossa dal mister.");
+            
+            // Anche se la convocazione attiva non c'è più, ricarichiamo comunque i dati 
+            // per aggiornare la schermata del portale
+            if (typeof loadChildData === 'function' && typeof currentUserProfile !== 'undefined') {
+                loadChildData(currentUserProfile);
+            }
+            return;
         }
 
-        alert("Risposta salvata con successo!");
-        if (currentUserProfile) {
-            await loadChildData(currentUserProfile);
+        const data = docSnap.data();
+        
+        // 1. Aggiorniamo la risposta nella convocazione attiva (visibile al mister)
+        const responses = data.responses || {};
+        responses[activeChildId] = status;
+        
+        await updateDoc(docRef, { responses: responses });
+
+        // 2. SALVIAMO LO STORICO PERMANENTE ('match_history')
+        // Questo garantisce che rimanga salvato per sempre per il genitore
+        const historyId = `${docId}_${activeChildId}`;
+        const historyRef = doc(db, 'match_history', historyId);
+        
+        await setDoc(historyRef, {
+            playerId: activeChildId,
+            matchId: docId,
+            title: `Partita vs ${data.opponent || 'Avversario'}`,
+            date: data.date || 'Da definire',
+            time: data.matchTime || '',
+            location: data.location || 'Da definire',
+            status: status, // 'confirmed' o 'absent'
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+        // Messaggio di conferma visivo
+        const actionText = (status === 'confirmed' || status === 'present') ? 'confermata ✅' : 'segnata come assente ❌';
+        console.log(`Risposta salvata con successo: ${actionText}`);
+
+        // Ricarichiamo i dati del portale per aggiornare l'interfaccia in tempo reale
+        if (typeof loadChildData === 'function' && typeof currentUserProfile !== 'undefined') {
+            loadChildData(currentUserProfile);
         }
-    } catch (err) {
-        console.error("Errore salvataggio partita:", err);
-        alert("Errore di connessione. Riprova.");
+
+    } catch (error) {
+        console.error("❌ ERRORE durante il salvataggio della risposta:", error);
+        alert("Errore durante il salvataggio della risposta. Riprova.");
     }
 };
 
