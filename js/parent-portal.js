@@ -338,7 +338,7 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
         });
     }
 
-  // RENDER STORICO PARTITE (Con normalizzazione date e ordinamento)
+ // RENDER STORICO PARTITE (Con normalizzazione date, ordinamento e dettagli)
     if (pastMatches && pastMatches.length > 0) {
         const mesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
         
@@ -375,10 +375,17 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
                 const status = p.responses?.[activeChildId] === 'confirmed' || p.responses?.[activeChildId] === 'present' 
                     ? '<span class="text-emerald-600 font-bold">Giocata ✅</span>' 
                     : '<span class="text-rose-600 font-bold">Assente ❌</span>';
+                
                 matchesHistoryHTML += `
-                    <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5">
-                        <span class="font-semibold text-slate-700">${p.title || 'Partita'}</span>
-                        <div>${status}</div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 mb-2 flex flex-col gap-1 text-xs">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-800 text-sm">${p.title || 'Partita'}</span>
+                            <div>${status}</div>
+                        </div>
+                        <div class="text-slate-500 flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                            <span>📅 Data: ${p.date} ${p.time ? '| ⏰ ' + p.time : ''}</span>
+                            ${p.location ? `<span>📍 Campo: ${p.location}</span>` : ''}
+                        </div>
                     </div>`;
             });
         }
