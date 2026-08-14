@@ -5,10 +5,10 @@
   @copyright © 2026 Spes Montesacro. Tutti i diritti riservati.
   (Classe no-print per escludere il footer dalle stampe)parent-portal-wrapper
 -->
-<div id="parent-portal-container" class="max-w-md mx-auto p-4 flex flex-col gap-6">
+<div id="parent-portal-container" class="max-w-md mx-auto p-4 flex flex-col gap-5">
     
     <!-- Intestazione Portale Genitori -->
-    <div  class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl flex items-center justify-between">
+    <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl flex items-center justify-between">
         <div>
             <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Portale Famiglia</span>
             <h2 id="parent-child-name" class="text-xl font-extrabold mt-0.5">Caricamento...</h2>
@@ -18,10 +18,24 @@
         </button>
     </div>
 
-    <!-- Area Dinamica Contenuti Figlio -->
-    <div id="parent-content-area" class="flex flex-col gap-4">
-        <!-- I contenuti (Partite e Allenamenti) verranno iniettati qui da JS -->
+    <!-- SELETTORE A TAB (Per separare Allenamenti e Partite) -->
+    <div class="flex bg-slate-200 p-1 rounded-xl">
+        <button id="tab-btn-trainings" onclick="switchParentTab('trainings')" class="flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm">
+            🏃‍♂️ Allenamenti
+        </button>
+        <button id="tab-btn-matches" onclick="switchParentTab('matches')" class="flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900">
+            ⚽ Partite
+        </button>
     </div>
 
+    <!-- CONTENUTO TAB ALLENAMENTI (Visibile di default) -->
+    <div id="tab-content-trainings" class="flex flex-col gap-4">
+        <!-- Gli allenamenti verranno iniettati qui da JS -->
+    </div>
+
+    <!-- CONTENUTO TAB PARTITE (Nascosto di default) -->
+    <div id="tab-content-matches" class="flex flex-col gap-4 hidden">
+        <!-- Le partite verranno iniettate qui da JS -->
+    </div>
 
 </div>
