@@ -115,7 +115,8 @@ async function loadChildData(userProfile) {
 
         const [callupsSnap, attendancesSnap] = await Promise.all([
             getDocs(collection(db, 'callups')),
-            getDocs(collection(db, 'attendances'))
+            getDocs(collection(db, 'attendances')),
+            getDocs(collection(db, 'match_history'))
         ]);
 
         let matchesList = [];
@@ -592,6 +593,26 @@ window.exportTrainingsHistory = function() {
     // Chiamiamo la funzione centralizzata in util.js
     exportToExcel(`Presenze_Allenamenti_${new Date().getTime()}.csv`, csvData);
 };
+
+// C. Storico Partite per il figlio attivo (indipendente dalla bacheca del mister)
+let matchesHistoryList = [];
+matchHistorySnap.forEach((docSnap) => {
+    const data = docSnap.data();
+    // Verifichiamo che il record appartenga al figlio attivo
+    if (String(data.playerId) === String(activeChildId)) {
+        matchesHistoryList.push({
+            id: docSnap.id,
+            title: data.title || 'Partita',
+            date: data.date || 'Da definire',
+            time: data.time || '',
+            location: data.location || 'Da definire',
+            status: data.status
+        });
+    }
+});
+
+// Ordiniamo lo storico partite per data (dalla più recente alla meno recente o viceversa)
+matchesHistoryList.sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
 
 window.switchParentTab = function(tabName) {
     const trainingsTab = document.getElementById('tab-content-trainings');
