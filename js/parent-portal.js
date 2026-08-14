@@ -338,14 +338,31 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
         });
     }
 
-    // RENDER STORICO PARTITE
-    if (pastMatches.length > 0) {
+  // RENDER STORICO PARTITE (Con normalizzazione date e ordinamento)
+    if (pastMatches && pastMatches.length > 0) {
         const mesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
-        const grouped = pastMatches.reduce((acc, p) => {
-            const parts = p.date.split('/');
+        
+        // Funzione di supporto per convertire qualsiasi formato di data in oggetto Date
+        const parseDateObj = (dateStr) => {
+            if (!dateStr) return new Date(0);
+            let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
             if (parts.length === 3) {
-                const meseIndex = parseInt(parts[1], 10) - 1;
-                const key = `${mesi[meseIndex]} ${parts[2]}`;
+                if (parts[0].length === 4) {
+                    return new Date(parts[0], parts[1] - 1, parts[2]); // YYYY-MM-DD
+                } else {
+                    return new Date(parts[2], parts[1] - 1, parts[0]); // DD/MM/YYYY
+                }
+            }
+            return new Date(0);
+        };
+
+        // Ordina dal più recente al meno recente
+        const sortedPastMatches = [...pastMatches].sort((a, b) => parseDateObj(b.date) - parseDateObj(a.date));
+
+        const grouped = sortedPastMatches.reduce((acc, p) => {
+            const dObj = parseDateObj(p.date);
+            if (!isNaN(dObj.getTime())) {
+                const key = `${mesi[dObj.getMonth()]} ${dObj.getFullYear()}`;
                 if (!acc[key]) acc[key] = [];
                 acc[key].push(p);
             }
@@ -360,7 +377,7 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
                     : '<span class="text-rose-600 font-bold">Assente ❌</span>';
                 matchesHistoryHTML += `
                     <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5">
-                        <span class="font-semibold text-slate-700">${p.title}</span>
+                        <span class="font-semibold text-slate-700">${p.title || 'Partita'}</span>
                         <div>${status}</div>
                     </div>`;
             });
