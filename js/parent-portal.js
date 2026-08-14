@@ -299,15 +299,11 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
     const teamBadgeEl = document.getElementById('parent-team-badge');
     if (teamBadgeEl) teamBadgeEl.innerText = `Squadra: ${teamName}`;
 
-    // --- DEBUG LOG: Verifica cosa arriva alla funzione ---
-    console.log("Dati allenamenti ricevuti per il rendering:", trainingsHistory);
-
     // --- 1. Elaborazione Partite Attive e Storico ---
     let matchesHTML = '';
     let matchesHistoryHTML = ''; 
     let historyHTML = '';
     
-    // Filtriamo: le 'callups' sono attive, le altre (match_history) sono storico
     const activeMatches = matchesList.filter(m => m.collection === 'callups');
     const pastMatches = matchesList.filter(m => m.collection === 'match_history');
 
@@ -342,7 +338,7 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
         });
     }
 
-    // RENDER STORICO PARTITE (RAGGRUPPATO COME ALLENAMENTI)
+    // RENDER STORICO PARTITE
     if (pastMatches.length > 0) {
         const mesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
         const grouped = pastMatches.reduce((acc, p) => {
@@ -371,25 +367,30 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
         }
     }
 
-    // --- 2. Elaborazione Storico Allenamenti (Con raggruppamento per Mese) ---
+    // --- 2. Elaborazione Storico Allenamenti (Con normalizzazione e ordinamento) ---
     if (trainingsHistory && trainingsHistory.length > 0) {
         const mesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
-        const groupedTrainings = trainingsHistory.reduce((acc, t) => {
-            // Assumendo che t.date sia in formato "YYYY-MM-DD" oppure "DD/MM/YYYY"
-            // Gestiamo il caso standard (YYYY-MM-DD o simile con trattini/slash)
-            let parts = t.date.includes('-') ? t.date.split('-') : t.date.split('/');
+        
+        // Funzione di supporto per convertire qualsiasi data in oggetto Date per il confronto
+        const parseDateObj = (dateStr) => {
+            let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
             if (parts.length === 3) {
-                let year, monthIndex;
                 if (parts[0].length === 4) {
-                    // Formato YYYY-MM-DD
-                    year = parts[0];
-                    monthIndex = parseInt(parts[1], 10) - 1;
+                    return new Date(parts[0], parts[1] - 1, parts[2]); // YYYY-MM-DD
                 } else {
-                    // Formato DD/MM/YYYY
-                    year = parts[2];
-                    monthIndex = parseInt(parts[1], 10) - 1;
+                    return new Date(parts[2], parts[1] - 1, parts[0]); // DD/MM/YYYY
                 }
-                const key = `${mesi[monthIndex]} ${year}`;
+            }
+            return new Date(0);
+        };
+
+        // Ordina dal più recente al meno recente
+        const sortedTrainings = [...trainingsHistory].sort((a, b) => parseDateObj(b.date) - parseDateObj(a.date));
+
+        const groupedTrainings = sortedTrainings.reduce((acc, t) => {
+            let dObj = parseDateObj(t.date);
+            if (!isNaN(dObj.getTime())) {
+                const key = `${mesi[dObj.getMonth()]} ${dObj.getFullYear()}`;
                 if (!acc[key]) acc[key] = [];
                 acc[key].push(t);
             }
@@ -412,9 +413,6 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
     } else {
         historyHTML = `<p class="text-xs text-slate-400 italic text-center py-2">Nessun allenamento registrato.</p>`;
     }
-
-    // --- DEBUG LOG: Verifica l'HTML generato per gli allenamenti ---
-    console.log("HTML storico allenamenti generato:", historyHTML);
 
     // --- Inserimento nei rispettivi TAB ---
     const matchesContainer = document.getElementById('tab-content-matches');
