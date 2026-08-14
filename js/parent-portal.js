@@ -1,4 +1,3 @@
-JavaScript
 import { db, auth } from './firebase-init.js';
 import { 
     collection, 
