@@ -396,7 +396,7 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
                     
                     <div class="mt-4 pt-3 border-t border-slate-200">
                         <button onclick="window.exportTrainingsHistory()" class="w-full flex items-center justify-center gap-2 bg-slate-900 text-white text-xs font-bold py-2.5 rounded-xl hover:bg-slate-800 transition shadow-sm">
-                            📄 Scarica Riepilogo Allenamenti (.txt)
+                            📊 Scarica Riepilogo in Excel (.csv)
                         </button>
                     </div>
                 </div>
