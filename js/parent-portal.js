@@ -112,33 +112,6 @@ async function loadChildData(userProfile) {
         const activeDisplayName = `${activeChildData.lastName || ''} ${activeChildData.firstName || ''}`.trim() || userProfile?.name;
         const activeTeamId = activeChildData.teamId || activeChildData.team || activeChildData.squadra || activeChildData.group || userProfile?.teamId || '';
 
-        // Gestione Intestazione e Selettore Figli (se > 1)
-        const nameEl = document.getElementById('parent-child-name');
-        if (nameEl) {
-            if (childIds.length > 1) {
-                let selectHtml = `<select id="parent-child-switcher" class="bg-slate-800 text-emerald-400 font-extrabold text-lg border border-slate-700 rounded-lg p-1 focus:outline-none focus:border-emerald-500 cursor-pointer">`;
-                childIds.forEach(id => {
-                    const cData = childrenDataMap[id] || {};
-                    const cName = `${cData.lastName || ''} ${cData.firstName || ''}`.trim() || `Figlio ${id}`;
-                    const selectedAttr = (id === activeChildId) ? 'selected' : '';
-                    selectHtml += `<option value="${id}" ${selectedAttr}>${cName}</option>`;
-                });
-                selectHtml += `</select>`;
-                nameEl.innerHTML = selectHtml;
-
-                // Event listener per il cambio figlio
-                const switcher = document.getElementById('parent-child-switcher');
-                if (switcher) {
-                    switcher.onchange = (e) => {
-                        activeChildId = e.target.value;
-                        loadChildData(currentUserProfile); // ricarica i dati per il nuovo figlio selezionato
-                    };
-                }
-            } else {
-                nameEl.innerText = activeDisplayName;
-            }
-        }
-
         const [callupsSnap, attendancesSnap] = await Promise.all([
             getDocs(collection(db, 'callups')),
             getDocs(collection(db, 'attendances'))
@@ -147,20 +120,74 @@ async function loadChildData(userProfile) {
         let matchesList = [];
         let trainingsHistory = [];
 
-        // A. Elaborazione Partite per il figlio attivo
+        // A. Elaborazione Partite preliminare per calcolare le notifiche nel selettore
         callupsSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const callupTeamId = data.teamId || data.team || data.squadra || '';
             const invitedPlayers = data.players || [];
             const responses = data.responses || {};
-             
-            const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && (p === activeChildId || p.startsWith(`${activeChildId}|`)));
-            const hasResponded = responses[activeChildId] !== undefined;
-            const isTeamMatch = callupTeamId && activeTeamId && String(callupTeamId).toLowerCase() === String(activeTeamId).toLowerCase();
+            
+            // Usiamo temporaneamente un controllo generico per le notifiche del menu
+            matchesList.push({
+                id: docSnap.id,
+                invitedPlayers,
+                callupTeamId,
+                responses
+            });
+        });
 
-            if (isExplicitlyInvited || hasResponded || isTeamMatch || !callupTeamId) {
-                matchesList.push({
-                    id: docSnap.id,
+        // Gestione Intestazione e Selettore Figli (con notifiche ⚠️ / ✅)
+        const nameEl = document.getElementById('parent-child-name');
+        if (nameEl) {
+            if (childIds.length > 1) {
+                let selectHtml = `<select id="parent-child-switcher" class="bg-slate-800 text-emerald-400 font-extrabold text-sm md:text-lg border border-slate-700 rounded-lg p-1 w-full focus:outline-none focus:border-emerald-500 cursor-pointer">`;
+                
+                childIds.forEach(id => {
+                    const cData = childrenDataMap[id] || {};
+                    const cName = `${cData.lastName || ''} ${cData.firstName || ''}`.trim() || `Figlio ${id}`;
+                    
+                    // Controlliamo se ci sono convocazioni pendenti per questo specifico figlio
+                    const hasPending = matchesList.some(m => {
+                        const cTeam = cData.teamId || cData.team || cData.squadra || userProfile?.teamId || '';
+                        const isExplicit = m.invitedPlayers.some(p => typeof p === 'string' && (p === id || p.startsWith(`${id}|`)));
+                        const isTeam = m.callupTeamId && cTeam && String(m.callupTeamId).toLowerCase() === String(cTeam).toLowerCase();
+                        const isResponded = m.responses?.[id] !== undefined;
+                        return (isExplicit || isTeam || !m.callupTeamId) && !isResponded;
+                    });
+
+                    const indicator = hasPending ? ' ⚠️' : ' ✅';
+                    const selectedAttr = (id === activeChildId) ? 'selected' : '';
+                    selectHtml += `<option value="${id}" ${selectedAttr}>${cName}${indicator}</option>`;
+                });
+                
+                selectHtml += `</select>`;
+                nameEl.innerHTML = selectHtml;
+
+                // Event listener per il cambio figlio
+                const switcher = document.getElementById('parent-child-switcher');
+                if (switcher) {
+                    switcher.onchange = (e) => {
+                        activeChildId = e.target.value;
+                        loadChildData(currentUserProfile); 
+                    };
+                }
+            } else {
+                nameEl.innerText = activeDisplayName;
+            }
+        }
+
+        // Filtriamo le partite reali per il figlio attivo
+        let activeMatchesList = [];
+        matchesList.forEach((m) => {
+            const isExplicitlyInvited = m.invitedPlayers.some(p => typeof p === 'string' && (p === activeChildId || p.startsWith(`${activeChildId}|`)));
+            const hasResponded = m.responses?.[activeChildId] !== undefined;
+            const isTeamMatch = m.callupTeamId && activeTeamId && String(m.callupTeamId).toLowerCase() === String(activeTeamId).toLowerCase();
+
+            if (isExplicitlyInvited || hasResponded || isTeamMatch || !m.callupTeamId) {
+                const docSnapRef = callupsSnap.docs.find(d => d.id === m.id);
+                const data = docSnapRef ? docSnapRef.data() : {};
+                activeMatchesList.push({
+                    id: m.id,
                     collection: 'callups',
                     type: 'match',
                     title: `Partita vs ${data.opponent || 'Avversario'}`,
@@ -168,7 +195,7 @@ async function loadChildData(userProfile) {
                     time: data.matchTime || '',
                     location: data.location || 'Da definire',
                     subInfo: `Ritrovo: ${data.gatheringTime || 'Da definire'}`,
-                    responses: responses
+                    responses: m.responses
                 });
             }
         });
@@ -177,7 +204,7 @@ async function loadChildData(userProfile) {
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const recordList = data.record || data.records || [];
-             
+            
             if (Array.isArray(recordList)) {
                 const myRecord = recordList.find(r => String(r.playerId || r.id) === String(activeChildId));
                 if (myRecord) {
@@ -219,10 +246,10 @@ async function loadChildData(userProfile) {
             return new Date(str).getTime() || 0;
         };
 
-        matchesList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
+        activeMatchesList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
         trainingsHistory.sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
 
-        renderPortalUI(matchesList, trainingsHistory, activeChildId, activeTeamId || 'Assegnata', activeDisplayName);
+        renderPortalUI(activeMatchesList, trainingsHistory, activeChildId, activeTeamId || 'Assegnata', activeDisplayName);
     } catch (error) {
         console.error("❌ ERRORE CRITICO CATTURATO:", error);
         const nameEl = document.getElementById('parent-child-name');
@@ -345,11 +372,19 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
                 </div>
 
                 <div class="mt-5 pt-3 border-t border-slate-100">
-                    <div class="flex items-center gap-1.5 mb-2.5">
-                        <span class="text-sm">📋</span>
-                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Storico Presenze Allenamenti</h4>
+                    <div class="flex items-center justify-between mb-2.5">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-sm">📋</span>
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Storico Presenze Allenamenti</h4>
+                        </div>
                     </div>
                     <div class="flex flex-col">${historyHTML}</div>
+                    
+                    <div class="mt-4 pt-3 border-t border-slate-200">
+                        <button onclick="window.exportTrainingsHistory()" class="w-full flex items-center justify-center gap-2 bg-slate-900 text-white text-xs font-bold py-2.5 rounded-xl hover:bg-slate-800 transition shadow-sm">
+                            📄 Scarica Riepilogo Allenamenti (.txt)
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -413,9 +448,9 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
     try {
         const [year, month, day] = selectedDate.split('-');
-        const dateIso = selectedDate;                            // 2026-08-13
-        const dateIt = `${day}/${month}/${year}`;                // 13/08/2026
-        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
+        const dateIso = selectedDate;                            
+        const dateIt = `${day}/${month}/${year}`;                
+        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; 
 
         const querySnapshot = await getDocs(collection(db, 'attendances'));
          
@@ -480,6 +515,28 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         console.error("❌ ERRORE DURANTE IL SALVATAGGIO:", err);
         alert("Impossibile salvare: controlla la console.");
     }
+};
+
+// 6. ESPORTAZIONE RIEPILOGO ALLENAMENTI
+window.exportTrainingsHistory = function() {
+    const records = document.querySelectorAll('#tab-content-trainings .bg-slate-50');
+    if (records.length === 0) {
+        alert("Nessun dato da esportare.");
+        return;
+    }
+
+    let textContent = `Riepilogo Presenze Allenamenti\nData Export: ${new Date().toLocaleDateString()}\n\n`;
+    records.forEach(r => {
+        textContent += r.innerText.replace(/\n/g, ' - ') + "\n";
+    });
+
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Presenze_Allenamento_${new Date().getTime()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
 };
 
 window.switchParentTab = function(tabName) {
