@@ -14,21 +14,6 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth
 // Variabile globale per mantenere in memoria il profilo utente completo
 let currentUserProfile = null;
 
-// Funzione di supporto per normalizzare qualsiasi dato in un array pulito (programmazione difensiva)
-const ensureArray = (data) => [data].flat().filter(item => item !== null && item !== undefined);
-
-// Funzione di supporto per normalizzare i childIds in un array di stringhe
-function getChildIds(userProfile) {
-    if (!userProfile) return [];
-    if (Array.isArray(userProfile.childIds)) {
-        return userProfile.childIds.map(id => String(id).trim()).filter(Boolean);
-    }
-    if (userProfile.childId) {
-        return [String(userProfile.childId).trim()];
-    }
-    return [];
-}
-
 // 1. FUNZIONE PRINCIPALE DI AVVIO (VERSIONE BLINDATA)
 export async function initParentPortal(userProfile) {
     console.log("Inizializzazione portale genitori per:", userProfile?.name);
@@ -86,39 +71,26 @@ async function loadChildData(userProfile) {
         return;
     }
 
-    const childIds = getChildIds(userProfile);
-    if (childIds.length === 0) {
-        console.error("Nessun ID del bambino trovato nel profilo utente.");
+    const childId = userProfile?.childId; 
+    if (!childId) {
+        console.error("ID del bambino non trovato nel profilo utente.");
         return;
     }
 
     try {
-        // Recupera i dati di tutti i figli associati
-        const childrenDataMap = {};
-        let primaryTeamId = '';
-        let displayNames = [];
-
-        for (const cId of childIds) {
-            const childDocRef = doc(db, 'players', cId);
-            const childDoc = await getDoc(childDocRef);
-            if (childDoc.exists()) {
-                const childData = childDoc.data();
-                childrenDataMap[cId] = childData;
-                const dName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim();
-                if (dName) displayNames.push(dName);
-                
-                if (!primaryTeamId) {
-                    primaryTeamId = childData.teamId || childData.team || childData.squadra || childData.group || '';
-                }
-            }
+        const childDocRef = doc(db, 'players', childId);
+        const childDoc = await getDoc(childDocRef);
+        if (!childDoc.exists()) {
+            console.error("❌ ERRORE: Giocatore non trovato nella collezione 'players' con ID:", childId);
+            return;
         }
 
-        const fallbackName = userProfile?.name || 'Atleta';
-        const finalDisplayName = displayNames.length > 0 ? displayNames.join(', ') : fallbackName;
-        const finalTeamId = primaryTeamId || userProfile?.teamId || '';
+        const childData = childDoc.data();
+        const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim() || userProfile?.name;
+        const childTeamId = childData.teamId || childData.team || childData.squadra || childData.group || userProfile?.teamId || '';
 
         const nameEl = document.getElementById('parent-child-name');
-        if (nameEl) nameEl.innerText = finalDisplayName;
+        if (nameEl) nameEl.innerText = displayName;
 
         const [callupsSnap, attendancesSnap] = await Promise.all([
             getDocs(collection(db, 'callups')),
@@ -132,14 +104,12 @@ async function loadChildData(userProfile) {
         callupsSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const callupTeamId = data.teamId || data.team || data.squadra || '';
-            const invitedPlayers = ensureArray(data.players);
+            const invitedPlayers = data.players || [];
             const responses = data.responses || {};
              
-            const isExplicitlyInvited = invitedPlayers.some(p => 
-                typeof p === 'string' && childIds.some(cId => p === cId || p.startsWith(`${cId}|`))
-            );
-            const hasResponded = childIds.some(cId => responses[cId] !== undefined);
-            const isTeamMatch = callupTeamId && finalTeamId && String(callupTeamId).toLowerCase() === String(finalTeamId).toLowerCase();
+            const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && (p === childId || p.startsWith(`${childId}|`)));
+            const hasResponded = responses[childId] !== undefined;
+            const isTeamMatch = callupTeamId && childTeamId && String(callupTeamId).toLowerCase() === String(childTeamId).toLowerCase();
 
             if (isExplicitlyInvited || hasResponded || isTeamMatch || !callupTeamId) {
                 matchesList.push({
@@ -159,18 +129,19 @@ async function loadChildData(userProfile) {
         // B. Storico Allenamenti
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
-            const recordList = ensureArray(data.record || data.records);
+            const recordList = data.record || data.records || [];
              
-            // Cerca se almeno uno dei figli è presente nel record dell'allenamento
-            const myRecord = recordList.find(r => childIds.some(cId => String(r.playerId || r.id) === String(cId)));
-            if (myRecord) {
-                trainingsHistory.push({
-                    id: docSnap.id,
-                    collection: 'attendances',
-                    date: data.date || 'Da definire',
-                    notes: data.notes || 'Seduta regolare',
-                    status: myRecord.status
-                });
+            if (Array.isArray(recordList)) {
+                const myRecord = recordList.find(r => String(r.playerId || r.id) === String(childId));
+                if (myRecord) {
+                    trainingsHistory.push({
+                        id: docSnap.id,
+                        collection: 'attendances',
+                        date: data.date || 'Da definire',
+                        notes: data.notes || 'Seduta regolare',
+                        status: myRecord.status
+                    });
+                }
             }
         });
 
@@ -205,7 +176,7 @@ async function loadChildData(userProfile) {
         matchesList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
         trainingsHistory.sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
 
-        renderPortalUI(matchesList, trainingsHistory, childIds, finalTeamId || 'Assegnata', finalDisplayName);
+        renderPortalUI(matchesList, trainingsHistory, childId, childTeamId || 'Assegnata', displayName);
     } catch (error) {
         console.error("❌ ERRORE CRITICO CATTURATO:", error);
         const nameEl = document.getElementById('parent-child-name');
@@ -214,13 +185,10 @@ async function loadChildData(userProfile) {
 }
 
 // 3. RENDER GRAFICO DEL PORTALE GENITORI (SEZIONI NEI TAB DEDICATI)
-function renderPortalUI(matchesList, trainingsHistory, childIds, teamName, childName) {
+function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
     // Aggiorna l'etichetta della squadra se presente nell'HTML
     const teamBadgeEl = document.getElementById('parent-team-badge');
     if (teamBadgeEl) teamBadgeEl.innerText = `Squadra: ${teamName}`;
-
-    // Prendi il primo childId come riferimento principale per le azioni rapide singolo utente, oppure gestiscile tutte
-    const primaryChildId = childIds[0] || '';
 
     // --- Elaborazione Partite ---
     let matchesHTML = '';
@@ -228,8 +196,7 @@ function renderPortalUI(matchesList, trainingsHistory, childIds, teamName, child
         matchesHTML = `<p class="text-xs text-slate-400 italic py-2 text-center">Nessuna convocazione attiva.</p>`;
     } else {
         matchesList.forEach((ev) => {
-            // Controlla lo stato per il primo figlio o verifica generale
-            const currentResponse = ev.responses?.[primaryChildId] || null;
+            const currentResponse = ev.responses?.[childId] || null;
             let statusBadge = currentResponse === 'confirmed' || currentResponse === 'present'
                 ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Presenza Confermata ✅</span>`
                 : currentResponse === 'absent'
@@ -256,7 +223,7 @@ function renderPortalUI(matchesList, trainingsHistory, childIds, teamName, child
         });
     }
 
-    // --- Elaborazione Storico Allenamenti ---
+    // --- Elaborazione Storico Allenamenti (Raggruppato con mesi in italiano) ---
     let historyHTML = '';
     if (trainingsHistory.length === 0) {
         historyHTML = `<p class="text-xs text-slate-400 italic py-1 text-center">Nessun allenamento comunicato di recente.</p>`;
@@ -342,19 +309,21 @@ function renderPortalUI(matchesList, trainingsHistory, childIds, teamName, child
             </div>
         `;
 
+        // Ri-aggancia gli eventi per i pulsanti di invio allenamento appena creati nel DOM
         const btnPresent = document.getElementById('btn-submit-present');
         const btnAbsent = document.getElementById('btn-submit-absent');
 
-        if (btnPresent) btnPresent.onclick = () => window.submitCustomTraining(childIds, teamName, childName, 'present');
-        if (btnAbsent) btnAbsent.onclick = () => window.submitCustomTraining(childIds, teamName, childName, 'absent');
+        if (btnPresent) btnPresent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'present');
+        if (btnAbsent) btnAbsent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'absent');
     }
 
+    // Event Listeners per le partite
     if (matchesContainer) {
         matchesContainer.querySelectorAll('.btn-match-confirm').forEach(btn => {
-            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, primaryChildId, 'confirmed');
+            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'confirmed');
         });
         matchesContainer.querySelectorAll('.btn-match-absent').forEach(btn => {
-            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, primaryChildId, 'absent');
+            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'absent');
         });
     }
 };
@@ -382,16 +351,14 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
-window.submitCustomTraining = async function(childIdsInput, teamName, childName, status) {
-    console.log("🚀 submitCustomTraining avviata", { childIdsInput, teamName, childName, status });
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (SINCRONIZZATA CON IL REGISTRO DEL MISTER)
+window.submitCustomTraining = async function(childId, teamName, childName, status) {
+    console.log("🚀 submitCustomTraining avviata", { childId, teamName, childName, status });
 
     if (!db) {
         alert("Errore: Connessione al database non disponibile.");
         return;
     }
-
-    const childIds = ensureArray(childIdsInput);
 
     const dateInput = document.getElementById('custom-training-date');
     const selectedDate = dateInput ? dateInput.value : '';
@@ -403,9 +370,9 @@ window.submitCustomTraining = async function(childIdsInput, teamName, childName,
 
     try {
         const [year, month, day] = selectedDate.split('-');
-        const dateIso = selectedDate;                           
-        const dateIt = `${day}/${month}/${year}`;               
-        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; 
+        const dateIso = selectedDate;                           // 2026-08-13
+        const dateIt = `${day}/${month}/${year}`;               // 13/08/2026
+        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
 
         const querySnapshot = await getDocs(collection(db, 'attendances'));
          
@@ -429,8 +396,11 @@ window.submitCustomTraining = async function(childIdsInput, teamName, childName,
         if (targetDoc) {
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
-            recordList = ensureArray(data.records || data.record || data.presenze);
+            console.log("✅ Trovato documento esistente ID:", targetDoc.id, data);
+             
+            recordList = data.records || data.record || data.presenze || [];
         } else {
+            console.log("⚠️ Nessun documento trovato per la data. Ne creo uno nuovo.");
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
                 date: dateIt,
@@ -442,21 +412,18 @@ window.submitCustomTraining = async function(childIdsInput, teamName, childName,
             recordList = [];
         }
 
-        let cleanList = recordList.filter(r => {
+        const cleanList = recordList.filter(r => {
             const rId = String(r.playerId || r.id || '');
-            return !childIds.some(cId => rId === String(cId));
+            return rId !== String(childId);
         });
 
-        // Aggiunge lo stato per ciascuno dei childId gestiti
-        for (const cId of childIds) {
-            cleanList.push({
-                id: String(cId),
-                playerId: String(cId),
-                name: childName,
-                status: status,
-                present: status === 'present'
-            });
-        }
+        cleanList.push({
+            id: String(childId),
+            playerId: String(childId),
+            name: childName,
+            status: status,
+            present: status === 'present'
+        });
 
         await updateDoc(docRef, {
             records: cleanList,
