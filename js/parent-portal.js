@@ -161,7 +161,10 @@ async function loadChildData(userProfile) {
                     
                     // Se questo è il figlio attivo e ha notifiche, prepariamo il messaggio di avviso
                     if (id === activeChildId && hasPending) {
-                        alertMessage = `<div class="text-[10px] text-amber-500 font-bold mt-1 text-center animate-pulse">⚠️ Attenzione: ${pendingMatches.length} convocazione/i da confermare</div>`;
+                        alertMessage = `
+                            <div class="text-[9px] text-amber-400 font-bold mt-1 text-center leading-tight break-words px-1">
+                                ⚠️ ${pendingMatches.length} convocazione/i in attesa di conferma
+                            </div>`;
                     }
         
                     const selectedAttr = (id === activeChildId) ? 'selected' : '';
