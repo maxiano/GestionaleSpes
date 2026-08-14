@@ -299,9 +299,12 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
     const teamBadgeEl = document.getElementById('parent-team-badge');
     if (teamBadgeEl) teamBadgeEl.innerText = `Squadra: ${teamName}`;
 
-// --- 1. Elaborazione Partite Attive e Storico ---
+    // --- DEBUG LOG: Verifica cosa arriva alla funzione ---
+    console.log("Dati allenamenti ricevuti per il rendering:", trainingsHistory);
+
+    // --- 1. Elaborazione Partite Attive e Storico ---
     let matchesHTML = '';
-    let matchesHistoryHTML = ''; // Se aggiungi la nuova sezione
+    let matchesHistoryHTML = ''; 
     let historyHTML = '';
     
     // Filtriamo: le 'callups' sono attive, le altre (match_history) sono storico
@@ -367,6 +370,51 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
             });
         }
     }
+
+    // --- 2. Elaborazione Storico Allenamenti (Con raggruppamento per Mese) ---
+    if (trainingsHistory && trainingsHistory.length > 0) {
+        const mesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+        const groupedTrainings = trainingsHistory.reduce((acc, t) => {
+            // Assumendo che t.date sia in formato "YYYY-MM-DD" oppure "DD/MM/YYYY"
+            // Gestiamo il caso standard (YYYY-MM-DD o simile con trattini/slash)
+            let parts = t.date.includes('-') ? t.date.split('-') : t.date.split('/');
+            if (parts.length === 3) {
+                let year, monthIndex;
+                if (parts[0].length === 4) {
+                    // Formato YYYY-MM-DD
+                    year = parts[0];
+                    monthIndex = parseInt(parts[1], 10) - 1;
+                } else {
+                    // Formato DD/MM/YYYY
+                    year = parts[2];
+                    monthIndex = parseInt(parts[1], 10) - 1;
+                }
+                const key = `${mesi[monthIndex]} ${year}`;
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(t);
+            }
+            return acc;
+        }, {});
+
+        for (const [monthYear, records] of Object.entries(groupedTrainings)) {
+            historyHTML += `<div class="mt-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">🗓️ ${monthYear}</div>`;
+            records.forEach((t) => {
+                const statusBadge = t.status === 'present' 
+                    ? '<span class="text-emerald-600 font-bold">Presente ✅</span>' 
+                    : '<span class="text-rose-600 font-bold">Assente ❌</span>';
+                historyHTML += `
+                    <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5">
+                        <span class="font-semibold text-slate-700">Allenamento del ${t.date}</span>
+                        <div>${statusBadge}</div>
+                    </div>`;
+            });
+        }
+    } else {
+        historyHTML = `<p class="text-xs text-slate-400 italic text-center py-2">Nessun allenamento registrato.</p>`;
+    }
+
+    // --- DEBUG LOG: Verifica l'HTML generato per gli allenamenti ---
+    console.log("HTML storico allenamenti generato:", historyHTML);
 
     // --- Inserimento nei rispettivi TAB ---
     const matchesContainer = document.getElementById('tab-content-matches');
