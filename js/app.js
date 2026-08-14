@@ -237,44 +237,33 @@
 		            currentUserProfile = normalizeUserProfile({ name: user.email, role: 'coach', teams: [] });
 		        }
 		
-		        // --- SMISTAMENTO IN BASE AL RUOLO ---
+		       // --- SMISTAMENTO IN BASE AL RUOLO ---
 				if (currentUserProfile.role === 'parent') {
 				    document.getElementById('section-login').classList.add('hidden');
 				    document.getElementById('app-dashboard').classList.add('hidden');
 		
-				    // 1. Assicura che esista un contenitore visibile per il portale genitori
-				    let parentContainer = document.getElementById('parent-portal-wrapper');
-				    if (!parentContainer) {
-				        parentContainer = document.createElement('div');
-				        parentContainer.id = 'parent-portal-wrapper';
-				        // Inserisce il contenitore subito dopo la sezione di login o dentro il body
-				        document.body.appendChild(parentContainer);
+				    // 1. Valorizza subito il box utente in alto nella barra principale con nome e ruolo
+				    const userInfoEl = document.getElementById('user-info');
+				    if (userInfoEl) {
+				        userInfoEl.innerText = `${currentUserProfile.name || currentUserProfile.email} (GENITORE)`;
 				    }
-				    parentContainer.classList.remove('hidden');
+				    
+				    // 2. Mostra il pulsante di logout principale se presente
+				    const logoutBtn = document.getElementById('btn-logout');
+				    if (logoutBtn) logoutBtn.classList.remove('hidden');
 		
-				    // 2. Carica la vista HTML del portale se non è già presente
-				    if (!document.getElementById('parent-content-area')) {
-				        try {
-				            const response = await fetch('parent-view.html');
-				            const htmlContent = await response.text();
-				            parentContainer.innerHTML = htmlContent;
-				        } catch (fetchErr) {
-				            console.error("Errore nel caricamento della vista genitori:", fetchErr);
-				            parentContainer.innerHTML = `<p class="p-4 text-rose-600 font-bold">Errore di caricamento interfaccia genitori.</p>`;
-				            return;
-				        }
-				    }
-
-					// 3. AGGIUNGI QUI L'INSERIMENTO DEL NOME DEL GENITORE NELLA VIEW
-				    const parentNameEl = document.getElementById('user-info'); // Se hai un elemento specifico per il genitore
-				    if (parentNameEl) {
-				        parentNameEl.innerText = currentUserProfile.name || currentUserProfile.email;
+				    // 3. Avvia la funzione del portale genitori 
+				    // (Ci penserà parent-portal.js a creare il "dynamic-parent-container", fare il fetch di parent-view.html e popolare i dati)
+				    if (typeof initParentPortal === 'function') {
+				        await initParentPortal(currentUserProfile);
+				    } else if (typeof loadChildData === 'function') {
+				        await loadChildData(currentUserProfile);
+				    } else {
+				        console.error("❌ Nessuna funzione di inizializzazione trovata per il portale genitori!");
 				    }
 		
-				    // 4. Avvia la logica di popolamento dati passando il profilo
-				    initParentPortal(currentUserProfile);
 				    return; 
-				}		
+				}
 		
 		        // --- FLUSSO STANDARD (Coach / Admin) ---
 		        document.getElementById('user-info').innerText = `${currentUserProfile.name} (${currentUserProfile.role.toUpperCase()})`;
