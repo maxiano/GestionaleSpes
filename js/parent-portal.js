@@ -113,7 +113,7 @@ async function loadChildData(userProfile) {
         const activeDisplayName = `${activeChildData.lastName || ''} ${activeChildData.firstName || ''}`.trim() || userProfile?.name;
         const activeTeamId = activeChildData.teamId || activeChildData.team || activeChildData.squadra || activeChildData.group || userProfile?.teamId || '';
 
-         const [callupsSnap, attendancesSnap, matchHistorySnap] = await Promise.all([
+        const [callupsSnap, attendancesSnap, matchHistorySnap] = await Promise.all([
             getDocs(collection(db, 'callups')),
             getDocs(collection(db, 'attendances')),
             getDocs(collection(db, 'match_history'))
@@ -128,7 +128,7 @@ async function loadChildData(userProfile) {
             const callupTeamId = data.teamId || data.team || data.squadra || '';
             const invitedPlayers = data.players || [];
             const responses = data.responses || {};
-            
+             
             matchesList.push({
                 id: docSnap.id,
                 invitedPlayers,
@@ -142,7 +142,6 @@ async function loadChildData(userProfile) {
         matchHistorySnap.forEach((docSnap) => {
             const data = docSnap.data();
             if (String(data.playerId) === String(activeChildId)) {
-                // Salviamo i dati storici usando il matchId come chiave
                 permanentMatchHistoryMap[data.matchId] = {
                     id: data.matchId,
                     collection: 'match_history',
@@ -152,7 +151,7 @@ async function loadChildData(userProfile) {
                     time: data.time || '',
                     location: data.location || 'Da definire',
                     subInfo: 'Storico registrato',
-                    responses: { [activeChildId]: data.status } // Ripristiniamo la risposta data
+                    responses: { [activeChildId]: data.status }
                 };
             }
         });
@@ -163,11 +162,11 @@ async function loadChildData(userProfile) {
             if (childIds.length > 1) {
                 let selectHtml = `<select id="parent-child-switcher" class="bg-slate-800 text-emerald-400 font-extrabold text-sm md:text-lg border border-slate-700 rounded-lg p-1.5 w-full focus:outline-none focus:border-emerald-500 cursor-pointer">`;
                 let alertMessage = ""; 
-        
+         
                 childIds.forEach(id => {
                     const cData = childrenDataMap[id] || {};
                     const cName = `${cData.lastName || ''} ${cData.firstName || ''}`.trim() || `Figlio ${id}`;
-                    
+                     
                     const pendingMatches = matchesList.filter(m => {
                         const cTeam = cData.teamId || cData.team || cData.squadra || userProfile?.teamId || '';
                         const isExplicit = m.invitedPlayers.some(p => typeof p === 'string' && (p === id || p.startsWith(`${id}|`)));
@@ -175,24 +174,24 @@ async function loadChildData(userProfile) {
                         const isResponded = m.responses?.[id] !== undefined;
                         return (isExplicit || isTeam || !m.callupTeamId) && !isResponded;
                     });
-        
+         
                     const hasPending = pendingMatches.length > 0;
                     const indicator = hasPending ? ' ⚠️' : ' ✅';
-                    
+                     
                     if (id === activeChildId && hasPending) {
                         alertMessage = `
                             <div class="text-[9px] text-amber-400 font-bold mt-1 text-center leading-tight break-words px-1">
                                 ⚠️ ${pendingMatches.length} convocazione/i in attesa di conferma
                             </div>`;
                     }
-        
+         
                     const selectedAttr = (id === activeChildId) ? 'selected' : '';
                     selectHtml += `<option value="${id}" ${selectedAttr}>${cName}${indicator}</option>`;
                 });
-                
+                 
                 selectHtml += `</select>`;
                 nameEl.innerHTML = selectHtml + alertMessage;
-        
+         
                 const switcher = document.getElementById('parent-child-switcher');
                 if (switcher) {
                     switcher.onchange = (e) => {
@@ -208,7 +207,6 @@ async function loadChildData(userProfile) {
         // C. Uniamo le partite attive e lo storico permanente in un'unica lista per il genitore
         let activeMatchesMap = {};
 
-        // Prima inseriamo le partite attive dalla bacheca del mister
         matchesList.forEach((m) => {
             const isExplicitlyInvited = m.invitedPlayers.some(p => typeof p === 'string' && (p === activeChildId || p.startsWith(`${activeChildId}|`)));
             const hasResponded = m.responses?.[activeChildId] !== undefined;
@@ -231,8 +229,6 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // Poi integriamo lo storico permanente: se una partita è stata cancellata dal mister 
-        // ma esiste in match_history, viene comunque mostrata al genitore!
         Object.keys(permanentMatchHistoryMap).forEach(matchId => {
             if (!activeMatchesMap[matchId]) {
                 activeMatchesMap[matchId] = permanentMatchHistoryMap[matchId];
@@ -245,7 +241,7 @@ async function loadChildData(userProfile) {
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const recordList = data.record || data.records || [];
-            
+             
             if (Array.isArray(recordList)) {
                 const myRecord = recordList.find(r => String(r.playerId || r.id) === String(activeChildId));
                 if (myRecord) {
@@ -289,7 +285,7 @@ async function loadChildData(userProfile) {
 
         activeMatchesList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
         trainingsHistory.sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
-        
+         
         renderPortalUI(activeMatchesList, trainingsHistory, activeChildId, activeTeamId || 'Assegnata', activeDisplayName);
     } catch (error) {
         console.error("❌ ERRORE CRITICO CATTURATO:", error);
@@ -445,19 +441,16 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
             btn.onclick = () => window.respondEvent('callups', btn.dataset.id, activeChildId, 'absent');
         });
     }
-};
+}
 
 // 4. GESTIONE RISPOSTA CONVOCAZIONE (Con salvataggio nello Storico Permanente)
 window.respondEvent = async function(collectionName, docId, activeChildId, status) {
     try {
         const docRef = doc(db, collectionName, docId);
         const docSnap = await getDoc(docRef);
-        
+         
         if (!docSnap.exists()) {
             alert("⚠️ Questa convocazione non è più attiva o è stata rimossa dal mister.");
-            
-            // Anche se la convocazione attiva non c'è più, ricarichiamo comunque i dati 
-            // per aggiornare la schermata del portale
             if (typeof loadChildData === 'function' && typeof currentUserProfile !== 'undefined') {
                 loadChildData(currentUserProfile);
             }
@@ -465,18 +458,14 @@ window.respondEvent = async function(collectionName, docId, activeChildId, statu
         }
 
         const data = docSnap.data();
-        
-        // 1. Aggiorniamo la risposta nella convocazione attiva (visibile al mister)
         const responses = data.responses || {};
         responses[activeChildId] = status;
-        
+         
         await updateDoc(docRef, { responses: responses });
 
-        // 2. SALVIAMO LO STORICO PERMANENTE ('match_history')
-        // Questo garantisce che rimanga salvato per sempre per il genitore
         const historyId = `${docId}_${activeChildId}`;
         const historyRef = doc(db, 'match_history', historyId);
-        
+         
         await setDoc(historyRef, {
             playerId: activeChildId,
             matchId: docId,
@@ -484,15 +473,13 @@ window.respondEvent = async function(collectionName, docId, activeChildId, statu
             date: data.date || 'Da definire',
             time: data.matchTime || '',
             location: data.location || 'Da definire',
-            status: status, // 'confirmed' o 'absent'
+            status: status,
             updatedAt: new Date().toISOString()
         }, { merge: true });
 
-        // Messaggio di conferma visivo
         const actionText = (status === 'confirmed' || status === 'present') ? 'confermata ✅' : 'segnata come assente ❌';
         console.log(`Risposta salvata con successo: ${actionText}`);
 
-        // Ricarichiamo i dati del portale per aggiornare l'interfaccia in tempo reale
         if (typeof loadChildData === 'function' && typeof currentUserProfile !== 'undefined') {
             loadChildData(currentUserProfile);
         }
@@ -522,7 +509,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
     try {
         const [year, month, day] = selectedDate.split('-');
-        const dateIso = selectedDate;                            
+        const dateIso = selectedDate;                                    
         const dateIt = `${day}/${month}/${year}`;                
         const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; 
 
@@ -599,9 +586,8 @@ window.exportTrainingsHistory = function() {
         return;
     }
 
-    // Creiamo le righe della tabella per Excel
     let csvData = [
-        ["Data", "Stato Presenza", "Note / Dettagli"] // Intestazione delle colonne
+        ["Data", "Stato Presenza", "Note / Dettagli"]
     ];
 
     records.forEach(r => {
@@ -609,37 +595,17 @@ window.exportTrainingsHistory = function() {
         const dataStr = textParts[0] ? textParts[0].trim() : '';
         const isPresent = r.innerText.includes('Presente ✅');
         const stato = isPresent ? 'Presente' : 'Assente';
-        
+         
         let noteStr = r.innerText.replace(dataStr, '').replace('Presente ✅', '').replace('Assente ❌', '').trim();
         noteStr = noteStr.replace(/[()]/g, '').trim();
 
         csvData.push([dataStr, stato, noteStr]);
     });
 
-    // Chiamiamo la funzione centralizzata in util.js
     exportToExcel(`Presenze_Allenamenti_${new Date().getTime()}.csv`, csvData);
 };
 
-// C. Storico Partite per il figlio attivo (indipendente dalla bacheca del mister)
-let matchesHistoryList = [];
-matchHistorySnap.forEach((docSnap) => {
-    const data = docSnap.data();
-    // Verifichiamo che il record appartenga al figlio attivo
-    if (String(data.playerId) === String(activeChildId)) {
-        matchesHistoryList.push({
-            id: docSnap.id,
-            title: data.title || 'Partita',
-            date: data.date || 'Da definire',
-            time: data.time || '',
-            location: data.location || 'Da definire',
-            status: data.status
-        });
-    }
-});
-
-// Ordiniamo lo storico partite per data (dalla più recente alla meno recente o viceversa)
-matchesHistoryList.sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
-
+// 7. GESTIONE DEI TAB
 window.switchParentTab = function(tabName) {
     const trainingsTab = document.getElementById('tab-content-trainings');
     const matchesTab = document.getElementById('tab-content-matches');
