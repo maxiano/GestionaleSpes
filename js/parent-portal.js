@@ -437,7 +437,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 };
 
-function switchParentTab(tabName) {
+window.switchParentTab = function(tabName) {
     const trainingsTab = document.getElementById('tab-content-trainings');
     const matchesTab = document.getElementById('tab-content-matches');
     const btnTrainings = document.getElementById('tab-btn-trainings');
@@ -454,7 +454,7 @@ function switchParentTab(tabName) {
         btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
         btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
     }
-}
+};
 
 window.debugCheckAttendances = async function() {
     const querySnapshot = await getDocs(collection(db, 'attendances'));
