@@ -113,7 +113,7 @@ async function loadChildData(userProfile) {
         const activeDisplayName = `${activeChildData.lastName || ''} ${activeChildData.firstName || ''}`.trim() || userProfile?.name;
         const activeTeamId = activeChildData.teamId || activeChildData.team || activeChildData.squadra || activeChildData.group || userProfile?.teamId || '';
 
-        const [callupsSnap, attendancesSnap] = await Promise.all([
+         const [callupsSnap, attendancesSnap, matchHistorySnap] = await Promise.all([
             getDocs(collection(db, 'callups')),
             getDocs(collection(db, 'attendances')),
             getDocs(collection(db, 'match_history'))
@@ -122,14 +122,13 @@ async function loadChildData(userProfile) {
         let matchesList = [];
         let trainingsHistory = [];
 
-        // A. Elaborazione Partite preliminare per calcolare le notifiche nel selettore
+        // A. Elaborazione Partite attive (dalla bacheca del mister)
         callupsSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const callupTeamId = data.teamId || data.team || data.squadra || '';
             const invitedPlayers = data.players || [];
             const responses = data.responses || {};
             
-            // Usiamo temporaneamente un controllo generico per le notifiche del menu
             matchesList.push({
                 id: docSnap.id,
                 invitedPlayers,
@@ -138,12 +137,31 @@ async function loadChildData(userProfile) {
             });
         });
 
+        // B. Raccogliamo anche lo storico permanente da 'match_history' per il figlio attivo
+        let permanentMatchHistoryMap = {};
+        matchHistorySnap.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (String(data.playerId) === String(activeChildId)) {
+                // Salviamo i dati storici usando il matchId come chiave
+                permanentMatchHistoryMap[data.matchId] = {
+                    id: data.matchId,
+                    collection: 'match_history',
+                    type: 'match',
+                    title: data.title || 'Partita',
+                    date: data.date || 'Da definire',
+                    time: data.time || '',
+                    location: data.location || 'Da definire',
+                    subInfo: 'Storico registrato',
+                    responses: { [activeChildId]: data.status } // Ripristiniamo la risposta data
+                };
+            }
+        });
+
         // Gestione Intestazione e Selettore Figli
         const nameEl = document.getElementById('parent-child-name');
         if (nameEl) {
             if (childIds.length > 1) {
                 let selectHtml = `<select id="parent-child-switcher" class="bg-slate-800 text-emerald-400 font-extrabold text-sm md:text-lg border border-slate-700 rounded-lg p-1.5 w-full focus:outline-none focus:border-emerald-500 cursor-pointer">`;
-                // Variabile per raccogliere il messaggio di avviso
                 let alertMessage = ""; 
         
                 childIds.forEach(id => {
@@ -161,7 +179,6 @@ async function loadChildData(userProfile) {
                     const hasPending = pendingMatches.length > 0;
                     const indicator = hasPending ? ' ⚠️' : ' ✅';
                     
-                    // Se questo è il figlio attivo e ha notifiche, prepariamo il messaggio di avviso
                     if (id === activeChildId && hasPending) {
                         alertMessage = `
                             <div class="text-[9px] text-amber-400 font-bold mt-1 text-center leading-tight break-words px-1">
@@ -174,11 +191,8 @@ async function loadChildData(userProfile) {
                 });
                 
                 selectHtml += `</select>`;
-                
-                // INSERIAMO IL SELETTORE + L'AVVISO SOTTO
                 nameEl.innerHTML = selectHtml + alertMessage;
         
-                // Event listener per il cambio figlio
                 const switcher = document.getElementById('parent-child-switcher');
                 if (switcher) {
                     switcher.onchange = (e) => {
@@ -191,8 +205,10 @@ async function loadChildData(userProfile) {
             }
         }
 
-        // Filtriamo le partite reali per il figlio attivo
-        let activeMatchesList = [];
+        // C. Uniamo le partite attive e lo storico permanente in un'unica lista per il genitore
+        let activeMatchesMap = {};
+
+        // Prima inseriamo le partite attive dalla bacheca del mister
         matchesList.forEach((m) => {
             const isExplicitlyInvited = m.invitedPlayers.some(p => typeof p === 'string' && (p === activeChildId || p.startsWith(`${activeChildId}|`)));
             const hasResponded = m.responses?.[activeChildId] !== undefined;
@@ -201,7 +217,7 @@ async function loadChildData(userProfile) {
             if (isExplicitlyInvited || hasResponded || isTeamMatch || !m.callupTeamId) {
                 const docSnapRef = callupsSnap.docs.find(d => d.id === m.id);
                 const data = docSnapRef ? docSnapRef.data() : {};
-                activeMatchesList.push({
+                activeMatchesMap[m.id] = {
                     id: m.id,
                     collection: 'callups',
                     type: 'match',
@@ -211,11 +227,21 @@ async function loadChildData(userProfile) {
                     location: data.location || 'Da definire',
                     subInfo: `Ritrovo: ${data.gatheringTime || 'Da definire'}`,
                     responses: m.responses
-                });
+                };
             }
         });
 
-        // B. Storico Allenamenti per il figlio attivo
+        // Poi integriamo lo storico permanente: se una partita è stata cancellata dal mister 
+        // ma esiste in match_history, viene comunque mostrata al genitore!
+        Object.keys(permanentMatchHistoryMap).forEach(matchId => {
+            if (!activeMatchesMap[matchId]) {
+                activeMatchesMap[matchId] = permanentMatchHistoryMap[matchId];
+            }
+        });
+
+        let activeMatchesList = Object.values(activeMatchesMap);
+
+        // D. Storico Allenamenti per il figlio attivo
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const recordList = data.record || data.records || [];
@@ -263,7 +289,7 @@ async function loadChildData(userProfile) {
 
         activeMatchesList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
         trainingsHistory.sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
-
+        
         renderPortalUI(activeMatchesList, trainingsHistory, activeChildId, activeTeamId || 'Assegnata', activeDisplayName);
     } catch (error) {
         console.error("❌ ERRORE CRITICO CATTURATO:", error);
