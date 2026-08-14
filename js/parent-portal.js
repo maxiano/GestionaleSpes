@@ -1,3 +1,4 @@
+JavaScript
 import { db, auth } from './firebase-init.js';
 import { 
     collection, 
@@ -13,22 +14,33 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth
 
 // Variabile globale per mantenere in memoria il profilo utente completo
 let currentUserProfile = null;
+let activeChildId = null; // ID del figlio attualmente visualizzato nel portale
+
+// FUNZIONE DI SUPPORTO MULTI-FIGLIO (Retrocompatibile)
+function getChildIds(userProfile) {
+    if (!userProfile) return [];
+    if (Array.isArray(userProfile.childIds) && userProfile.childIds.length > 0) {
+        return userProfile.childIds.map(id => String(id).trim()).filter(Boolean);
+    }
+    if (userProfile.childId) {
+        return [String(userProfile.childId).trim()];
+    }
+    return [];
+}
 
 // 1. FUNZIONE PRINCIPALE DI AVVIO (VERSIONE BLINDATA)
 export async function initParentPortal(userProfile) {
     console.log("Inizializzazione portale genitori per:", userProfile?.name);
-    currentUserProfile = userProfile; // Salviamo il profilo globale
+    currentUserProfile = userProfile; 
      
     const dashboard = document.getElementById('app-dashboard');
     if (dashboard) dashboard.classList.add('hidden');
      
-    // Cerca il contenitore, se non c'è lo crea automaticamente al volo in modo sicuro
     let portalWrapper = document.getElementById('dynamic-parent-container');
     if (!portalWrapper) {
         portalWrapper = document.createElement('div');
         portalWrapper.id = 'dynamic-parent-container';
-        
-        // Lo mette dentro <main> se esiste, altrimenti prima del footer
+         
         const mainContainer = document.querySelector('main');
         if (mainContainer) {
             mainContainer.appendChild(portalWrapper);
@@ -57,6 +69,10 @@ export async function initParentPortal(userProfile) {
             });
         }
 
+        // Imposta il primo figlio come attivo di default
+        const childIds = getChildIds(currentUserProfile);
+        activeChildId = childIds.length > 0 ? childIds[0] : null;
+
         await loadChildData(currentUserProfile);
 
     } catch (error) {
@@ -64,33 +80,65 @@ export async function initParentPortal(userProfile) {
     }
 }
 
-// 2. CARICAMENTO DATI (Partite + Storico Presenze Allenamenti)
+// 2. CARICAMENTO DATI (Partite + Storico Presenze Allenamenti per TUTTI i figli)
 async function loadChildData(userProfile) {
     if (!db) {
         console.error("❌ ERRORE CRITICO: L'oggetto 'db' è UNDEFINED.");
         return;
     }
 
-    const childId = userProfile?.childId; 
-    if (!childId) {
-        console.error("ID del bambino non trovato nel profilo utente.");
+    const childIds = getChildIds(userProfile);
+    if (childIds.length === 0) {
+        console.error("Nessun ID bambino trovato nel profilo utente.");
         return;
     }
 
+    // Se l'ID attivo non è valido, prendiamo il primo disponibile
+    if (!activeChildId || !childIds.includes(activeChildId)) {
+        activeChildId = childIds[0];
+    }
+
     try {
-        const childDocRef = doc(db, 'players', childId);
-        const childDoc = await getDoc(childDocRef);
-        if (!childDoc.exists()) {
-            console.error("❌ ERRORE: Giocatore non trovato nella collezione 'players' con ID:", childId);
-            return;
+        // Recuperiamo i dati di TUTTI i figli del genitore per mapparli correttamente
+        const childrenDataMap = {};
+        for (const cId of childIds) {
+            const childDocRef = doc(db, 'players', cId);
+            const childDoc = await getDoc(childDocRef);
+            if (childDoc.exists()) {
+                childrenDataMap[cId] = childDoc.data();
+            }
         }
 
-        const childData = childDoc.data();
-        const displayName = `${childData.lastName || ''} ${childData.firstName || ''}`.trim() || userProfile?.name;
-        const childTeamId = childData.teamId || childData.team || childData.squadra || childData.group || userProfile?.teamId || '';
+        const activeChildData = childrenDataMap[activeChildId] || {};
+        const activeDisplayName = `${activeChildData.lastName || ''} ${activeChildData.firstName || ''}`.trim() || userProfile?.name;
+        const activeTeamId = activeChildData.teamId || activeChildData.team || activeChildData.squadra || activeChildData.group || userProfile?.teamId || '';
 
+        // Gestione Intestazione e Selettore Figli (se > 1)
         const nameEl = document.getElementById('parent-child-name');
-        if (nameEl) nameEl.innerText = displayName;
+        if (nameEl) {
+            if (childIds.length > 1) {
+                let selectHtml = `<select id="parent-child-switcher" class="bg-slate-800 text-emerald-400 font-extrabold text-lg border border-slate-700 rounded-lg p-1 focus:outline-none focus:border-emerald-500 cursor-pointer">`;
+                childIds.forEach(id => {
+                    const cData = childrenDataMap[id] || {};
+                    const cName = `${cData.lastName || ''} ${cData.firstName || ''}`.trim() || `Figlio ${id}`;
+                    const selectedAttr = (id === activeChildId) ? 'selected' : '';
+                    selectHtml += `<option value="${id}" ${selectedAttr}>${cName}</option>`;
+                });
+                selectHtml += `</select>`;
+                nameEl.innerHTML = selectHtml;
+
+                // Event listener per il cambio figlio
+                const switcher = document.getElementById('parent-child-switcher');
+                if (switcher) {
+                    switcher.onchange = (e) => {
+                        activeChildId = e.target.value;
+                        loadChildData(currentUserProfile); // ricarica i dati per il nuovo figlio selezionato
+                    };
+                }
+            } else {
+                nameEl.innerText = activeDisplayName;
+            }
+        }
 
         const [callupsSnap, attendancesSnap] = await Promise.all([
             getDocs(collection(db, 'callups')),
@@ -100,16 +148,16 @@ async function loadChildData(userProfile) {
         let matchesList = [];
         let trainingsHistory = [];
 
-        // A. Elaborazione Partite
+        // A. Elaborazione Partite per il figlio attivo
         callupsSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const callupTeamId = data.teamId || data.team || data.squadra || '';
             const invitedPlayers = data.players || [];
             const responses = data.responses || {};
              
-            const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && (p === childId || p.startsWith(`${childId}|`)));
-            const hasResponded = responses[childId] !== undefined;
-            const isTeamMatch = callupTeamId && childTeamId && String(callupTeamId).toLowerCase() === String(childTeamId).toLowerCase();
+            const isExplicitlyInvited = invitedPlayers.some(p => typeof p === 'string' && (p === activeChildId || p.startsWith(`${activeChildId}|`)));
+            const hasResponded = responses[activeChildId] !== undefined;
+            const isTeamMatch = callupTeamId && activeTeamId && String(callupTeamId).toLowerCase() === String(activeTeamId).toLowerCase();
 
             if (isExplicitlyInvited || hasResponded || isTeamMatch || !callupTeamId) {
                 matchesList.push({
@@ -126,13 +174,13 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // B. Storico Allenamenti
+        // B. Storico Allenamenti per il figlio attivo
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const recordList = data.record || data.records || [];
              
             if (Array.isArray(recordList)) {
-                const myRecord = recordList.find(r => String(r.playerId || r.id) === String(childId));
+                const myRecord = recordList.find(r => String(r.playerId || r.id) === String(activeChildId));
                 if (myRecord) {
                     trainingsHistory.push({
                         id: docSnap.id,
@@ -145,7 +193,6 @@ async function loadChildData(userProfile) {
             }
         });
 
-        // Funzione di supporto per convertire qualsiasi formato data in un timestamp ordinabile
         const parseDateToTimestamp = (dateStr) => {
             if (!dateStr || dateStr === 'Da definire') return 0;
             const str = String(dateStr).trim();
@@ -176,7 +223,7 @@ async function loadChildData(userProfile) {
         matchesList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
         trainingsHistory.sort((a, b) => parseDateToTimestamp(b.date) - parseDateToTimestamp(a.date));
 
-        renderPortalUI(matchesList, trainingsHistory, childId, childTeamId || 'Assegnata', displayName);
+        renderPortalUI(matchesList, trainingsHistory, activeChildId, activeTeamId || 'Assegnata', activeDisplayName);
     } catch (error) {
         console.error("❌ ERRORE CRITICO CATTURATO:", error);
         const nameEl = document.getElementById('parent-child-name');
@@ -185,8 +232,7 @@ async function loadChildData(userProfile) {
 }
 
 // 3. RENDER GRAFICO DEL PORTALE GENITORI (SEZIONI NEI TAB DEDICATI)
-function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childName) {
-    // Aggiorna l'etichetta della squadra se presente nell'HTML
+function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, childName) {
     const teamBadgeEl = document.getElementById('parent-team-badge');
     if (teamBadgeEl) teamBadgeEl.innerText = `Squadra: ${teamName}`;
 
@@ -196,7 +242,7 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
         matchesHTML = `<p class="text-xs text-slate-400 italic py-2 text-center">Nessuna convocazione attiva.</p>`;
     } else {
         matchesList.forEach((ev) => {
-            const currentResponse = ev.responses?.[childId] || null;
+            const currentResponse = ev.responses?.[activeChildId] || null;
             let statusBadge = currentResponse === 'confirmed' || currentResponse === 'present'
                 ? `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">Presenza Confermata ✅</span>`
                 : currentResponse === 'absent'
@@ -223,7 +269,7 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
         });
     }
 
-    // --- Elaborazione Storico Allenamenti (Raggruppato con mesi in italiano) ---
+    // --- Elaborazione Storico Allenamenti ---
     let historyHTML = '';
     if (trainingsHistory.length === 0) {
         historyHTML = `<p class="text-xs text-slate-400 italic py-1 text-center">Nessun allenamento comunicato di recente.</p>`;
@@ -240,7 +286,7 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                 const nomeMese = mesi[meseIndex] || "Altro";
                 const anno = parts[2];
                 const key = `${nomeMese} ${anno}`;
-                
+                 
                 if (!acc[key]) acc[key] = [];
                 acc[key].push(t);
             }
@@ -288,11 +334,11 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
                     <span class="text-base">🏃‍♂️</span>
                     <h3 class="font-bold text-slate-800 text-sm">Comunica Presenza / Assenza Allenamento</h3>
                 </div>
-                
+                 
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
                     <label class="block text-xs font-bold text-slate-700">Seleziona la data dell'allenamento:</label>
                     <input type="date" id="custom-training-date" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-emerald-500">
-                    
+                     
                     <div class="flex gap-2 pt-1">
                         <button id="btn-submit-present" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
                         <button id="btn-submit-absent" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
@@ -309,21 +355,19 @@ function renderPortalUI(matchesList, trainingsHistory, childId, teamName, childN
             </div>
         `;
 
-        // Ri-aggancia gli eventi per i pulsanti di invio allenamento appena creati nel DOM
         const btnPresent = document.getElementById('btn-submit-present');
         const btnAbsent = document.getElementById('btn-submit-absent');
 
-        if (btnPresent) btnPresent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'present');
-        if (btnAbsent) btnAbsent.onclick = () => window.submitCustomTraining(childId, teamName, childName, 'absent');
+        if (btnPresent) btnPresent.onclick = () => window.submitCustomTraining(activeChildId, teamName, childName, 'present');
+        if (btnAbsent) btnAbsent.onclick = () => window.submitCustomTraining(activeChildId, teamName, childName, 'absent');
     }
 
-    // Event Listeners per le partite
     if (matchesContainer) {
         matchesContainer.querySelectorAll('.btn-match-confirm').forEach(btn => {
-            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'confirmed');
+            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, activeChildId, 'confirmed');
         });
         matchesContainer.querySelectorAll('.btn-match-absent').forEach(btn => {
-            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, childId, 'absent');
+            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, activeChildId, 'absent');
         });
     }
 };
@@ -351,7 +395,7 @@ window.respondEvent = async function(collectionName, eventId, childId, status) {
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO (SINCRONIZZATA CON IL REGISTRO DEL MISTER)
+// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
     console.log("🚀 submitCustomTraining avviata", { childId, teamName, childName, status });
 
@@ -370,8 +414,8 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
     try {
         const [year, month, day] = selectedDate.split('-');
-        const dateIso = selectedDate;                           // 2026-08-13
-        const dateIt = `${day}/${month}/${year}`;               // 13/08/2026
+        const dateIso = selectedDate;                            // 2026-08-13
+        const dateIt = `${day}/${month}/${year}`;                // 13/08/2026
         const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; // 13/8/2026
 
         const querySnapshot = await getDocs(collection(db, 'attendances'));
@@ -396,11 +440,8 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
         if (targetDoc) {
             docRef = doc(db, 'attendances', targetDoc.id);
             const data = targetDoc.data();
-            console.log("✅ Trovato documento esistente ID:", targetDoc.id, data);
-             
             recordList = data.records || data.record || data.presenze || [];
         } else {
-            console.log("⚠️ Nessun documento trovato per la data. Ne creo uno nuovo.");
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
                 date: dateIt,
@@ -430,7 +471,6 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             record: cleanList
         });
 
-        console.log("🎉 Salvataggio sincronizzato con il registro mister completato!");
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
          
         if (currentUserProfile) {
