@@ -437,6 +437,25 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
     }
 };
 
+function switchParentTab(tabName) {
+    const trainingsTab = document.getElementById('tab-content-trainings');
+    const matchesTab = document.getElementById('tab-content-matches');
+    const btnTrainings = document.getElementById('tab-btn-trainings');
+    const btnMatches = document.getElementById('tab-btn-matches');
+
+    if (tabName === 'trainings') {
+        trainingsTab.classList.remove('hidden');
+        matchesTab.classList.add('hidden');
+        btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
+        btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
+    } else {
+        matchesTab.classList.remove('hidden');
+        trainingsTab.classList.add('hidden');
+        btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
+        btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
+    }
+}
+
 window.debugCheckAttendances = async function() {
     const querySnapshot = await getDocs(collection(db, 'attendances'));
     console.log("📊 --- ELENCO COMPLETO DOCUMENTI ATTENDANCES NEL DB ---");
