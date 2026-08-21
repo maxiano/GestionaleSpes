@@ -327,6 +327,15 @@
             }
         });
 
+		// EVENTO PULSANTE GENITORI NELLA NAV BAR SUPERIORE (AGGIUNGI QUI)
+        document.getElementById('nav-btn-parents').addEventListener('click', () => {
+            if (currentUserProfile && currentUserProfile.role === 'admin') {
+                document.getElementById('navigation-tabs').classList.remove('hidden');
+                document.getElementById('main-content-area').classList.remove('hidden');
+                switchTab('tab-parents');
+            }
+        });
+
 		// EVENTO PULSANTE BACKUP NELLA NAV BAR SUPERIORE
         document.getElementById('nav-btn-backup').addEventListener('click', (e) => {
             e.preventDefault();
