@@ -141,6 +141,12 @@
                 } else {
                     btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
                 }
+
+				if (btn.id === 'btn-tab-parents') {
+                    btn.className = `tab-btn ${isAdmin ? '' : 'hidden'} flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300`;
+                } else {
+                    btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
+                }
             });
 
 			// 3. Mostra il tab selezionato (QUESTO È QUELLO CHE FA APPARIRE LA SCHERMATA)
@@ -153,10 +159,20 @@
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
                 activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
+            // Aggiorna anche il testo "Sezione Attiva" sul pulsante principale dell'hamburger
+                const activeLabel = document.getElementById('current-active-tab-label');
+                if (activeLabel) {
+                    activeLabel.innerText = activeBtn.innerText.trim();
+                }
             }
+
+			
 			// 5. Caricamenti specifici per tab
             if (tabId === 'tab-callup') loadCallups();
             if (tabId === 'tab-staff') loadStaffList();
+			if (tabId === 'tab-parents') {
+                // Se hai una funzione per caricare i genitori, richiamala qui es: loadParentsList();
+            }
 			if (tabId === 'tab-tournaments') renderTournaments();
         }
 
@@ -174,6 +190,7 @@
                 document.getElementById('btn-tab-staff').classList.remove('hidden');
                 document.getElementById('nav-btn-staff').classList.remove('hidden');
 				// AGGIUNTA QUESTA RIGA PER I GENITORI:
+				document.getElementById('btn-tab-parents').classList.remove('hidden');
     			document.getElementById('nav-btn-parents').classList.remove('hidden');
 
 				// --- AGGIUNGI QUI IL MOSTRA BACKUP PER L'ADMIN ---
@@ -193,6 +210,7 @@
                 document.getElementById('btn-tab-staff').classList.add('hidden');
                 document.getElementById('nav-btn-staff').classList.add('hidden');
 				// AGGIUNTA QUESTA RIGA PER NASCONDERE AI COACH:
+				document.getElementById('btn-tab-staff').classList.add('hidden');
     			document.getElementById('nav-btn-parents').classList.add('hidden');
 
 				// --- AGGIUNGI QUI IL NASCONDI BACKUP PER I COACH ---
