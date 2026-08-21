@@ -12,7 +12,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, enableMultiTabIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const firebaseConfig = {
+export const firebaseConfig  = {
     apiKey: "AIzaSyBv0g2gejMRNsD4INV80ODkYS2QPyCLj30",
     authDomain: "gestione-scuola-calcio-43987.firebaseapp.com",
     projectId: "gestione-scuola-calcio-43987",
