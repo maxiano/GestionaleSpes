@@ -116,17 +116,22 @@
 
 
         function switchTab(tabId) {
-            if (tabId === 'tab-staff' && (!currentUserProfile || currentUserProfile.role !== 'admin')) {
-                return alert("Accesso non autorizzato alla Gestione Staff.");
-            }
-
-			// Esempio da inserire all'inizio delle funzioni dei tab o del caricamento dati
-			if (!activeTeamId || activeTeamId === "SELECT_TEAM" || activeTeamId === "ALL") {
-    			alert("⚠️ Attenzione: Devi prima selezionare una Categoria / Gruppo dal menu a tendina per procedere!");
-    			return; // Interrompe l'azione impedendo errori
-			}
-
-            const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
+         // Definiamo quali sono le tab "amministrative" che non richiedono squadra
+		    const adminTabs = ['tab-staff', 'tab-parents'];
+		    const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
+		
+		    // Controllo permessi per tab protette
+		    if (adminTabs.includes(tabId) && !isAdmin) {
+		        return alert("Accesso non autorizzato.");
+		    }
+		
+		    // Controllo Squadra: solo se NON è una tab amministrativa, blocca se manca activeTeamId
+		    if (!adminTabs.includes(tabId)) {
+		        if (!activeTeamId || activeTeamId === "SELECT_TEAM" || activeTeamId === "ALL") {
+		            alert("⚠️ Attenzione: Devi prima selezionare una Categoria / Gruppo!");
+		            return;
+		        }
+		    }
 			// 1. Nascondi tutti i tab
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
 			// 2. Gestisci lo stile di tutti i bottoni
