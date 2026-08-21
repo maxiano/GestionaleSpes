@@ -174,7 +174,7 @@
                 document.getElementById('btn-tab-staff').classList.remove('hidden');
                 document.getElementById('nav-btn-staff').classList.remove('hidden');
 				// AGGIUNGI QUESTO PER I GENITORI:
-        		const btnParents = document.getElementById('btn-tab-parents');
+        		const btnParents = document.getElementById('tab-parents');
         		if (btnParents) btnParents.classList.remove('hidden');
 
 				// --- AGGIUNGI QUI IL MOSTRA BACKUP PER L'ADMIN ---
@@ -194,7 +194,7 @@
                 document.getElementById('btn-tab-staff').classList.add('hidden');
                 document.getElementById('nav-btn-staff').classList.add('hidden');
 				// AGGIUNGI QUESTO PER NASCONDERE AI COACH:
-        		const btnParents = document.getElementById('btn-tab-parents');
+        		const btnParents = document.getElementById('tab-parents');
         		if (btnParents) btnParents.classList.add('hidden');
 
 				// --- AGGIUNGI QUI IL NASCONDI BACKUP PER I COACH ---
