@@ -1,5 +1,6 @@
 // services/DatabaseService.js
 import { db } from '../firebase-config.js';
+import { AppCache } from '../core/cache.js';
 import { 
     collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, 
     doc, query, where, serverTimestamp, arrayUnion 
@@ -26,11 +27,20 @@ export class DatabaseService {
         await deleteDoc(doc(db, 'tournaments', String(id)));
     }
 
-    // --- Giocatori ---
-    static async getPlayers(teamId) {
+    // --- Giocatori (con supporto Cache) ---
+    static async getPlayers(teamId, forceRefresh = false) {
+        if (!forceRefresh) {
+            const cached = AppCache.getPlayers(teamId);
+            if (cached) return cached;
+        }
+
         const q = query(collection(db, 'players'), where("teamId", "==", teamId));
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const players = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        // Salva in cache
+        AppCache.setPlayers(teamId, players);
+        return players;
     }
 
     static async savePlayer(playerData, editingId = null) {
@@ -43,7 +53,6 @@ export class DatabaseService {
             savedId = ref.id;
         }
 
-        // Associazione automatica al genitore tramite telefono
         if (playerData.parentPhone && savedId) {
             const usersRef = collection(db, 'users');
             const q = query(usersRef, where("phone", "==", playerData.parentPhone), where("role", "==", "parent"));
@@ -55,11 +64,17 @@ export class DatabaseService {
                 await updateDoc(doc(db, 'users', parentId), { childIds: arrayUnion(savedId) });
             }
         }
+
+        // Invalida la cache dei giocatori per questa squadra
+        AppCache.clearPlayers(playerData.teamId);
         return savedId;
     }
 
-    static async deletePlayer(id) {
+    static async deletePlayer(id, teamId) {
         await deleteDoc(doc(db, 'players', id));
+        if (teamId) {
+            AppCache.clearPlayers(teamId);
+        }
     }
 
     // --- Convocazioni ---
