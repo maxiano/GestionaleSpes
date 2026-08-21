@@ -1,5 +1,5 @@
 // services/DatabaseService.js
-import { db } from '../firebase-config.js';
+import { db } from '../firebase-init.js';
 import { AppCache } from '../core/cache.js';
 import { 
     collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, 
