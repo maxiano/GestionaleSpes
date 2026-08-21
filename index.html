@@ -37,28 +37,48 @@
                 <p id="user-info" class="text-xs text-slate-400 font-medium tracking-wide">Caricamento utente...</p>
             </div>
         </div>
-        <div class="flex items-center space-x-3">
-            <!-- PULSANTE CAMBIO PASSWORD -->
-            <button id="nav-btn-password" class="bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95">
-                <span>🔑</span> <span class="hidden sm:inline">Cambia Password</span>
-            </button>
-            <!-- VOCE MENU STAFF -->
-            <button id="nav-btn-staff" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95">
-                <span>⚙️</span> <span class="hidden sm:inline">Gestione Staff</span>
-            </button>
-            <!-- VOCE MENU GENITORI -->
-            <button id="nav-btn-parents"  class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95">
-                <span>👨‍👩‍👧‍👦</span> <span class="hidden sm:inline">Gestione Genitori</span>
-            </button>
-            <!-- VOCE MENU BACKUP -->
-            <button id="nav-btn-backup" class="hidden bg-slate-800/80 hover:bg-emerald-600 ...">
-                <span>💾</span> <span class="hidden sm:inline">Backup Dati</span>
-            </button>
-            <!-- PULSANTE LOGOUT -->
-            <button id="btn-logout" class="hidden bg-red-600/90 hover:bg-red-600 text-white text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 shadow-sm shadow-red-900/30 active:scale-95">
-                Esci
-            </button>
-        </div>
+<div class="flex items-center space-x-2 overflow-x-auto py-1">
+    <!-- PULSANTE CAMBIO PASSWORD -->
+    <button id="nav-btn-password" class="bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
+        <span>🔑</span> <span class="hidden sm:inline">Password</span>
+    </button>
+
+    <!-- VOCE MENU STAFF -->
+    <button id="nav-btn-staff" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
+        <span>⚙️</span> <span class="hidden sm:inline">Gestione Staff</span>
+    </button>
+
+    <!-- VOCE MENU GENITORI -->
+    <button id="nav-btn-parents" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
+        <span>👨‍👩‍👧‍👦</span> <span class="hidden sm:inline">Gestione Genitori</span>
+    </button>
+    
+    <!-- IMPORTA / ESPORTA GIOCATORI -->
+    <button id="nav-btn-import-players" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
+        <span>📥</span> <span class="hidden sm:inline">Importa Giocatori</span>
+    </button>
+    <button id="nav-btn-export-players" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
+        <span>📤</span> <span class="hidden sm:inline">Esporta Giocatori</span>
+    </button>
+
+    <!-- IMPORTA / ESPORTA GENITORI -->
+    <button id="nav-btn-import-parents" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
+        <span>👥📥</span> <span class="hidden sm:inline">Importa Genitori</span>
+    </button>
+    <button id="nav-btn-export-parents" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
+        <span>👥📤</span> <span class="hidden sm:inline">Esporta Genitori</span>
+    </button>
+
+    <!-- VOCE MENU BACKUP -->
+    <button id="nav-btn-backup" class="hidden bg-slate-800/80 hover:bg-emerald-600 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
+        <span>💾</span> <span class="hidden sm:inline">Backup</span>
+    </button>
+
+    <!-- PULSANTE LOGOUT -->
+    <button id="btn-logout" class="hidden bg-red-600/90 hover:bg-red-600 text-white text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 shadow-sm shadow-red-900/30 active:scale-95 shrink-0">
+        Esci
+    </button>
+</div>
     </nav>
 
     <!-- INTESTAZIONE UNICA PER LA STAMPA (HIDDEN ON SCREEN) -->
