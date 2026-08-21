@@ -401,6 +401,45 @@
             }
         });
 
+		// GESTIONE CREAZIONE ED ELIMINAZIONE UTENTI GENITORI (SOLO ADMIN)
+		document.getElementById('form-create-parent').addEventListener('submit', async (e) => {
+		    e.preventDefault();
+		    
+		    const name = document.getElementById('parent-name').value.trim();
+		    const email = document.getElementById('parent-email').value.trim();
+		    const phone = document.getElementById('parent-phone').value.trim();
+		    const password = document.getElementById('parent-password').value;
+		
+		    try {
+		        // Creazione Auth
+		        const signUpUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`;
+		        const response = await fetch(signUpUrl, {
+		            method: 'POST',
+		            headers: { 'Content-Type': 'application/json' },
+		            body: JSON.stringify({ email, password, returnSecureToken: true })
+		        });
+		        
+		        const data = await response.json();
+		        if (!response.ok) throw new Error(data.error.message);
+		
+		        // Salvataggio su Firestore (collezione 'users' o 'parents' in base a come ti organizzi)
+		        await setDoc(doc(db, 'users', data.localId), {
+		            uid: data.localId,
+		            name: name,
+		            email: email,
+		            phone: phone, // <-- Il campo che volevi aggiungere
+		            role: 'parent',
+		            childIds: [],
+		            createdAt: serverTimestamp()
+		        });
+		
+		        alert("Genitore creato con successo!");
+		        document.getElementById('form-create-parent').reset();
+		    } catch (err) {
+		        alert("Errore: " + err.message);
+		    }
+		});
+
         async function loadStaffList() {
             const container = document.getElementById('staff-list-container');
             if (!container) return;
