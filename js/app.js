@@ -1536,7 +1536,7 @@
             document.getElementById('modal-add-player').classList.remove('hidden');
         });
 
-        function openEditPlayerModal(playerId) {
+       function openEditPlayerModal(playerId) {
             const player = activeTeamPlayers.find(p => p.id === playerId);
             if (!player) return;
 
@@ -1584,14 +1584,46 @@
             };
 
             try {
+                // --- CERCA IL GENITORE TRAMITE IL NUMERO DI TELEFONO ---
+                if (parentPhone) {
+                    const usersRef = collection(db, 'users');
+                    const q = query(usersRef, where("phone", "==", parentPhone), where("role", "==", "parent"));
+                    const querySnapshot = await getDocs(q);
+
+                    if (!querySnapshot.empty) {
+                        // Se trova il genitore, associa il suo UID al giocatore
+                        querySnapshot.forEach((docSnap) => {
+                            playerData.parentId = docSnap.id;
+                        });
+                    } else {
+                        // Se non trova nessun utente registrato con quel telefono, rimuoviamo l'eventuale vecchio parentId
+                        playerData.parentId = null;
+                    }
+                } else {
+                    playerData.parentId = null;
+                }
+                // --------------------------------------------------------
+
+                let savedPlayerId = editingPlayerId;
+
                 if (editingPlayerId) {
                     await updateDoc(doc(db, 'players', editingPlayerId), playerData);
                     alert("Giocatore aggiornato con successo!");
                 } else {
                     playerData.createdAt = serverTimestamp();
-                    await addDoc(collection(db, 'players'), playerData);
+                    const docRef = await addDoc(collection(db, 'players'), playerData);
+                    savedPlayerId = docRef.id;
                     alert("Nuovo giocatore aggiunto con successo!");
                 }
+
+                // --- AGGIORNA ANCHE IL GENITORE COLLEGANDO IL FIGLIO (SE TROVATO) ---
+                if (playerData.parentId && savedPlayerId) {
+                    const parentRef = doc(db, 'users', playerData.parentId);
+                    await updateDoc(parentRef, {
+                        childIds: arrayUnion(savedPlayerId)
+                    });
+                }
+                // -----------------------------------------------------------------
 
                 document.getElementById('modal-add-player').classList.add('hidden');
                 AppCache.clearPlayers(activeTeamId);
@@ -2130,6 +2162,51 @@
 	
 	    document.getElementById('form-callup').scrollIntoView({ behavior: 'smooth' });
 	}
+
+async function linkParentToPlayerByPhone(playerId, parentPhone) {
+    try {
+        // 1. Pulisci il numero di telefono (rimuovi spazi o trattini per evitare errori di battitura)
+        const cleanPhone = parentPhone.trim();
+
+        // 2. Cerca nella collezione 'users' (o 'parents') se esiste un utente con questo telefono e ruolo 'parent'
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where("phone", "==", cleanPhone), where("role", "==", "parent"));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            console.warn("Nessun genitore trovato con questo numero di telefono:", cleanPhone);
+            // Puoi comunque salvare il telefono nella scheda del giocatore senza legare l'account Auth per ora
+            await updateDoc(doc(db, 'players', playerId), { parentPhone: cleanPhone });
+            return;
+        }
+
+        // 3. Prendi il primo genitore trovato (o gestisci più genitori se necessario)
+        let parentDocId = null;
+        querySnapshot.forEach((docSnap) => {
+            parentDocId = docSnap.id; // Questo è l'UID del genitore in Firebase Auth
+        });
+
+        // 4. Aggiorna la scheda del giocatore collegando l'ID del genitore
+        await updateDoc(doc(db, 'players', playerId), {
+            parentPhone: cleanPhone,
+            parentId: parentDocId // Collega direttamente l'UID del genitore
+        });
+
+        // 5. (Opzionale) Aggiorna anche il genitore aggiungendo il figlio nel suo array 'childIds'
+        const parentRef = doc(db, 'users', parentDocId);
+        // Usiamo arrayUnion per aggiungere il playerId senza duplicarlo
+        await updateDoc(parentRef, {
+            childIds: arrayUnion(playerId)
+        });
+
+        console.log("Associazione avvenuta con successo tra giocatore e genitore!");
+        alert("Genitore associato con successo al giocatore!");
+
+    } catch (err) {
+        console.error("Errore durante l'associazione:", err);
+        alert("Errore nell'associazione: " + err.message);
+    }
+}
 
 
 	if ('serviceWorker' in navigator) {
