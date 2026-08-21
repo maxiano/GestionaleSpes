@@ -4,40 +4,47 @@ import { DatabaseService } from './services/DatabaseService.js';
 import { TournamentManager } from './components/TournamentManager.js';
 import { RosterManager } from './components/RosterManager.js';
 import { AttendanceManager } from './components/AttendanceManager.js';
+import { AuthService } from './services/AuthService.js';
+
 
 window.app = {};
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Istanziazione dei Manager modulari
-    window.app.store = store;
-    window.app.tournaments = new TournamentManager();
-    window.app.roster = new RosterManager();
-    window.app.attendance = new AttendanceManager();
+    window.app = { store };
 
-    // Impostazione iniziale squadra (es. 2014)
-    store.currentUserRole = 'admin';
-    store.setTeam('2014');
+    // Gestione dello stato di autenticazione
+    AuthService.initAuthStateListener(
+        (userData) => {
+            // Utente loggato: aggiorna lo store
+            store.setUser(userData);
+            console.log("Utente autenticato:", store.currentUser);
+            
+            // Mostra la dashboard principale e nascondi la schermata di login
+            document.getElementById('login-screen')?.classList.add('hidden');
+            document.getElementById('app-container')?.classList.remove('hidden');
+        },
+        () => {
+            // Utente non loggato: mostra la schermata di login
+            console.log("Nessun utente attivo, richiesta login.");
+            document.getElementById('login-screen')?.classList.remove('hidden');
+            document.getElementById('app-container')?.classList.add('hidden');
+        }
+    );
 
-    // Gestione Backup Completo Database in JSON
-    const btnBackup = document.getElementById('btn-download-backup');
-    if (btnBackup) {
-        btnBackup.addEventListener('click', async () => {
+    // Gestione del form di login (se presente nell'HTML)
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
             try {
-                const backup = await DatabaseService.backupDatabase();
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
-                const a = document.createElement('a');
-                a.href = dataStr;
-                a.download = `Spes_Backup_${new Date().toISOString().slice(0,10)}.json`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                alert("Backup del database completato con successo!");
+                await AuthService.login(email, password);
             } catch (err) {
-                alert("Errore durante il backup: " + err.message);
+                alert("Credenziali non valide o errore di accesso: " + err.message);
             }
         });
     }
-
     // Gestione Menu Hamburger UI
     const hamburgerBtn = document.getElementById('hamburger-menu-btn');
     if (hamburgerBtn) {
