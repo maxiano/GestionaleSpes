@@ -537,6 +537,68 @@
             }
         }
 
+			async function loadParentsList() {
+            const container = document.getElementById('parents-list-container');
+            if (!container) return;
+
+            try {
+                // Filtriamo direttamente o carichiamo tutti gli utenti con ruolo 'parent'
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where("role", "==", "parent"));
+                const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    container.innerHTML = '<p class="text-xs text-gray-400">Nessun genitore registrato.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                snapshot.forEach(docSnap => {
+                    const parent = docSnap.data();
+                    const parentId = docSnap.id;
+                    const phoneDisplay = parent.phone ? parent.phone : 'N/D';
+                    const childrenCount = parent.childIds ? parent.childIds.length : 0;
+
+                    container.innerHTML += `
+                        <div class="border p-3 rounded bg-white flex justify-between items-center text-xs shadow-sm">
+                            <div class="space-y-1">
+                                <p class="font-bold text-sm text-gray-800">${parent.name || 'Senza nome'}</p>
+                                <p class="text-gray-600">📧 <strong>Email:</strong> ${parent.email || 'N/D'}</p>
+                                <p class="text-gray-600">
+                                    📞 <strong>Tel:</strong> ${phoneDisplay} | 
+                                    👶 <strong>Figli associati:</strong> ${childrenCount}
+                                </p>
+                            </div>
+                            <div>
+                                <button data-id="${parentId}" class="btn-delete-parent text-xs bg-red-100 hover:bg-red-200 text-red-700 font-bold px-2 py-1 rounded transition">
+                                    🗑️ Elimina
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Aggiungiamo l'evento di eliminazione a ciascun bottone
+                container.querySelectorAll('.btn-delete-parent').forEach(btn => {
+                    btn.addEventListener('click', (e) => deleteParentUser(e.target.getAttribute('data-id')));
+                });
+
+            } catch (err) {
+                container.innerHTML = `<p class="text-xs text-red-500">Errore: ${err.message}</p>`;
+            }
+        }
+
+		async function deleteParentUser(parentId) {
+            if (!confirm("Sei sicuro di voler eliminare questo genitore? Perderà l'accesso al portale.")) return;
+            try {
+                await deleteDoc(doc(db, 'users', parentId));
+                alert("Genitore rimosso con successo!");
+                loadParentsList(); // Ricarica la lista aggiornata
+            } catch (err) {
+                alert("Errore eliminazione genitore: " + err.message);
+            }
+        }
+
         // CARICAMENTO ED ELABORAZIONE DATI SQUADRA
         async function loadTeamData(forceRefresh = false) {
             if (!activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM' || activeTeamId === 'NONE') {
