@@ -30,3 +30,8 @@ export const db = getFirestore(app);
 enableMultiTabIndexedDbPersistence(db).catch(err => {
     console.warn("Persistenza offline non abilitata:", err.code);
 });
+
+// --- AGGIUNTI QUESTE RIGHE PER RENDERLI GLOBALI ---
+window.db = db;
+window.auth = auth;
+window.firebaseConfig = firebaseConfig;
