@@ -1,9 +1,4 @@
-/**
- * @file parent-portal.js
- * @brief Gestionale Tecnico - Spes Montesacro (Versione integrata con DatabaseService)
- * @author Massimiliano Nanni
- * @copyright © 2026 Spes Montesacro. Tutti i diritti riservati.
- */
+// components/parent-portal.js
 
 import { db, auth } from '../firebase-init.js';
 import { DatabaseService } from '../services/DatabaseService.js';
