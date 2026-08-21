@@ -2195,7 +2195,7 @@ async function loadStaffList() {
 		    const backupData = {};
 		    
 		    // Elenco delle tue collection (ho aggiunto anche 'tournaments' che ho visto nel tuo codice)
-		    const collectionsToBackup = ['tournaments', 'uisers', 'players', 'callups', 'attendances'];  
+		    const collectionsToBackup = ['tournaments', 'users', 'players', 'callups', 'attendances'];  
 		
 		    try {
 		        console.log("Inizio backup del database...");
