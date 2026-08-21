@@ -1,6 +1,7 @@
 // components/AttendanceManager.js
 import { DatabaseService } from '../services/DatabaseService.js';
 import { store } from '../core/AppStore.js';
+import { monthNamesIT } from '../core/config.js';
 
 export class AttendanceManager {
     constructor() {
@@ -35,8 +36,8 @@ export class AttendanceManager {
             document.body.classList.add('print-landscape', 'print-monthly');
             const m = parseInt(document.getElementById('filter-month').value);
             const y = parseInt(document.getElementById('filter-year').value);
-            const monthNamesIT = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
-            document.getElementById('print-report-period').innerText = `Periodo: ${monthNamesIT[m]} ${y}`;
+            const monthName = monthNamesIT[m] || "Mese";
+            document.getElementById('print-report-period').innerText = `Periodo: ${monthName} ${y}`;
             window.print();
         });
     }
