@@ -36,6 +36,7 @@
             collection,
             query,
             where,
+			arrayUnion,
             serverTimestamp
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
