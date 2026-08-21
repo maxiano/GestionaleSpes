@@ -82,14 +82,51 @@ export async function initParentPortal(userProfile) {
 
 // 2. CARICAMENTO DATI (Partite + Storico Presenze Allenamenti per TUTTI i figli)
 async function loadChildData(userProfile) {
-    if (!db) {
+if (!db) {
         console.error("❌ ERRORE CRITICO: L'oggetto 'db' è UNDEFINED.");
         return;
     }
 
-    const childIds = getChildIds(userProfile);
-    if (childIds.length === 0) {
-        console.error("Nessun ID bambino trovato nel profilo utente.");
+    // 1. Cerchiamo gli ID tramite la funzione standard esistente
+    let childIds = getChildIds(userProfile);
+
+    // 2. FALLBACK AUTOMATICO: Se la funzione non trova nulla, cerchiamo direttamente su Firestore per UID o Telefono
+    if (!childIds || childIds.length === 0) {
+        console.warn("⚠️ Nessun ID trovato tramite getChildIds. Tentativo di recupero tramite Firestore...");
+        try {
+            const playersRef = collection(db, 'players');
+            let querySnapshot = null;
+
+            // Tentativo per parentId == userProfile.uid
+            if (userProfile && userProfile.uid) {
+                const qByUid = query(playersRef, where("parentId", "==", userProfile.uid));
+                querySnapshot = await getDocs(qByUid);
+            }
+
+            // Se non trovato per UID, tentiamo per numero di telefono
+            if ((!querySnapshot || querySnapshot.empty) && userProfile && userProfile.phone) {
+                const cleanPhone = String(userProfile.phone).trim();
+                const qByPhone = query(playersRef, where("parentPhone", "==", cleanPhone));
+                querySnapshot = await getDocs(qByPhone);
+            }
+
+            if (querySnapshot && !querySnapshot.empty) {
+                childIds = [];
+                querySnapshot.forEach(docSnap => {
+                    childIds.push(docSnap.id);
+                });
+                console.log("✅ Giocatori recuperati dinamicamente:", childIds);
+            }
+        } catch (searchErr) {
+            console.error("Errore durante la ricerca dinamica dei figli:", searchErr);
+        }
+    }
+
+    // 3. Controllo finale: se dopo il fallback siamo ancora a zero, allora ci fermiamo
+    if (!childIds || childIds.length === 0) {
+        console.error("Nessun ID bambino trovato nel profilo utente o tramite associazioni.");
+        const nameEl = document.getElementById('parent-child-name');
+        if (nameEl) nameEl.innerHTML = `<span class="text-xs text-red-400 font-semibold">Nessun giocatore associato al tuo profilo</span>`;
         return;
     }
 
