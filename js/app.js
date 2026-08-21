@@ -171,9 +171,7 @@
 			// 5. Caricamenti specifici per tab
             if (tabId === 'tab-callup') loadCallups();
             if (tabId === 'tab-staff') loadStaffList();
-			if (tabId === 'tab-parents') {
-                // Se hai una funzione per caricare i genitori, richiamala qui es: loadParentsList();
-            }
+			if (tabId === 'tab-parents') loadParentsList();
 			if (tabId === 'tab-tournaments') renderTournaments();
         }
 
@@ -472,6 +470,7 @@
 		
 		        alert("Genitore creato con successo!");
 		        document.getElementById('form-create-parent').reset();
+				loadParentsList();
 		    } catch (err) {
 		        alert("Errore: " + err.message);
 		    }
