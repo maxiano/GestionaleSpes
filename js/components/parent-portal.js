@@ -1,15 +1,13 @@
 /**
  * @file parent-portal.js
- * @brief Gestionale Tecnico - Spes Montesacro
+ * @brief Gestionale Tecnico - Spes Montesacro (Versione integrata con DatabaseService)
  * @author Massimiliano Nanni
  * @copyright © 2026 Spes Montesacro. Tutti i diritti riservati.
- * 
- * Questo software è riservato esclusivamente all'uso interno della società 
- * sportiva Spes Montesacro. Ne è vietata la copia, la riproduzione o la 
- * distribuzione non autorizzata.
  */
 
 import { db, auth } from '../firebase-init.js';
+import { DatabaseService } from '../services/DatabaseService.js';
+import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
     collection, 
     doc, 
@@ -20,14 +18,12 @@ import {
     query, 
     where 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { exportToExcel } from './utils.js';
 
-// Variabile globale per mantenere in memoria il profilo utente completo
 let currentUserProfile = null;
-let activeChildId = null; // ID del figlio attualmente visualizzato nel portale
+let activeChildId = null;
 
-// FUNZIONE DI SUPPORTO MULTI-FIGLIO (Retrocompatibile)
+// Funzione di supporto multi-figlio
 function getChildIds(userProfile) {
     if (!userProfile) return [];
     if (Array.isArray(userProfile.childIds) && userProfile.childIds.length > 0) {
@@ -39,7 +35,7 @@ function getChildIds(userProfile) {
     return [];
 }
 
-// 1. FUNZIONE PRINCIPALE DI AVVIO (VERSIONE BLINDATA)
+// 1. INIZIALIZZAZIONE PORTALE
 export async function initParentPortal(userProfile) {
     console.log("Inizializzazione portale genitori per:", userProfile?.name);
     currentUserProfile = userProfile; 
@@ -69,8 +65,7 @@ export async function initParentPortal(userProfile) {
         const response = await fetch('parent-view.html');
         if (!response.ok) throw new Error("Impossibile caricare la vista genitori.");
          
-        const htmlContent = await response.text();
-        portalWrapper.innerHTML = htmlContent;
+        portalWrapper.innerHTML = await response.text();
 
         const logoutBtn = document.getElementById('btn-parent-logout');
         if (logoutBtn) {
@@ -80,7 +75,6 @@ export async function initParentPortal(userProfile) {
             });
         }
 
-        // Imposta il primo figlio come attivo di default
         const childIds = getChildIds(currentUserProfile);
         activeChildId = childIds.length > 0 ? childIds[0] : null;
 
@@ -91,67 +85,50 @@ export async function initParentPortal(userProfile) {
     }
 }
 
-// 2. CARICAMENTO DATI (Partite + Storico Presenze Allenamenti per TUTTI i figli)
+// 2. CARICAMENTO DATI
 async function loadChildData(userProfile) {
     if (!db) {
         console.error("❌ ERRORE CRITICO: L'oggetto 'db' è UNDEFINED.");
         return;
     }
 
-    // 1. Cerchiamo gli ID tramite la funzione standard esistente
     let childIds = getChildIds(userProfile);
 
-    // 2. FALLBACK AUTOMATICO: Se la funzione non trova nulla, cerchiamo direttamente su Firestore per UID o Telefono
+    // Fallback automatico tramite Firestore se i collegamenti nel profilo mancano
     if (!childIds || childIds.length === 0) {
-        console.warn("⚠️ Nessun ID trovato tramite getChildIds. Tentativo di recupero tramite Firestore...");
         try {
             const playersRef = collection(db, 'players');
             let querySnapshot = null;
 
-            // Tentativo per parentId == userProfile.uid
             if (userProfile && userProfile.uid) {
-                const qByUid = query(playersRef, where("parentId", "==", userProfile.uid));
-                querySnapshot = await getDocs(qByUid);
+                querySnapshot = await getDocs(query(playersRef, where("parentId", "==", userProfile.uid)));
             }
-
-            // Se non trovato per UID, tentiamo per numero di telefono
             if ((!querySnapshot || querySnapshot.empty) && userProfile && userProfile.phone) {
-                const cleanPhone = String(userProfile.phone).trim();
-                const qByPhone = query(playersRef, where("parentPhone", "==", cleanPhone));
-                querySnapshot = await getDocs(qByPhone);
+                querySnapshot = await getDocs(query(playersRef, where("parentPhone", "==", String(userProfile.phone).trim())));
             }
 
             if (querySnapshot && !querySnapshot.empty) {
-                childIds = [];
-                querySnapshot.forEach(docSnap => {
-                    childIds.push(docSnap.id);
-                });
-                console.log("✅ Giocatori recuperati dinamicamente:", childIds);
+                childIds = querySnapshot.docs.map(d => d.id);
             }
         } catch (searchErr) {
             console.error("Errore durante la ricerca dinamica dei figli:", searchErr);
         }
     }
 
-    // 3. Controllo finale: se dopo il fallback siamo ancora a zero, allora ci fermiamo
     if (!childIds || childIds.length === 0) {
-        console.error("Nessun ID bambino trovato nel profilo utente o tramite associazioni.");
         const nameEl = document.getElementById('parent-child-name');
         if (nameEl) nameEl.innerHTML = `<span class="text-xs text-red-400 font-semibold">Nessun giocatore associato al tuo profilo</span>`;
         return;
     }
 
-    // Se l'ID attivo non è valido, prendiamo il primo disponibile
     if (!activeChildId || !childIds.includes(activeChildId)) {
         activeChildId = childIds[0];
     }
 
     try {
-        // Recuperiamo i dati di TUTTI i figli del genitore per mapparli correttamente
         const childrenDataMap = {};
         for (const cId of childIds) {
-            const childDocRef = doc(db, 'players', cId);
-            const childDoc = await getDoc(childDocRef);
+            const childDoc = await getDoc(doc(db, 'players', cId));
             if (childDoc.exists()) {
                 childrenDataMap[cId] = childDoc.data();
             }
@@ -159,33 +136,13 @@ async function loadChildData(userProfile) {
 
         const activeChildData = childrenDataMap[activeChildId] || {};
         const activeDisplayName = `${activeChildData.lastName || ''} ${activeChildData.firstName || ''}`.trim() || userProfile?.name;
-        const activeTeamId = activeChildData.teamId || activeChildData.team || activeChildData.squadra || activeChildData.group || userProfile?.teamId || '';
+        const activeTeamId = activeChildData.teamId || activeChildData.team || activeChildData.squadra || userProfile?.teamId || '';
 
-        const [callupsSnap, attendancesSnap, matchHistorySnap] = await Promise.all([
-            getDocs(collection(db, 'callups')),
-            getDocs(collection(db, 'attendances')),
-            getDocs(collection(db, 'match_history'))
-        ]);
+        // Sfruttiamo DatabaseService per le convocazioni
+        const matchesList = await DatabaseService.getCallups();
+        const attendancesSnap = await getDocs(collection(db, 'attendances'));
+        const matchHistorySnap = await getDocs(collection(db, 'match_history'));
 
-        let matchesList = [];
-        let trainingsHistory = [];
-
-        // A. Elaborazione Partite attive (dalla bacheca del mister)
-        callupsSnap.forEach((docSnap) => {
-            const data = docSnap.data();
-            const callupTeamId = data.teamId || data.team || data.squadra || '';
-            const invitedPlayers = data.players || [];
-            const responses = data.responses || {};
-             
-            matchesList.push({
-                id: docSnap.id,
-                invitedPlayers,
-                callupTeamId,
-                responses
-            });
-        });
-
-        // B. Raccogliamo anche lo storico permanente da 'match_history' per il figlio attivo
         let permanentMatchHistoryMap = {};
         matchHistorySnap.forEach((docSnap) => {
             const data = docSnap.data();
@@ -198,13 +155,12 @@ async function loadChildData(userProfile) {
                     date: data.date || 'Da definire',
                     time: data.time || '',
                     location: data.location || 'Da definire',
-                    subInfo: 'Storico registrato',
                     responses: { [activeChildId]: data.status }
                 };
             }
         });
 
-        // Gestione Intestazione e Selettore Figli
+        // Gestione Selettore Figli Multipli
         const nameEl = document.getElementById('parent-child-name');
         if (nameEl) {
             if (childIds.length > 1) {
@@ -217,24 +173,20 @@ async function loadChildData(userProfile) {
                      
                     const pendingMatches = matchesList.filter(m => {
                         const cTeam = cData.teamId || cData.team || cData.squadra || userProfile?.teamId || '';
-                        const isExplicit = m.invitedPlayers.some(p => typeof p === 'string' && (p === id || p.startsWith(`${id}|`)));
-                        const isTeam = m.callupTeamId && cTeam && String(m.callupTeamId).toLowerCase() === String(cTeam).toLowerCase();
+                        const isExplicit = (m.players || []).some(p => typeof p === 'string' && (p === id || p.startsWith(`${id}|`)));
+                        const isTeam = m.teamId && cTeam && String(m.teamId).toLowerCase() === String(cTeam).toLowerCase();
                         const isResponded = m.responses?.[id] !== undefined;
-                        return (isExplicit || isTeam || !m.callupTeamId) && !isResponded;
+                        return (isExplicit || isTeam || !m.teamId) && !isResponded;
                     });
          
                     const hasPending = pendingMatches.length > 0;
                     const indicator = hasPending ? ' ⚠️' : ' ✅';
                      
                     if (id === activeChildId && hasPending) {
-                        alertMessage = `
-                            <div class="text-[9px] text-amber-400 font-bold mt-1 text-center leading-tight break-words px-1">
-                                ⚠️ ${pendingMatches.length} convocazione/i in attesa di conferma
-                            </div>`;
+                        alertMessage = `<div class="text-[9px] text-amber-400 font-bold mt-1 text-center">⚠️ ${pendingMatches.length} convocazione/i in attesa di conferma</div>`;
                     }
          
-                    const selectedAttr = (id === activeChildId) ? 'selected' : '';
-                    selectHtml += `<option value="${id}" ${selectedAttr}>${cName}${indicator}</option>`;
+                    selectHtml += `<option value="${id}" ${id === activeChildId ? 'selected' : ''}>${cName}${indicator}</option>`;
                 });
                  
                 selectHtml += `</select>`;
@@ -252,27 +204,24 @@ async function loadChildData(userProfile) {
             }
         }
 
-        // C. Uniamo le partite attive e lo storico permanente in un'unica lista per il genitore
+        // Mappatura Partite Attive
         let activeMatchesMap = {};
-
         matchesList.forEach((m) => {
-            const isExplicitlyInvited = m.invitedPlayers.some(p => typeof p === 'string' && (p === activeChildId || p.startsWith(`${activeChildId}|`)));
+            const invited = m.players || m.invitedPlayers || [];
+            const isExplicitlyInvited = invited.some(p => typeof p === 'string' && (p === activeChildId || p.startsWith(`${activeChildId}|`)));
             const hasResponded = m.responses?.[activeChildId] !== undefined;
-            const isTeamMatch = m.callupTeamId && activeTeamId && String(m.callupTeamId).toLowerCase() === String(activeTeamId).toLowerCase();
+            const isTeamMatch = m.teamId && activeTeamId && String(m.teamId).toLowerCase() === String(activeTeamId).toLowerCase();
 
-            if (isExplicitlyInvited || hasResponded || isTeamMatch || !m.callupTeamId) {
-                const docSnapRef = callupsSnap.docs.find(d => d.id === m.id);
-                const data = docSnapRef ? docSnapRef.data() : {};
+            if (isExplicitlyInvited || hasResponded || isTeamMatch || !m.teamId) {
                 activeMatchesMap[m.id] = {
                     id: m.id,
                     collection: 'callups',
                     type: 'match',
-                    title: `Partita vs ${data.opponent || 'Avversario'}`,
-                    date: data.date || 'Da definire',
-                    time: data.matchTime || '',
-                    location: data.location || 'Da definire',
-                    subInfo: `Ritrovo: ${data.gatheringTime || 'Da definire'}`,
-                    responses: m.responses
+                    title: `Partita vs ${m.opponent || 'Avversario'}`,
+                    date: m.date || 'Da definire',
+                    time: m.matchTime || '',
+                    location: m.location || 'Da definire',
+                    responses: m.responses || {}
                 };
             }
         });
@@ -285,17 +234,16 @@ async function loadChildData(userProfile) {
 
         let activeMatchesList = Object.values(activeMatchesMap);
 
-        // D. Storico Allenamenti per il figlio attivo
+        // Storico Allenamenti
+        let trainingsHistory = [];
         attendancesSnap.forEach((docSnap) => {
             const data = docSnap.data();
             const recordList = data.record || data.records || [];
-             
             if (Array.isArray(recordList)) {
                 const myRecord = recordList.find(r => String(r.playerId || r.id) === String(activeChildId));
                 if (myRecord) {
                     trainingsHistory.push({
                         id: docSnap.id,
-                        collection: 'attendances',
                         date: data.date || 'Da definire',
                         notes: data.notes || 'Seduta regolare',
                         status: myRecord.status
@@ -308,27 +256,14 @@ async function loadChildData(userProfile) {
             if (!dateStr || dateStr === 'Da definire') return 0;
             const str = String(dateStr).trim();
             let year, month, day;
-
             if (str.includes('-')) {
-                const parts = str.split('-');
-                if (parts.length === 3) {
-                    year = parseInt(parts[0], 10);
-                    month = parseInt(parts[1], 10) - 1;
-                    day = parseInt(parts[2], 10);
-                }
+                [year, month, day] = str.split('-').map(Number);
+                month -= 1;
             } else if (str.includes('/')) {
-                const parts = str.split('/');
-                if (parts.length === 3) {
-                    day = parseInt(parts[0], 10);
-                    month = parseInt(parts[1], 10) - 1;
-                    year = parseInt(parts[2], 10);
-                }
+                [day, month, year] = str.split('/').map(Number);
+                month -= 1;
             }
-
-            if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-                return new Date(year, month, day).getTime();
-            }
-            return new Date(str).getTime() || 0;
+            return !isNaN(year) ? new Date(year, month, day).getTime() : new Date(str).getTime() || 0;
         };
 
         activeMatchesList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
@@ -336,13 +271,11 @@ async function loadChildData(userProfile) {
          
         renderPortalUI(activeMatchesList, trainingsHistory, activeChildId, activeTeamId || 'Assegnata', activeDisplayName);
     } catch (error) {
-        console.error("❌ ERRORE CRITICO CATTURATO:", error);
-        const nameEl = document.getElementById('parent-child-name');
-        if (nameEl) nameEl.innerText = "Errore di caricamento dati";
+        console.error("❌ ERRORE NEL CARICAMENTO DATI:", error);
     }
 }
 
-// 3. RENDER GRAFICO DEL PORTALE GENITORI (SEZIONI NEI TAB DEDICATI)
+// 3. RENDER GRAFICO
 function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, childName) {
     const teamBadgeEl = document.getElementById('parent-team-badge');
     if (teamBadgeEl) teamBadgeEl.innerText = `Squadra: ${teamName}`;
@@ -354,7 +287,6 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
     const activeMatches = matchesList.filter(m => m.collection === 'callups');
     const pastMatches = matchesList.filter(m => m.collection === 'match_history');
 
-    // RENDER PARTITE ATTIVE
     if (activeMatches.length === 0) {
         matchesHTML = `<p class="text-xs text-slate-400 italic py-2 text-center">Nessuna convocazione attiva.</p>`;
     } else {
@@ -373,7 +305,7 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
                             <span class="font-bold text-slate-800 text-sm">${ev.title}</span>
                             <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">⚽ PARTITA</span>
                         </div>
-                        <span class="text-xs text-slate-600">📅 Data: ${ev.date} ${ev.time ? '| ⏰ ' + ev.time : ''}</span>
+                        <span class="text-xs text-slate-600">📅 Data: ${DatabaseService.formatDateIT(ev.date)} ${ev.time ? '| ⏰ ' + ev.time : ''}</span>
                         <span class="text-xs text-slate-600">📍 Campo: ${ev.location}</span>
                         <div class="mt-1">${statusBadge}</div>
                     </div>
@@ -385,103 +317,38 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
         });
     }
 
-    // RENDER STORICO PARTITE
     if (pastMatches && pastMatches.length > 0) {
-        const mesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+        pastMatches.forEach((p) => {
+            const status = p.responses?.[activeChildId] === 'confirmed' || p.responses?.[activeChildId] === 'present' 
+                ? '<span class="text-emerald-600 font-bold">Giocata ✅</span>' 
+                : '<span class="text-rose-600 font-bold">Assente ❌</span>';
         
-        const parseDateObj = (dateStr) => {
-            if (!dateStr) return new Date(0);
-            let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
-            if (parts.length === 3) {
-                if (parts[0].length === 4) {
-                    return new Date(parts[0], parts[1] - 1, parts[2]);
-                } else {
-                    return new Date(parts[2], parts[1] - 1, parts[0]);
-                }
-            }
-            return new Date(0);
-        };
-
-        const sortedPastMatches = [...pastMatches].sort((a, b) => parseDateObj(b.date) - parseDateObj(a.date));
-
-        const grouped = sortedPastMatches.reduce((acc, p) => {
-            const dObj = parseDateObj(p.date);
-            if (!isNaN(dObj.getTime())) {
-                const key = `${mesi[dObj.getMonth()]} ${dObj.getFullYear()}`;
-                if (!acc[key]) acc[key] = [];
-                acc[key].push(p);
-            }
-            return acc;
-        }, {});
-
-        for (const [monthYear, records] of Object.entries(grouped)) {
-            matchesHistoryHTML += `<div class="mt-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">🗓️ ${monthYear}</div>`;
-            records.forEach((p) => {
-                const status = p.responses?.[activeChildId] === 'confirmed' || p.responses?.[activeChildId] === 'present' 
-                    ? '<span class="text-emerald-600 font-bold">Giocata ✅</span>' 
-                    : '<span class="text-rose-600 font-bold">Assente ❌</span>';
-            
-                matchesHistoryHTML += `
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 mb-2 flex flex-col gap-1 text-xs">
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-slate-800 text-sm">${p.title || 'Partita'}</span>
-                            <div>${status}</div>
-                        </div>
-                        <div class="text-slate-500 flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                            <span>📅 Data: ${p.date} ${p.time ? '| ⏰ ' + p.time : ''}</span>
-                            ${p.location ? `<span>📍 Campo: ${p.location}</span>` : ''}
-                        </div>
-                    </div>`;
-            });
-        }
+            matchesHistoryHTML += `
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 mb-2 flex flex-col gap-1 text-xs">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-800 text-sm">${p.title || 'Partita'}</span>
+                        <div>${status}</div>
+                    </div>
+                    <div class="text-slate-500 flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                        <span>📅 Data: ${DatabaseService.formatDateIT(p.date)}</span>
+                    </div>
+                </div>`;
+        });
     }
 
-    // RENDER STORICO ALLENAMENTI
     if (trainingsHistory && trainingsHistory.length > 0) {
-        const mesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
-        
-        const parseDateObj = (dateStr) => {
-            let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
-            if (parts.length === 3) {
-                if (parts[0].length === 4) {
-                    return new Date(parts[0], parts[1] - 1, parts[2]);
-                } else {
-                    return new Date(parts[2], parts[1] - 1, parts[0]);
-                }
-            }
-            return new Date(0);
-        };
-
-        const sortedTrainings = [...trainingsHistory].sort((a, b) => parseDateObj(b.date) - parseDateObj(a.date));
-
-        const groupedTrainings = sortedTrainings.reduce((acc, t) => {
-            let dObj = parseDateObj(t.date);
-            if (!isNaN(dObj.getTime())) {
-                const key = `${mesi[dObj.getMonth()]} ${dObj.getFullYear()}`;
-                if (!acc[key]) acc[key] = [];
-                acc[key].push(t);
-            }
-            return acc;
-        }, {});
-
-        for (const [monthYear, records] of Object.entries(groupedTrainings)) {
-            historyHTML += `<div class="mt-4 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">🗓️ ${monthYear}</div>`;
-            records.forEach((t) => {
-                const statusBadge = t.status === 'present' 
-                    ? '<span class="text-emerald-600 font-bold">Presente ✅</span>' 
-                    : '<span class="text-rose-600 font-bold">Assente ❌</span>';
-                historyHTML += `
-                    <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5">
-                        <span class="font-semibold text-slate-700">Allenamento del ${t.date}</span>
-                        <div>${statusBadge}</div>
-                    </div>`;
-            });
-        }
+        trainingsHistory.forEach((t) => {
+            const statusBadge = t.status === 'present' ? '<span class="text-emerald-600 font-bold">Presente ✅</span>' : '<span class="text-rose-600 font-bold">Assente ❌</span>';
+            historyHTML += `
+                <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 mb-1.5">
+                    <span class="font-semibold text-slate-700">Allenamento del ${DatabaseService.formatDateIT(t.date)}</span>
+                    <div>${statusBadge}</div>
+                </div>`;
+        });
     } else {
         historyHTML = `<p class="text-xs text-slate-400 italic text-center py-2">Nessun allenamento registrato.</p>`;
     }
 
-    // INSERIMENTO NEI TAB
     const matchesContainer = document.getElementById('tab-content-matches');
     if (matchesContainer) {
         matchesContainer.innerHTML = `
@@ -510,18 +377,13 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
                     <input type="date" id="custom-training-date" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-emerald-500">
                      
                     <div class="flex gap-2 pt-1">
-                        <button id="btn-submit-present" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
-                        <button id="btn-submit-absent" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs transition border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
+                        <button id="btn-submit-present" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs hover:bg-emerald-700">Ci sarò (Presente) ✅</button>
+                        <button id="btn-submit-absent" class="flex-1 bg-rose-50 text-rose-700 font-bold py-2 rounded-lg text-xs border border-rose-200 hover:bg-rose-100">Non ci sarò (Assente) ❌</button>
                     </div>
                 </div>
 
                 <div class="mt-5 pt-3 border-t border-slate-100">
-                    <div class="flex items-center justify-between mb-2.5">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-sm">📋</span>
-                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Storico Presenze Allenamenti</h4>
-                        </div>
-                    </div>
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">📋 Storico Presenze Allenamenti</h4>
                     <div class="flex flex-col">${historyHTML}</div>
                     
                     <div class="mt-4 pt-3 border-t border-slate-200">
@@ -533,34 +395,27 @@ function renderPortalUI(matchesList, trainingsHistory, activeChildId, teamName, 
             </div>
         `;
 
-        const btnPresent = document.getElementById('btn-submit-present');
-        const btnAbsent = document.getElementById('btn-submit-absent');
-
-        if (btnPresent) btnPresent.onclick = () => window.submitCustomTraining(activeChildId, teamName, childName, 'present');
-        if (btnAbsent) btnAbsent.onclick = () => window.submitCustomTraining(activeChildId, teamName, childName, 'absent');
+        document.getElementById('btn-submit-present').onclick = () => window.submitCustomTraining(activeChildId, teamName, childName, 'present');
+        document.getElementById('btn-submit-absent').onclick = () => window.submitCustomTraining(activeChildId, teamName, childName, 'absent');
     }
 
-    if (matchesContainer) {
-        matchesContainer.querySelectorAll('.btn-match-confirm').forEach(btn => {
-            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, activeChildId, 'confirmed');
-        });
-        matchesContainer.querySelectorAll('.btn-match-absent').forEach(btn => {
-            btn.onclick = () => window.respondEvent('callups', btn.dataset.id, activeChildId, 'absent');
-        });
-    }
+    matchesContainer?.querySelectorAll('.btn-match-confirm').forEach(btn => {
+        btn.onclick = () => window.respondEvent('callups', btn.dataset.id, activeChildId, 'confirmed');
+    });
+    matchesContainer?.querySelectorAll('.btn-match-absent').forEach(btn => {
+        btn.onclick = () => window.respondEvent('callups', btn.dataset.id, activeChildId, 'absent');
+    });
 }
 
-// 4. GESTIONE RISPOSTA CONVOCAZIONE
+// 4. RISPOSTA CONVOCAZIONE
 window.respondEvent = async function(collectionName, docId, activeChildId, status) {
     try {
         const docRef = doc(db, collectionName, docId);
         const docSnap = await getDoc(docRef);
          
         if (!docSnap.exists()) {
-            alert("⚠️ Questa convocazione non è più attiva o è stata rimossa dal mister.");
-            if (typeof loadChildData === 'function' && typeof currentUserProfile !== 'undefined') {
-                loadChildData(currentUserProfile);
-            }
+            alert("⚠️ Questa convocazione non è più attiva.");
+            loadChildData(currentUserProfile);
             return;
         }
 
@@ -568,12 +423,9 @@ window.respondEvent = async function(collectionName, docId, activeChildId, statu
         const responses = data.responses || {};
         responses[activeChildId] = status;
          
-        await updateDoc(docRef, { responses: responses });
+        await updateDoc(docRef, { responses });
 
-        const historyId = `${docId}_${activeChildId}`;
-        const historyRef = doc(db, 'match_history', historyId);
-         
-        await setDoc(historyRef, {
+        await setDoc(doc(db, 'match_history', `${docId}_${activeChildId}`), {
             playerId: activeChildId,
             matchId: docId,
             title: `Partita vs ${data.opponent || 'Avversario'}`,
@@ -584,31 +436,15 @@ window.respondEvent = async function(collectionName, docId, activeChildId, statu
             updatedAt: new Date().toISOString()
         }, { merge: true });
 
-        const actionText = (status === 'confirmed' || status === 'present') ? 'confermata ✅' : 'segnata come assente ❌';
-        console.log(`Risposta salvata con successo: ${actionText}`);
-
-        if (typeof loadChildData === 'function' && typeof currentUserProfile !== 'undefined') {
-            loadChildData(currentUserProfile);
-        }
-
+        loadChildData(currentUserProfile);
     } catch (error) {
-        console.error("❌ ERRORE durante il salvataggio della risposta:", error);
-        alert("Errore durante il salvataggio della risposta. Riprova.");
+        console.error("Errore salvataggio risposta:", error);
     }
 };
 
-// 5. GESTIONE INVIO ALLENAMENTO PERSONALIZZATO
+// 5. INVIO ALLENAMENTO
 window.submitCustomTraining = async function(childId, teamName, childName, status) {
-    console.log("🚀 submitCustomTraining avviata", { childId, teamName, childName, status });
-
-    if (!db) {
-        alert("Errore: Connessione al database non disponibile.");
-        return;
-    }
-
-    const dateInput = document.getElementById('custom-training-date');
-    const selectedDate = dateInput ? dateInput.value : '';
-
+    const selectedDate = document.getElementById('custom-training-date')?.value;
     if (!selectedDate) {
         alert("Seleziona una data valida per l'allenamento.");
         return;
@@ -616,22 +452,13 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
     try {
         const [year, month, day] = selectedDate.split('-');
-        const dateIso = selectedDate;                            
-        const dateIt = `${day}/${month}/${year}`;                
-        const dateItAlt = `${parseInt(day)}/${parseInt(month)}/${year}`; 
+        const dateIt = `${day}/${month}/${year}`;
 
         const querySnapshot = await getDocs(collection(db, 'attendances'));
-         
         let targetDoc = null;
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            const dbDate = String(data.date || '').trim();
-            const dbTeam = String(data.teamId || data.team || '').trim();
-             
-            const matchDate = (dbDate === dateIso || dbDate === dateIt || dbDate === dateItAlt);
-            const matchTeam = !dbTeam || !teamName || dbTeam.toLowerCase() === teamName.toLowerCase();
-
-            if (matchDate && matchTeam) {
+            if (String(data.date || '').trim() === selectedDate || String(data.date || '').trim() === dateIt) {
                 targetDoc = docSnap;
             }
         });
@@ -641,8 +468,7 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
 
         if (targetDoc) {
             docRef = doc(db, 'attendances', targetDoc.id);
-            const data = targetDoc.data();
-            recordList = data.records || data.record || data.presenze || [];
+            recordList = targetDoc.data().records || targetDoc.data().record || [];
         } else {
             docRef = doc(collection(db, 'attendances'));
             await setDoc(docRef, {
@@ -652,14 +478,9 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
                 records: [],
                 record: []
             });
-            recordList = [];
         }
 
-        const cleanList = recordList.filter(r => {
-            const rId = String(r.playerId || r.id || '');
-            return rId !== String(childId);
-        });
-
+        const cleanList = recordList.filter(r => String(r.playerId || r.id || '') !== String(childId));
         cleanList.push({
             id: String(childId),
             playerId: String(childId),
@@ -668,24 +489,15 @@ window.submitCustomTraining = async function(childId, teamName, childName, statu
             present: status === 'present'
         });
 
-        await updateDoc(docRef, {
-            records: cleanList,
-            record: cleanList
-        });
-
+        await updateDoc(docRef, { records: cleanList, record: cleanList });
         alert(`Preferenza registrata con successo per il ${dateIt}!`);
-         
-        if (currentUserProfile) {
-            await loadChildData(currentUserProfile);
-        }
-
+        loadChildData(currentUserProfile);
     } catch (err) {
-        console.error("❌ ERRORE DURANTE IL SALVATAGGIO:", err);
-        alert("Impossibile salvare: controlla la console.");
+        console.error("Errore salvataggio allenamento:", err);
     }
 };
 
-// 6. ESPORTAZIONE RIEPILOGO ALLENAMENTI
+// 6. ESPORTAZIONE
 window.exportTrainingsHistory = function() {
     const records = document.querySelectorAll('#tab-content-trainings .bg-slate-50');
     if (records.length === 0) {
@@ -693,26 +505,18 @@ window.exportTrainingsHistory = function() {
         return;
     }
 
-    let csvData = [
-        ["Data", "Stato Presenza", "Note / Dettagli"]
-    ];
-
+    let csvData = [["Data", "Stato Presenza", "Note"]];
     records.forEach(r => {
         const textParts = r.innerText.split('\n');
         const dataStr = textParts[0] ? textParts[0].trim() : '';
         const isPresent = r.innerText.includes('Presente ✅');
-        const stato = isPresent ? 'Presente' : 'Assente';
-         
-        let noteStr = r.innerText.replace(dataStr, '').replace('Presente ✅', '').replace('Assente ❌', '').trim();
-        noteStr = noteStr.replace(/[()]/g, '').trim();
-
-        csvData.push([dataStr, stato, noteStr]);
+        csvData.push([dataStr, isPresent ? 'Presente' : 'Assente', '']);
     });
 
     exportToExcel(`Presenze_Allenamenti_${new Date().getTime()}.csv`, csvData);
 };
 
-// 7. GESTIONE DEI TAB
+// 7. GESTIONE TAB
 window.switchParentTab = function(tabName) {
     const trainingsTab = document.getElementById('tab-content-trainings');
     const matchesTab = document.getElementById('tab-content-matches');
@@ -724,20 +528,12 @@ window.switchParentTab = function(tabName) {
     if (tabName === 'trainings') {
         trainingsTab.classList.remove('hidden');
         matchesTab.classList.add('hidden');
-        if (btnTrainings) btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
-        if (btnMatches) btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
+        btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
+        btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
     } else {
         matchesTab.classList.remove('hidden');
         trainingsTab.classList.add('hidden');
-        if (btnMatches) btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
-        if (btnTrainings) btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
+        btnMatches.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition bg-white text-slate-900 shadow-sm";
+        btnTrainings.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
     }
-};
-
-window.debugCheckAttendances = async function() {
-    const querySnapshot = await getDocs(collection(db, 'attendances'));
-    console.log("📊 --- ELENCO COMPLETO DOCUMENTI ATTENDANCES NEL DB ---");
-    querySnapshot.forEach(docSnap => {
-        console.log(`ID: ${docSnap.id}`, docSnap.data());
-    });
 };
