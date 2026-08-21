@@ -476,7 +476,7 @@
 		    }
 		});
 
-        async function loadStaffList() {
+async function loadStaffList() {
             const container = document.getElementById('staff-list-container');
             if (!container) return;
 
@@ -488,9 +488,16 @@
                 }
 
                 container.innerHTML = '';
+                let staffCount = 0;
+
                 snapshot.forEach(docSnap => {
                     const rawUser = docSnap.data();
                     const user = normalizeUserProfile(rawUser);
+                    
+                    // --- FILTRO: SALTA I GENITORI ---
+                    if (user.role === 'parent') return; 
+
+                    staffCount++;
                     const userId = docSnap.id;
                     const isSelf = auth.currentUser && auth.currentUser.uid === userId;
                     const teamsDisplay = user.teams.length > 0 ? user.teams.join(', ') : 'Tutte';
@@ -515,6 +522,10 @@
                         </div>
                     `;
                 });
+
+                if (staffCount === 0) {
+                    container.innerHTML = '<p class="text-xs text-gray-400">Nessun utente staff trovato.</p>';
+                }
 
                 container.querySelectorAll('.btn-delete-staff').forEach(btn => {
                     btn.addEventListener('click', (e) => deleteStaffUser(e.target.getAttribute('data-id')));
