@@ -176,7 +176,7 @@
         }
 
         // CONFIGURAZIONE SELETTORE SQUADRE
-        function setupTeamSelectorUI() {
+		function setupTeamSelectorUI() {
             const selectorContainer = document.getElementById('admin-team-selector');
             const teamSelect = document.getElementById('admin-team-filter');
 
@@ -186,16 +186,13 @@
                 document.getElementById('dashboard-role-title').innerText = "Panoramica Responsabile Tecnico";
                 document.getElementById('dashboard-subtitle').innerText = "Seleziona un gruppo per iniziare";
 
-                document.getElementById('btn-tab-staff').classList.remove('hidden');
+                // Mostra i pulsanti rapidi nella barra superiore
                 document.getElementById('nav-btn-staff').classList.remove('hidden');
-				// AGGIUNTA QUESTA RIGA PER I GENITORI:
-				document.getElementById('btn-tab-parents').classList.remove('hidden');
-    			document.getElementById('nav-btn-parents').classList.remove('hidden');
+                document.getElementById('nav-btn-parents').classList.remove('hidden');
 
-				// --- AGGIUNGI QUI IL MOSTRA BACKUP PER L'ADMIN ---
+                // Mostra il pulsante di backup per l'admin
                 const backupBtn = document.getElementById('nav-btn-backup');
                 if (backupBtn) backupBtn.classList.remove('hidden');
-                // ------------------------------------------------
 
                 teamSelect.innerHTML = adminTeamOptionsHTML;
                 teamSelect.value = 'ALL';
@@ -206,16 +203,13 @@
             } else {
                 document.getElementById('dashboard-role-title').innerText = "Pannello Tecnico Coach";
 
-                document.getElementById('btn-tab-staff').classList.add('hidden');
+                // Nascondi i pulsanti rapidi superiori ai coach
                 document.getElementById('nav-btn-staff').classList.add('hidden');
-				// AGGIUNTA QUESTA RIGA PER NASCONDERE AI COACH:
-				document.getElementById('btn-tab-staff').classList.add('hidden');
-    			document.getElementById('nav-btn-parents').classList.add('hidden');
+                document.getElementById('nav-btn-parents').classList.add('hidden');
 
-				// --- AGGIUNGI QUI IL NASCONDI BACKUP PER I COACH ---
+                // Nascondi il backup ai coach
                 const backupBtn = document.getElementById('nav-btn-backup');
                 if (backupBtn) backupBtn.classList.add('hidden');
-                // -------------------------------------------------
 
                 const coachTeams = currentUserProfile.teams || [];
 
