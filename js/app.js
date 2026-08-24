@@ -213,6 +213,17 @@
                 const btnExportParents = document.getElementById('nav-btn-export-parents');
                 if (btnExportParents) btnExportParents.classList.remove('hidden');
 
+				// Mostra il pulsante di eliminazione totale per l'admin
+				const btnDeleteAll = document.getElementById('nav-btn-delete-all');
+				if (btnDeleteAll) {
+    				btnDeleteAll.classList.remove('hidden');
+    				// Rimuovi eventuali listener duplicati e assegna l'evento
+    				btnDeleteAll.onclick = (e) => {
+        				e.preventDefault();
+        				deleteAllFirebaseData();
+    				};
+				}
+
                 // Mostra il pulsante di backup per l'admin
                 const backupBtn = document.getElementById('nav-btn-backup');
                 if (backupBtn) backupBtn.classList.remove('hidden');
@@ -242,6 +253,9 @@
 
                 const btnExportParents = document.getElementById('nav-btn-export-parents');
                 if (btnExportParents) btnExportParents.classList.add('hidden');
+
+				const btnDeleteAll = document.getElementById('nav-btn-delete-all');
+				if (btnDeleteAll) btnDeleteAll.classList.add('hidden');
 
                 // Nascondi il backup ai coach
                 const backupBtn = document.getElementById('nav-btn-backup');
