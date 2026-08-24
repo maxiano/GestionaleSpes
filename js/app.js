@@ -116,65 +116,58 @@
       
 
 
-        function switchTab(tabId) {
-         // Definiamo quali sono le tab "amministrative" che non richiedono squadra
-		    const adminTabs = ['tab-staff', 'tab-parents'];
-		    const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
-		
-		    // Controllo permessi per tab protette
-		    if (adminTabs.includes(tabId) && !isAdmin) {
-		        return alert("Accesso non autorizzato.");
-		    }
-		
-		    // Controllo Squadra: solo se NON è una tab amministrativa, blocca se manca activeTeamId
-		    if (!adminTabs.includes(tabId)) {
-		        if (!activeTeamId || activeTeamId === "SELECT_TEAM" || activeTeamId === "ALL") {
-		            alert("⚠️ Attenzione: Devi prima selezionare una Categoria / Gruppo!");
-		            return;
-		        }
-		    }
-			// 1. Nascondi tutti i tab
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-			// 2. Gestisci lo stile di tutti i bottoni
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                if (btn.id === 'btn-tab-staff') {
-                    btn.className = `tab-btn ${isAdmin ? '' : 'hidden'} flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300`;
-                } else {
-                    btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
+		function switchTab(tabId) {
+            // Definiamo quali sono le tab "amministrative" che non richiedono squadra
+            const adminTabs = ['tab-staff', 'tab-parents'];
+            const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
+        
+            // Controllo permessi per tab protette
+            if (adminTabs.includes(tabId) && !isAdmin) {
+                return alert("Accesso non autorizzato.");
+            }
+        
+            // Controllo Squadra: solo se NON è una tab amministrativa, blocca se manca activeTeamId
+            if (!adminTabs.includes(tabId)) {
+                if (!activeTeamId || activeTeamId === "SELECT_TEAM" || activeTeamId === "ALL") {
+                    alert("⚠️ Attenzione: Devi prima selezionare una Categoria / Gruppo!");
+                    return;
                 }
+            }
 
-				if (btn.id === 'btn-tab-parents') {
-                    btn.className = `tab-btn ${isAdmin ? '' : 'hidden'} flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-800 bg-gray-100 hover:bg-gray-200 transition border border-gray-300`;
-                } else {
+            // 1. Nascondi tutti i tab
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+            // 2. Gestisci lo stile standard di tutti gli altri bottoni normali (escludendo staff e parents)
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                // Assegna lo stile standard solo ai bottoni che non gestiamo altrove
+                if (btn.id !== 'btn-tab-staff' && btn.id !== 'btn-tab-parents') {
                     btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
                 }
             });
 
-			// 3. Mostra il tab selezionato (QUESTO È QUELLO CHE FA APPARIRE LA SCHERMATA)
-    		const targetTab = document.getElementById(tabId);
-    		if (targetTab) {
-        		targetTab.classList.remove('hidden');
-    		}
+            // 3. Mostra il tab selezionato
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) {
+                targetTab.classList.remove('hidden');
+            }
 
-			// 4. Evidenzia il bottone attivo
+            // 4. Evidenzia il bottone attivo (se esiste ancora nel DOM)
             const activeBtn = document.getElementById(`btn-${tabId}`);
             if (activeBtn) {
                 activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
-            // Aggiorna anche il testo "Sezione Attiva" sul pulsante principale dell'hamburger
+                
                 const activeLabel = document.getElementById('current-active-tab-label');
                 if (activeLabel) {
                     activeLabel.innerText = activeBtn.innerText.trim();
                 }
             }
 
-			
-			// 5. Caricamenti specifici per tab
+            // 5. Caricamenti specifici per tab
             if (tabId === 'tab-callup') loadCallups();
             if (tabId === 'tab-staff') loadStaffList();
-			if (tabId === 'tab-parents') loadParentsList();
-			if (tabId === 'tab-tournaments') renderTournaments();
+            if (tabId === 'tab-parents') loadParentsList();
+            if (tabId === 'tab-tournaments') renderTournaments();
         }
-
         // CONFIGURAZIONE SELETTORE SQUADRE
 		function setupTeamSelectorUI() {
             const selectorContainer = document.getElementById('admin-team-selector');
