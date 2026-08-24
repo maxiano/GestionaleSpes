@@ -303,7 +303,6 @@
             }
         }
 
-		// GESTIONE AUTENTICAZIONE UTENTE
 		onAuthStateChanged(auth, async (user) => {
 		    if (user) {
 		        const userDocRef = doc(db, 'users', user.uid);
@@ -312,10 +311,14 @@
 		        if (userDoc.exists()) {
 		            currentUserProfile = normalizeUserProfile(userDoc.data());
 		        } else {
-		            currentUserProfile = normalizeUserProfile({ name: user.email, role: 'coach', teams: [] });
+		            // IL PROFILO NON ESISTE NEL DATABASE! 
+		            // Invece di promuoverlo a coach, blocchiamo l'accesso e facciamo il logout.
+		            alert("Accesso negato: il profilo utente non esiste o è stato rimosso dal sistema.");
+		            await signOut(auth);
+		            return; // Interrompe l'esecuzione
 		        }
 		
-		       // --- SMISTAMENTO IN BASE AL RUOLO ---
+		        // --- SMISTAMENTO IN BASE AL RUOLO ---
 				if (currentUserProfile.role === 'parent') {
 				    document.getElementById('section-login').classList.add('hidden');
 				    document.getElementById('app-dashboard').classList.add('hidden');
@@ -331,7 +334,6 @@
 				    if (logoutBtn) logoutBtn.classList.remove('hidden');
 		
 				    // 3. Avvia la funzione del portale genitori 
-				    // (Ci penserà parent-portal.js a creare il "dynamic-parent-container", fare il fetch di parent-view.html e popolare i dati)
 				    if (typeof initParentPortal === 'function') {
 				        await initParentPortal(currentUserProfile);
 				    } else if (typeof loadChildData === 'function') {
@@ -355,7 +357,6 @@
 		        activeTeamId = null;
 		        document.getElementById('btn-logout').classList.add('hidden');
 		        
-		        // Controlla che gli elementi esistano prima di modificarne le classi (evita errori in console)
 		        document.getElementById('nav-btn-staff')?.classList.add('hidden');
 		        document.getElementById('btn-tab-staff')?.classList.add('hidden');
 		        
@@ -365,8 +366,6 @@
 		        document.getElementById('section-login').classList.remove('hidden');
 		        document.getElementById('app-dashboard').classList.add('hidden');
 
-
-		        // Pulisce l'interfaccia genitori se era aperta
 		        const dynamicParentContainer = document.getElementById('dynamic-parent-container');
 		        if (dynamicParentContainer) {
 		            dynamicParentContainer.remove();
