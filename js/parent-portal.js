@@ -143,9 +143,10 @@ if (!db) {
 
         // Aggiorna il badge del Gruppo Squadra per il figlio attivo
         const activeChildData = childrenDataMap[activeChildId] || {};
-        // <-- AGGIUNGI QUESTA RIGA PER DEFINIRE LA VARIABILE MANCANTE -->
-        const activeDisplayName = `${activeChildData.lastName || ''} ${activeChildData.firstName || ''}`.trim() || userProfile?.name || 'Genitore';
-        const activeTeamName = activeChildData.categoria || activeChildData.gruppoSquadra || activeChildData.team || 'Squadra non assegnata';
+        const activeDisplayName = `${activeChildData.lastName || ''} ${activeChildData.firstName || ''}`.trim() || userProfile?.name || 'Utente';
+        
+        // Cerca prima eventuali campi testuali, altrimenti mostra teamId (o un testo di fallback)
+        const activeTeamName = activeChildData.categoria || activeChildData.gruppoSquadra || activeChildData.teamName || activeChildData.team || activeChildData.teamId || 'Squadra non assegnata';
 
         // Se l'ID attivo non è valido, prendiamo il primo disponibile
         if (!activeChildId || !childIds.includes(activeChildId)) {
