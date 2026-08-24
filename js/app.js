@@ -446,6 +446,23 @@
             }
         });
 
+		const menuToggleBtn = document.getElementById('menu-toggle-btn');
+		const menuDropdown = document.getElementById('menu-dropdown-content');
+		
+		if (menuToggleBtn && menuDropdown) {
+		    menuToggleBtn.addEventListener('click', (e) => {
+		        e.stopPropagation();
+		        menuDropdown.classList.toggle('hidden');
+		    });
+		
+		    // Chiude il menu cliccando altrove nella pagina
+		    window.addEventListener('click', () => {
+		        if (!menuDropdown.classList.contains('hidden')) {
+		            menuDropdown.classList.add('hidden');
+		        }
+		    });
+		}
+
 		// EVENTO PULSANTE BACKUP NELLA NAV BAR SUPERIORE
         document.getElementById('nav-btn-backup').addEventListener('click', (e) => {
             e.preventDefault();
