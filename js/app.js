@@ -2352,6 +2352,179 @@ async function linkParentToPlayerByPhone(playerId, parentPhone) {
     }
 }
 
+function exportPlayersToExcel() {
+    if (typeof XLSX === 'undefined') {
+        return alert("Libreria SheetJS (XLSX) non inclusa nella pagina.");
+    }
+    
+    // Supponendo che tu abbia un array o un oggetto con i giocatori della squadra corrente
+    // Ad esempio prendendoli dalla variabile globale o dallo stato attuale
+    if (!currentPlayersList || currentPlayersList.length === 0) {
+        return alert("Nessun giocatore da esportare per questo gruppo.");
+    }
+
+    const dataToExport = currentPlayersList.map(p => ({
+        "Nome": p.firstName || '',
+        "Cognome": p.lastName || '',
+        "Data di Nascita (YYYY-MM-DD)": p.dob || '',
+        "Ruolo": p.role || '',
+        "Numero Maglia": p.jersey || '',
+        "Scadenza Medica (YYYY-MM-DD)": p.medicalExp || '',
+        "Telefono Genitore": p.parentPhone || '',
+        "Squadra": p.teamId || activeTeamId || ''
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Giocatori");
+    
+    const fileName = `Giocatori_${activeTeamId || 'Tutti'}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+}
+
+function handlePlayersExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM') {
+        return alert("⚠️ Seleziona prima una squadra specifica in cui importare i giocatori!");
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonRows = XLSX.utils.sheet_to_json(worksheet);
+
+            if (jsonRows.length === 0) {
+                return alert("Il file Excel è vuoto.");
+            }
+
+            let importedCount = 0;
+            for (const row of jsonRows) {
+                const firstName = row["Nome"] || "";
+                const lastName = row["Cognome"] || "";
+                if (!firstName && !lastName) continue; // Salta righe vuote
+
+                const playerPayload = {
+                    firstName: firstName,
+                    lastName: lastName,
+                    name: `${lastName} ${firstName}`.trim(),
+                    dob: row["Data di Nascita (YYYY-MM-DD)"] || "",
+                    role: row["Ruolo"] || "",
+                    jersey: String(row["Numero Maglia"] || ""),
+                    medicalExp: row["Scadenza Medica (YYYY-MM-DD)"] || "",
+                    parentPhone: String(row["Telefono Genitore"] || "").trim(),
+                    teamId: activeTeamId,
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                };
+
+                // Salvataggio su Firebase (adattalo al tuo path di salvataggio, es. database.ref(`teams/${activeTeamId}/players`).push())
+                await database.ref(`players`).push(playerPayload);
+                importedCount++;
+            }
+
+            alert(`✅ Importati con successo ${importedCount} giocatori!`);
+            event.target.value = ''; // Reset input file
+            if (typeof loadTeamData === 'function') loadTeamData();
+
+        } catch (error) {
+            console.error(error);
+            alert("Errore durante l'importazione del file Excel.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+async function exportParentsToExcel() {
+    if (typeof XLSX === 'undefined') {
+        return alert("Libreria SheetJS (XLSX) non inclusa.");
+    }
+
+    try {
+        const snapshot = await database.ref('users').orderByChild('role').equalTo('parent').once('value');
+        const parentsData = snapshot.val();
+
+        if (!parentsData) {
+            return alert("Nessun genitore trovato nel database.");
+        }
+
+        const dataToExport = [];
+        Object.keys(parentsData).forEach(uid => {
+            const p = parentsData[uid];
+            dataToExport.push({
+                "Nome": p.name || '',
+                "Email": p.email || '',
+                "Telefono": p.phone || '',
+                "ID Figli Associati": Array.isArray(p.childIds) ? p.childIds.join(', ') : ''
+            });
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Genitori");
+        
+        XLSX.writeFile(workbook, "Elenco_Genitori.xlsx");
+    } catch (error) {
+        console.error(error);
+        alert("Errore durante l'esportazione dei genitori.");
+    }
+}
+
+function handleParentsExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonRows = XLSX.utils.sheet_to_json(worksheet);
+
+            if (jsonRows.length === 0) return alert("Il file Excel è vuoto.");
+
+            let importedCount = 0;
+            for (const row of jsonRows) {
+                const name = row["Nome"] || "";
+                const email = row["Email"] || "";
+                const phone = String(row["Telefono"] || "").trim();
+
+                if (!name || !phone) continue;
+
+                const parentPayload = {
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    role: "parent",
+                    childIds: [], // Verrà popolato dalla logica di matching o in seguito
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                };
+
+                // Salvataggio su Firebase nella collezione users (generando un ID univoco)
+                const newRef = database.ref('users').push();
+                parentPayload.uid = newRef.key;
+                await newRef.set(parentPayload);
+                importedCount++;
+            }
+
+            alert(`✅ Importati con successo ${importedCount} genitori!`);
+            event.target.value = '';
+            if (typeof loadParentsList === 'function') loadParentsList();
+
+        } catch (error) {
+            console.error(error);
+            alert("Errore durante l'importazione dei genitori.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
 
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
