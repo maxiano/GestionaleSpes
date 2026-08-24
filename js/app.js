@@ -2581,6 +2581,63 @@ function handleParentsExcelUpload(event) {
     reader.readAsArrayBuffer(file);
 }
 
+//elimina tutti i dati delle collezioni db tranne utenti admin e coach
+async function deleteAllFirebaseData() {
+    // 1. Controllo di sicurezza sul ruolo
+    if (!currentUserProfile || currentUserProfile.role !== 'admin') {
+        return alert("Accesso non autorizzato.");
+    }
+
+    // 2. Doppia conferma obbligatoria per evitare disastri
+    const conferma1 = confirm("⚠️ ATTENZIONE: Stai per eliminare TUTTI i giocatori, lo storico partite, le convocazioni, le presenze, i tornei e TUTTI I GENITORI registrati. Questa operazione è IRREVERSIBILE!");
+    if (!conferma1) return;
+
+    const conferma2 = prompt("Per confermare, scrivi esattamente la parola 'ELIMINA' in maiuscolo:");
+    if (conferma2 !== "ELIMINA") {
+        return alert("Operazione annullata.");
+    }
+
+    // Elenco delle collection standard da svuotare completamente
+    const collectionsToClear = ['players', 'callups', 'attendances', 'tournaments', 'match_history']; 
+
+    try {
+        console.log("Inizio eliminazione totale dei dati...");
+
+        // 1. Svuota le collection standard
+        for (const colName of collectionsToClear) {
+            const querySnapshot = await getDocs(collection(db, colName));
+            const deletePromises = querySnapshot.docs.map(docSnap => deleteDoc(doc(db, colName, docSnap.id)));
+            await Promise.all(deletePromises);
+            console.log(`Collection '${colName}' svuotata con successo.`);
+        }
+
+        // 2. Svuota la collection 'users' eliminando SOLO gli utenti con role === 'parent'
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const deleteUsersPromises = [];
+        
+        usersSnapshot.docs.forEach(docSnap => {
+            const userData = docSnap.data();
+            if (userData.role === 'parent') {
+                deleteUsersPromises.push(deleteDoc(doc(db, 'users', docSnap.id)));
+            }
+        });
+
+        if (deleteUsersPromises.length > 0) {
+            await Promise.all(deleteUsersPromises);
+            console.log(`Rimossi ${deleteUsersPromises.length} account genitori dalla collection 'users'.`);
+        }
+
+        alert("🗑️ Tutti i dati dei giocatori, delle partite e dei genitori sono stati eliminati con successo dal database (account Admin e Coach preservati).");
+        
+        // Ricarica la pagina o resetta la vista
+        location.reload();
+
+    } catch (error) {
+        console.error("Errore durante la cancellazione:", error);
+        alert("Errore durante l'eliminazione dei dati: " + error.message);
+    }
+}
+
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
