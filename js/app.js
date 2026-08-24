@@ -332,6 +332,10 @@
 				    // 2. Mostra il pulsante di logout principale se presente
 				    const logoutBtn = document.getElementById('btn-logout');
 				    if (logoutBtn) logoutBtn.classList.remove('hidden');
+
+					// 3. NASCONDI IL MENU GESTIONE CLUB PER I GENITORI
+				    const adminMenu = document.getElementById('admin-management-menu');
+				    if (adminMenu) adminMenu.classList.add('hidden');
 		
 				    // 3. Avvia la funzione del portale genitori 
 				    if (typeof initParentPortal === 'function') {
