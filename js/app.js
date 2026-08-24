@@ -345,7 +345,8 @@
         });
 
 		// EVENTO PULSANTE GENITORI NELLA NAV BAR SUPERIORE (AGGIUNGI QUI)
-        document.getElementById('nav-btn-parents').addEventListener('click', () => {
+        document.getElementById('nav-btn-parents').addEventListener('click', (e) => {
+			e.stopPropagation(); // Blocca altri eventi in ascolto sul click
             if (currentUserProfile && currentUserProfile.role === 'admin') {
                 document.getElementById('navigation-tabs').classList.add('hidden');
                 document.getElementById('main-content-area').classList.remove('hidden');
