@@ -2401,22 +2401,41 @@ async function linkParentToPlayerByPhone(playerId, parentPhone) {
 
 function exportPlayersToExcel() {
     if (typeof XLSX === 'undefined') {
-        return alert("Libreria SheetJS (XLSX) non inclusa nella pagina.");
+        return alert("Libreria SheetJS (XLSX) non inclusa.");
     }
     
-    // Supponendo che tu abbia un array o un oggetto con i giocatori della squadra corrente
-    // Ad esempio prendendoli dalla variabile globale o dallo stato attuale
-    if (!currentPlayersList || currentPlayersList.length === 0) {
-        return alert("Nessun giocatore da esportare per questo gruppo.");
+    // Proviamo a recuperare i dati dalla variabile globale del tuo script (cambia 'players' o 'currentPlayers' se usi un altro nome)
+    let players = typeof currentPlayersList !== 'undefined' ? currentPlayersList : (window.players || []);
+
+    // Se non abbiamo un array in memoria, proviamo a estrarre i dati direttamente dalla tabella HTML visibile a video!
+    if (!players || players.length === 0) {
+        const rows = document.querySelectorAll('#tab-roster table tbody tr, #main-content-area table tbody tr');
+        if (rows.length > 0) {
+            players = [];
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                if (cols.length >= 2) {
+                    players.push({
+                        name: cols[0]?.innerText || '',
+                        role: cols[1]?.innerText || '',
+                        jersey: cols[2]?.innerText || ''
+                    });
+                }
+            });
+        }
     }
 
-    const dataToExport = currentPlayersList.map(p => ({
-        "Nome": p.firstName || '',
+    if (!players || players.length === 0) {
+        return alert("Nessun giocatore trovato da esportare.");
+    }
+
+    const dataToExport = players.map(p => ({
+        "Nome": p.firstName || p.name || '',
         "Cognome": p.lastName || '',
-        "Data di Nascita (YYYY-MM-DD)": p.dob || '',
+        "Data di Nascita": p.dob || '',
         "Ruolo": p.role || '',
         "Numero Maglia": p.jersey || '',
-        "Scadenza Medica (YYYY-MM-DD)": p.medicalExp || '',
+        "Scadenza Medica": p.medicalExp || '',
         "Telefono Genitore": p.parentPhone || '',
         "Squadra": p.teamId || activeTeamId || ''
     }));
@@ -2424,9 +2443,7 @@ function exportPlayersToExcel() {
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Giocatori");
-    
-    const fileName = `Giocatori_${activeTeamId || 'Tutti'}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+    XLSX.writeFile(workbook, `Giocatori_${activeTeamId || 'Tutti'}.xlsx`);
 }
 
 function handlePlayersExcelUpload(event) {
@@ -2492,7 +2509,10 @@ async function exportParentsToExcel() {
     }
 
     try {
-        const snapshot = await database.ref('users').orderByChild('role').equalTo('parent').once('value');
+        // Usa il riferimento corretto a Firebase del tuo progetto (es. firebase.database() o db)
+        const dbRef = typeof database !== 'undefined' ? database : firebase.database();
+        
+        const snapshot = await dbRef.ref('users').orderByChild('role').equalTo('parent').once('value');
         const parentsData = snapshot.val();
 
         if (!parentsData) {
@@ -2520,7 +2540,6 @@ async function exportParentsToExcel() {
         alert("Errore durante l'esportazione dei genitori.");
     }
 }
-
 function handleParentsExcelUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
