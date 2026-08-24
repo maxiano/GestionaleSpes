@@ -224,6 +224,10 @@
     				};
 				}
 
+				// Mostra il menu a tendina di gestione completo all'admin
+				const managementMenu = document.getElementById('admin-management-menu');
+				if (managementMenu) managementMenu.classList.remove('hidden');
+
                 // Mostra il pulsante di backup per l'admin
                 const backupBtn = document.getElementById('nav-btn-backup');
                 if (backupBtn) backupBtn.classList.remove('hidden');
@@ -256,6 +260,10 @@
 
 				const btnDeleteAll = document.getElementById('nav-btn-delete-all');
 				if (btnDeleteAll) btnDeleteAll.classList.add('hidden');
+
+				// Nascondi il menu di gestione ai coach
+				const managementMenu = document.getElementById('admin-management-menu');
+				if (managementMenu) managementMenu.classList.add('hidden');
 
                 // Nascondi il backup ai coach
                 const backupBtn = document.getElementById('nav-btn-backup');
@@ -2651,6 +2659,23 @@ async function deleteAllFirebaseData() {
         alert("Errore durante l'eliminazione dei dati: " + error.message);
     }
 }
+
+// Funzione per aprire/chiudere il menu a tendina di gestione
+function toggleManagementMenu(event) {
+    if (event) event.stopPropagation();
+    const dropdown = document.getElementById('menu-dropdown-content');
+    if (dropdown) {
+        dropdown.classList.toggle('hidden');
+    }
+}
+
+// Chiude il menu se si clicca in un qualsiasi altro punto della pagina
+window.addEventListener('click', () => {
+    const dropdown = document.getElementById('menu-dropdown-content');
+    if (dropdown && !dropdown.classList.contains('hidden')) {
+        dropdown.classList.add('hidden');
+    }
+});
 
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
