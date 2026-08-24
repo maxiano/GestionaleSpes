@@ -2399,60 +2399,49 @@ async function linkParentToPlayerByPhone(playerId, parentPhone) {
     }
 }
 
-function exportPlayersToExcel() {
+async function exportPlayersToExcel() {
     if (typeof XLSX === 'undefined') {
         return alert("Libreria SheetJS (XLSX) non inclusa.");
     }
-    
-    // Proviamo a recuperare i dati dalla variabile globale del tuo script (cambia 'players' o 'currentPlayers' se usi un altro nome)
-    let players = typeof currentPlayersList !== 'undefined' ? currentPlayersList : (window.players || []);
 
-    // Se non abbiamo un array in memoria, proviamo a estrarre i dati direttamente dalla tabella HTML visibile a video!
-    if (!players || players.length === 0) {
-        const rows = document.querySelectorAll('#tab-roster table tbody tr, #main-content-area table tbody tr');
-        if (rows.length > 0) {
-            players = [];
-            rows.forEach(row => {
-                const cols = row.querySelectorAll('td');
-                if (cols.length >= 2) {
-                    players.push({
-                        name: cols[0]?.innerText || '',
-                        role: cols[1]?.innerText || '',
-                        jersey: cols[2]?.innerText || ''
-                    });
-                }
-            });
+    try {
+        const dbRef = typeof database !== 'undefined' ? database : firebase.database();
+        const snapshot = await dbRef.ref('players').once('value');
+        const playersData = snapshot.val();
+
+        if (!playersData) {
+            return alert("Nessun giocatore trovato nel database.");
         }
+
+        const dataToExport = [];
+        Object.keys(playersData).forEach(id => {
+            const p = playersData[id];
+            dataToExport.push({
+                "Nome": p.firstName || '',
+                "Cognome": p.lastName || '',
+                "Data di Nascita (YYYY-MM-DD)": p.dob || '',
+                "Ruolo": p.role || '',
+                "Numero Maglia": p.jersey || '',
+                "Scadenza Medica (YYYY-MM-DD)": p.medicalExp || '',
+                "Telefono Genitore": p.parentPhone || '',
+                "Squadra / Gruppo": p.teamId || ''
+            });
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Tutti i Giocatori");
+        
+        XLSX.writeFile(workbook, "Tutti_i_Giocatori.xlsx");
+    } catch (error) {
+        console.error(error);
+        alert("Errore durante l'esportazione dei giocatori.");
     }
-
-    if (!players || players.length === 0) {
-        return alert("Nessun giocatore trovato da esportare.");
-    }
-
-    const dataToExport = players.map(p => ({
-        "Nome": p.firstName || p.name || '',
-        "Cognome": p.lastName || '',
-        "Data di Nascita": p.dob || '',
-        "Ruolo": p.role || '',
-        "Numero Maglia": p.jersey || '',
-        "Scadenza Medica": p.medicalExp || '',
-        "Telefono Genitore": p.parentPhone || '',
-        "Squadra": p.teamId || activeTeamId || ''
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Giocatori");
-    XLSX.writeFile(workbook, `Giocatori_${activeTeamId || 'Tutti'}.xlsx`);
 }
 
 function handlePlayersExcelUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-
-    if (!activeTeamId || activeTeamId === 'ALL' || activeTeamId === 'SELECT_TEAM') {
-        return alert("⚠️ Seleziona prima una squadra specifica in cui importare i giocatori!");
-    }
 
     const reader = new FileReader();
     reader.onload = async function(e) {
@@ -2467,37 +2456,40 @@ function handlePlayersExcelUpload(event) {
                 return alert("Il file Excel è vuoto.");
             }
 
+            const dbRef = typeof database !== 'undefined' ? database : firebase.database();
             let importedCount = 0;
+
             for (const row of jsonRows) {
                 const firstName = row["Nome"] || "";
                 const lastName = row["Cognome"] || "";
-                if (!firstName && !lastName) continue; // Salta righe vuote
+                const teamId = row["Squadra / Gruppo"] || row["teamId"] || "";
+
+                if (!firstName && !lastName) continue;
 
                 const playerPayload = {
                     firstName: firstName,
                     lastName: lastName,
                     name: `${lastName} ${firstName}`.trim(),
-                    dob: row["Data di Nascita (YYYY-MM-DD)"] || "",
+                    dob: row["Data di Nascita (YYYY-MM-DD)"] || row["Data di Nascita"] || "",
                     role: row["Ruolo"] || "",
                     jersey: String(row["Numero Maglia"] || ""),
-                    medicalExp: row["Scadenza Medica (YYYY-MM-DD)"] || "",
+                    medicalExp: row["Scadenza Medica (YYYY-MM-DD)"] || row["Scadenza Medica"] || "",
                     parentPhone: String(row["Telefono Genitore"] || "").trim(),
-                    teamId: activeTeamId,
+                    teamId: teamId,
                     createdAt: firebase.database.ServerValue.TIMESTAMP
                 };
 
-                // Salvataggio su Firebase (adattalo al tuo path di salvataggio, es. database.ref(`teams/${activeTeamId}/players`).push())
-                await database.ref(`players`).push(playerPayload);
+                await dbRef.ref('players').push(playerPayload);
                 importedCount++;
             }
 
             alert(`✅ Importati con successo ${importedCount} giocatori!`);
-            event.target.value = ''; // Reset input file
-            if (typeof loadTeamData === 'function') loadTeamData();
+            event.target.value = ''; 
+            if (typeof loadTeamData === 'function' && activeTeamId) loadTeamData();
 
         } catch (error) {
             console.error(error);
-            alert("Errore durante l'importazione del file Excel.");
+            alert("Errore durante l'importazione del file Excel dei giocatori.");
         }
     };
     reader.readAsArrayBuffer(file);
@@ -2509,9 +2501,7 @@ async function exportParentsToExcel() {
     }
 
     try {
-        // Usa il riferimento corretto a Firebase del tuo progetto (es. firebase.database() o db)
         const dbRef = typeof database !== 'undefined' ? database : firebase.database();
-        
         const snapshot = await dbRef.ref('users').orderByChild('role').equalTo('parent').once('value');
         const parentsData = snapshot.val();
 
@@ -2526,15 +2516,16 @@ async function exportParentsToExcel() {
                 "Nome": p.name || '',
                 "Email": p.email || '',
                 "Telefono": p.phone || '',
+                "UID": p.uid || uid,
                 "ID Figli Associati": Array.isArray(p.childIds) ? p.childIds.join(', ') : ''
             });
         });
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Genitori");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Tutti i Genitori");
         
-        XLSX.writeFile(workbook, "Elenco_Genitori.xlsx");
+        XLSX.writeFile(workbook, "Tutti_i_Genitori.xlsx");
     } catch (error) {
         console.error(error);
         alert("Errore durante l'esportazione dei genitori.");
@@ -2555,7 +2546,9 @@ function handleParentsExcelUpload(event) {
 
             if (jsonRows.length === 0) return alert("Il file Excel è vuoto.");
 
+            const dbRef = typeof database !== 'undefined' ? database : firebase.database();
             let importedCount = 0;
+
             for (const row of jsonRows) {
                 const name = row["Nome"] || "";
                 const email = row["Email"] || "";
@@ -2563,18 +2556,17 @@ function handleParentsExcelUpload(event) {
 
                 if (!name || !phone) continue;
 
+                const newRef = dbRef.ref('users').push();
                 const parentPayload = {
+                    uid: newRef.key,
                     name: name,
                     email: email,
                     phone: phone,
                     role: "parent",
-                    childIds: [], // Verrà popolato dalla logica di matching o in seguito
+                    childIds: [], // Verrà riempito dal matching col telefono dei giocatori
                     createdAt: firebase.database.ServerValue.TIMESTAMP
                 };
 
-                // Salvataggio su Firebase nella collezione users (generando un ID univoco)
-                const newRef = database.ref('users').push();
-                parentPayload.uid = newRef.key;
                 await newRef.set(parentPayload);
                 importedCount++;
             }
@@ -2585,7 +2577,7 @@ function handleParentsExcelUpload(event) {
 
         } catch (error) {
             console.error(error);
-            alert("Errore durante l'importazione dei genitori.");
+            alert("Errore durante l'importazione del file Excel dei genitori.");
         }
     };
     reader.readAsArrayBuffer(file);
