@@ -431,6 +431,53 @@
                 downloadDatabaseBackup();
             }
         });
+		// --- EVENTI PULSANTI IMPORT / EXPORT NELLA NAV BAR ---
+
+        // 1. Export Giocatori
+        const btnExportPlayers = document.getElementById('nav-btn-export-players');
+        if (btnExportPlayers) {
+            btnExportPlayers.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (currentUserProfile && currentUserProfile.role === 'admin') {
+                    exportPlayersToExcel();
+                }
+            });
+        }
+
+        // 2. Import Giocatori (Apre il selettore file)
+        const btnImportPlayers = document.getElementById('nav-btn-import-players');
+        if (btnImportPlayers) {
+            btnImportPlayers.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (currentUserProfile && currentUserProfile.role === 'admin') {
+                    document.getElementById('import-players-file').click();
+                }
+            });
+        }
+        document.getElementById('import-players-file').addEventListener('change', handlePlayersExcelUpload);
+
+        // 3. Export Genitori
+        const btnExportParents = document.getElementById('nav-btn-export-parents');
+        if (btnExportParents) {
+            btnExportParents.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (currentUserProfile && currentUserProfile.role === 'admin') {
+                    exportParentsToExcel();
+                }
+            });
+        }
+
+        // 4. Import Genitori (Apre il selettore file)
+        const btnImportParents = document.getElementById('nav-btn-import-parents');
+        if (btnImportParents) {
+            btnImportParents.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (currentUserProfile && currentUserProfile.role === 'admin') {
+                    document.getElementById('import-parents-file').click();
+                }
+            });
+        }
+        document.getElementById('import-parents-file').addEventListener('change', handleParentsExcelUpload);
 
         document.getElementById('admin-team-filter').addEventListener('change', () => {
             const selected = document.getElementById('admin-team-filter').value;
