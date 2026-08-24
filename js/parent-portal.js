@@ -130,11 +130,6 @@ if (!db) {
         return;
     }
 
-    // Se l'ID attivo non è valido, prendiamo il primo disponibile
-    if (!activeChildId || !childIds.includes(activeChildId)) {
-        activeChildId = childIds[0];
-    }
-
     try {
         // Recuperiamo i dati di TUTTI i figli del genitore per mapparli correttamente
         const childrenDataMap = {};
@@ -146,8 +141,55 @@ if (!db) {
             }
         }
 
+        // Se l'ID attivo non è valido, prendiamo il primo disponibile
+        if (!activeChildId || !childIds.includes(activeChildId)) {
+            activeChildId = childIds[0];
+        }
+
+        // --- GESTIONE GRAFICA: NOME + SELECT FIGLI + GRUPPO SQUADRA ---
+        const nameContainer = document.getElementById('parent-child-name');
+        const teamBadgeEl = document.getElementById('parent-child-team');
+
+        if (nameContainer) {
+            if (childIds.length === 1) {
+                // Un solo figlio: mostra il nome semplice
+                const singleChildData = childrenDataMap[activeChildId] || {};
+                const displayName = `${singleChildData.lastName || ''} ${singleChildData.firstName || ''}`.trim() || 'Nome non disponibile';
+                nameContainer.textContent = displayName;
+            } else {
+                // Più figli: crea una <select> pulita ed elegante
+                let selectHtml = `<select id="select-active-child" class="bg-slate-800/90 text-white text-sm sm:text-base font-bold px-3 py-1.5 rounded-xl border border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer w-full max-w-xs shadow-inner">`;
+                
+                for (const cId of childIds) {
+                    const cData = childrenDataMap[cId];
+                    if (cData) {
+                        const cName = `${cData.lastName || ''} ${cData.firstName || ''}`.trim();
+                        const selected = (cId === activeChildId) ? 'selected' : '';
+                        selectHtml += `<option value="${cId}" ${selected}>${cName}</option>`;
+                    }
+                }
+                selectHtml += `</select>`;
+                nameContainer.innerHTML = selectHtml;
+
+                // Ascoltatore per il cambio figlio dal menu a tendina
+                const selectEl = document.getElementById('select-active-child');
+                if (selectEl) {
+                    selectEl.addEventListener('change', (e) => {
+                        activeChildId = e.target.value;
+                        loadChildData(userProfile); // Ricarica i dati per il nuovo figlio selezionato
+                    });
+                }
+            }
+        }
+
+        // Aggiorna il badge del Gruppo Squadra per il figlio attivo
         const activeChildData = childrenDataMap[activeChildId] || {};
-        const activeDisplayName = `${activeChildData.lastName || ''} ${activeChildData.firstName || ''}`.trim() || userProfile?.name;
+        const activeTeamName = activeChildData.categoria || activeChildData.gruppoSquadra || activeChildData.team || 'Squadra non assegnata';
+        
+        if (teamBadgeEl) {
+            teamBadgeEl.textContent = activeTeamName;
+        }
+
         const activeTeamId = activeChildData.teamId || activeChildData.team || activeChildData.squadra || activeChildData.group || userProfile?.teamId || '';
 
         const [callupsSnap, attendancesSnap, matchHistorySnap] = await Promise.all([
