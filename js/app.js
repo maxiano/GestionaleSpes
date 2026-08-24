@@ -151,14 +151,31 @@
                 targetTab.classList.remove('hidden');
             }
 
-            // 4. Evidenzia il bottone attivo (se esiste ancora nel DOM)
-            const activeBtn = document.getElementById(`btn-${tabId}`);
-            if (activeBtn) {
-                activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
+            // 4. Evidenzia il bottone attivo o gestisci le tab amministrative senza bottone interno
+            if (tabId === 'tab-staff') {
+                // Assicurati che il bottone interno resti nascosto e aggiorna l'etichetta
+                const btnStaff = document.getElementById('btn-tab-staff');
+                if (btnStaff) btnStaff.classList.add('hidden');
                 
                 const activeLabel = document.getElementById('current-active-tab-label');
-                if (activeLabel) {
-                    activeLabel.innerText = activeBtn.innerText.trim();
+                if (activeLabel) activeLabel.innerText = 'Staff';
+            } else if (tabId === 'tab-parents') {
+                // Assicurati che il bottone interno resti nascosto e aggiorna l'etichetta
+                const btnParents = document.getElementById('btn-tab-parents');
+                if (btnParents) btnParents.classList.add('hidden');
+                
+                const activeLabel = document.getElementById('current-active-tab-label');
+                if (activeLabel) activeLabel.innerText = 'Genitori';
+            } else {
+                // Gestione normale per le tab delle squadre
+                const activeBtn = document.getElementById(`btn-${tabId}`);
+                if (activeBtn) {
+                    activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
+                    
+                    const activeLabel = document.getElementById('current-active-tab-label');
+                    if (activeLabel) {
+                        activeLabel.innerText = activeBtn.innerText.trim();
+                    }
                 }
             }
 
