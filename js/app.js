@@ -2661,15 +2661,15 @@ async function deleteAllFirebaseData() {
 }
 
 // Funzione per aprire/chiudere il menu a tendina di gestione
-function toggleManagementMenu(event) {
+window.toggleManagementMenu = function(event) {
     if (event) event.stopPropagation();
     const dropdown = document.getElementById('menu-dropdown-content');
     if (dropdown) {
         dropdown.classList.toggle('hidden');
     }
-}
+};
 
-// Chiude il menu se si clicca in un qualsiasi altro punto della pagina
+// Chiude il menu se si clicca fuori
 window.addEventListener('click', () => {
     const dropdown = document.getElementById('menu-dropdown-content');
     if (dropdown && !dropdown.classList.contains('hidden')) {
