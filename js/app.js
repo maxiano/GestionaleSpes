@@ -336,7 +336,8 @@
         document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
         // EVENTO PULSANTE STAFF NELLA NAV BAR SUPERIORE
-        document.getElementById('nav-btn-staff').addEventListener('click', () => {
+        document.getElementById('nav-btn-staff').addEventListener('click', (e) => {
+			e.stopPropagation(); // Blocca altri eventi in ascolto sul click
             if (currentUserProfile && currentUserProfile.role === 'admin') {
                 document.getElementById('navigation-tabs').classList.add('hidden');
                 document.getElementById('main-content-area').classList.remove('hidden');
@@ -355,7 +356,8 @@
         });
 
 		// EVENTO PULSANTE IMPORT GIOCATORI NELLA NAV BAR SUPERIORE (AGGIUNGI QUI)
-        document.getElementById('nav-btn-import-players').addEventListener('click', () => {
+        document.getElementById('nav-btn-import-players').addEventListener('click', (e) => {
+			e.stopPropagation(); // Blocca altri eventi in ascolto sul click
             if (currentUserProfile && currentUserProfile.role === 'admin') {
                 document.getElementById('navigation-tabs').classList.add('hidden');
                 document.getElementById('main-content-area').classList.remove('hidden');
@@ -363,7 +365,8 @@
             }
         });
 		// EVENTO PULSANTE EXPORT GIOCATORI NELLA NAV BAR SUPERIORE (AGGIUNGI QUI)
-        document.getElementById('nav-btn-export-players').addEventListener('click', () => {
+        document.getElementById('nav-btn-export-players').addEventListener('click', (e) => {
+			e.stopPropagation(); // Blocca altri eventi in ascolto sul click
             if (currentUserProfile && currentUserProfile.role === 'admin') {
                 document.getElementById('navigation-tabs').classList.add('hidden');
                 document.getElementById('main-content-area').classList.remove('hidden');
@@ -372,7 +375,8 @@
         });
 
 		// EVENTO PULSANTE IMPORT GENITORI NELLA NAV BAR SUPERIORE (AGGIUNGI QUI)
-        document.getElementById('nav-btn-import-parents').addEventListener('click', () => {
+        document.getElementById('nav-btn-import-parents').addEventListener('click', (e) => {
+			e.stopPropagation(); // Blocca altri eventi in ascolto sul click
             if (currentUserProfile && currentUserProfile.role === 'admin') {
                 document.getElementById('navigation-tabs').classList.add('hidden');
                 document.getElementById('main-content-area').classList.remove('hidden');
@@ -381,7 +385,8 @@
         });
 
 		// EVENTO PULSANTE EXPORT GENITORI NELLA NAV BAR SUPERIORE (AGGIUNGI QUI)
-        document.getElementById('nav-btn-export-parents').addEventListener('click', () => {
+        document.getElementById('nav-btn-export-parents').addEventListener('click', (e) => {
+			e.stopPropagation(); // Blocca altri eventi in ascolto sul click
             if (currentUserProfile && currentUserProfile.role === 'admin') {
                 document.getElementById('navigation-tabs').classList.add('hidden');
                 document.getElementById('main-content-area').classList.remove('hidden');
