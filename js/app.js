@@ -2405,18 +2405,14 @@ async function exportPlayersToExcel() {
     }
 
     try {
-        const dbRef = typeof database !== 'undefined' ? database : firebase.database();
-        const snapshot = await dbRef.ref('players').once('value');
-        const playersData = snapshot.val();
-
-        if (!playersData) {
+        const querySnapshot = await getDocs(collection(db, 'players'));
+        if (querySnapshot.empty) {
             return alert("Nessun giocatore trovato nel database.");
         }
 
-        const dataToExport = [];
-        Object.keys(playersData).forEach(id => {
-            const p = playersData[id];
-            dataToExport.push({
+        const dataToExport = querySnapshot.docs.map(docSnap => {
+            const p = docSnap.data();
+            return {
                 "Nome": p.firstName || '',
                 "Cognome": p.lastName || '',
                 "Data di Nascita (YYYY-MM-DD)": p.dob || '',
@@ -2425,17 +2421,17 @@ async function exportPlayersToExcel() {
                 "Scadenza Medica (YYYY-MM-DD)": p.medicalExp || '',
                 "Telefono Genitore": p.parentPhone || '',
                 "Squadra / Gruppo": p.teamId || ''
-            });
+            };
         });
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Tutti i Giocatori");
         
-        XLSX.writeFile(workbook, "Tutti_i_Giocatori.xlsx");
+        XLSX.writeFile(workbook, `Tutti_i_Giocatori_${new Date().toISOString().slice(0,10)}.xlsx`);
     } catch (error) {
-        console.error(error);
-        alert("Errore durante l'esportazione dei giocatori.");
+        console.error("Errore export giocatori:", error);
+        alert("Errore durante l'esportazione dei giocatori: " + error.message);
     }
 }
 
@@ -2456,9 +2452,7 @@ function handlePlayersExcelUpload(event) {
                 return alert("Il file Excel è vuoto.");
             }
 
-            const dbRef = typeof database !== 'undefined' ? database : firebase.database();
             let importedCount = 0;
-
             for (const row of jsonRows) {
                 const firstName = row["Nome"] || "";
                 const lastName = row["Cognome"] || "";
@@ -2476,20 +2470,21 @@ function handlePlayersExcelUpload(event) {
                     medicalExp: row["Scadenza Medica (YYYY-MM-DD)"] || row["Scadenza Medica"] || "",
                     parentPhone: String(row["Telefono Genitore"] || "").trim(),
                     teamId: teamId,
-                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                    createdAt: new Date()
                 };
 
-                await dbRef.ref('players').push(playerPayload);
+                // Salvataggio con sintassi Modular SDK v9
+                await addDoc(collection(db, 'players'), playerPayload);
                 importedCount++;
             }
 
             alert(`✅ Importati con successo ${importedCount} giocatori!`);
-            event.target.value = ''; 
+            event.target.value = '';
             if (typeof loadTeamData === 'function' && activeTeamId) loadTeamData();
 
         } catch (error) {
-            console.error(error);
-            alert("Errore durante l'importazione del file Excel dei giocatori.");
+            console.error("Errore import giocatori:", error);
+            alert("Errore durante l'importazione del file Excel: " + error.message);
         }
     };
     reader.readAsArrayBuffer(file);
@@ -2501,34 +2496,36 @@ async function exportParentsToExcel() {
     }
 
     try {
-        const dbRef = typeof database !== 'undefined' ? database : firebase.database();
-        const snapshot = await dbRef.ref('users').orderByChild('role').equalTo('parent').once('value');
-        const parentsData = snapshot.val();
-
-        if (!parentsData) {
-            return alert("Nessun genitore trovato nel database.");
+        const querySnapshot = await getDocs(collection(db, 'users'));
+        if (querySnapshot.empty) {
+            return alert("Nessun utente trovato nel database.");
         }
 
         const dataToExport = [];
-        Object.keys(parentsData).forEach(uid => {
-            const p = parentsData[uid];
-            dataToExport.push({
-                "Nome": p.name || '',
-                "Email": p.email || '',
-                "Telefono": p.phone || '',
-                "UID": p.uid || uid,
-                "ID Figli Associati": Array.isArray(p.childIds) ? p.childIds.join(', ') : ''
-            });
+        querySnapshot.docs.forEach(docSnap => {
+            const p = docSnap.data();
+            if (p.role === 'parent') {
+                dataToExport.push({
+                    "Nome": p.name || '',
+                    "Email": p.email || '',
+                    "Telefono": p.phone || '',
+                    "ID Figli Associati": Array.isArray(p.childIds) ? p.childIds.join(', ') : ''
+                });
+            }
         });
+
+        if (dataToExport.length === 0) {
+            return alert("Nessun genitore trovato con ruolo 'parent'.");
+        }
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Tutti i Genitori");
         
-        XLSX.writeFile(workbook, "Tutti_i_Genitori.xlsx");
+        XLSX.writeFile(workbook, `Tutti_i_Genitori_${new Date().toISOString().slice(0,10)}.xlsx`);
     } catch (error) {
-        console.error(error);
-        alert("Errore durante l'esportazione dei genitori.");
+        console.error("Errore export genitori:", error);
+        alert("Errore durante l'esportazione dei genitori: " + error.message);
     }
 }
 function handleParentsExcelUpload(event) {
@@ -2544,11 +2541,11 @@ function handleParentsExcelUpload(event) {
             const worksheet = workbook.Sheets[sheetName];
             const jsonRows = XLSX.utils.sheet_to_json(worksheet);
 
-            if (jsonRows.length === 0) return alert("Il file Excel è vuoto.");
+            if (jsonRows.length === 0) {
+                return alert("Il file Excel è vuoto.");
+            }
 
-            const dbRef = typeof database !== 'undefined' ? database : firebase.database();
             let importedCount = 0;
-
             for (const row of jsonRows) {
                 const name = row["Nome"] || "";
                 const email = row["Email"] || "";
@@ -2556,18 +2553,19 @@ function handleParentsExcelUpload(event) {
 
                 if (!name || !phone) continue;
 
-                const newRef = dbRef.ref('users').push();
-                const parentPayload = {
-                    uid: newRef.key,
+                // Crea prima il documento per recuperare l'id univoco generated
+                const newDocRef = await addDoc(collection(db, 'users'), {
                     name: name,
                     email: email,
                     phone: phone,
                     role: "parent",
-                    childIds: [], // Verrà riempito dal matching col telefono dei giocatori
-                    createdAt: firebase.database.ServerValue.TIMESTAMP
-                };
+                    childIds: [],
+                    createdAt: new Date()
+                });
 
-                await newRef.set(parentPayload);
+                // Aggiorna inserendo anche il campo uid corrispondente a doc.id
+                await updateDoc(newDocRef, { uid: newDocRef.id });
+
                 importedCount++;
             }
 
@@ -2576,13 +2574,12 @@ function handleParentsExcelUpload(event) {
             if (typeof loadParentsList === 'function') loadParentsList();
 
         } catch (error) {
-            console.error(error);
-            alert("Errore durante l'importazione del file Excel dei genitori.");
+            console.error("Errore import genitori:", error);
+            alert("Errore durante l'importazione del file Excel: " + error.message);
         }
     };
     reader.readAsArrayBuffer(file);
 }
-
 
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
