@@ -200,6 +200,19 @@
                 document.getElementById('nav-btn-staff').classList.remove('hidden');
                 document.getElementById('nav-btn-parents').classList.remove('hidden');
 
+                // Mostra i pulsanti di import/export per l'admin
+                const btnImportPlayers = document.getElementById('nav-btn-import-players');
+                if (btnImportPlayers) btnImportPlayers.classList.remove('hidden');
+
+                const btnExportPlayers = document.getElementById('nav-btn-export-players');
+                if (btnExportPlayers) btnExportPlayers.classList.remove('hidden');
+
+                const btnImportParents = document.getElementById('nav-btn-import-parents');
+                if (btnImportParents) btnImportParents.classList.remove('hidden');
+
+                const btnExportParents = document.getElementById('nav-btn-export-parents');
+                if (btnExportParents) btnExportParents.classList.remove('hidden');
+
                 // Mostra il pulsante di backup per l'admin
                 const backupBtn = document.getElementById('nav-btn-backup');
                 if (backupBtn) backupBtn.classList.remove('hidden');
@@ -216,6 +229,19 @@
                 // Nascondi i pulsanti rapidi superiori ai coach
                 document.getElementById('nav-btn-staff').classList.add('hidden');
                 document.getElementById('nav-btn-parents').classList.add('hidden');
+
+                // Nascondi i pulsanti di import/export ai coach
+                const btnImportPlayers = document.getElementById('nav-btn-import-players');
+                if (btnImportPlayers) btnImportPlayers.classList.add('hidden');
+
+                const btnExportPlayers = document.getElementById('nav-btn-export-players');
+                if (btnExportPlayers) btnExportPlayers.classList.add('hidden');
+
+                const btnImportParents = document.getElementById('nav-btn-import-parents');
+                if (btnImportParents) btnImportParents.classList.add('hidden');
+
+                const btnExportParents = document.getElementById('nav-btn-export-parents');
+                if (btnExportParents) btnExportParents.classList.add('hidden');
 
                 // Nascondi il backup ai coach
                 const backupBtn = document.getElementById('nav-btn-backup');
