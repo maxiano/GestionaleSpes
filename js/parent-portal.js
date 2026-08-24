@@ -184,6 +184,8 @@ if (!db) {
 
         // Aggiorna il badge del Gruppo Squadra per il figlio attivo
         const activeChildData = childrenDataMap[activeChildId] || {};
+        // <-- AGGIUNGI QUESTA RIGA PER DEFINIRE LA VARIABILE MANCANTE -->
+        const activeDisplayName = `${activeChildData.lastName || ''} ${activeChildData.firstName || ''}`.trim() || userProfile?.name || 'Genitore';
         const activeTeamName = activeChildData.categoria || activeChildData.gruppoSquadra || activeChildData.team || 'Squadra non assegnata';
         
         if (teamBadgeEl) {
