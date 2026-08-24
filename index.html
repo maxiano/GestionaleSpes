@@ -38,54 +38,75 @@
                 <p id="user-info" class="text-xs text-slate-400 font-medium tracking-wide">Caricamento utente...</p>
             </div>
         </div>
-<div class="flex items-center space-x-2 overflow-x-auto py-1">
-    <!-- PULSANTE CAMBIO PASSWORD -->
-    <button id="nav-btn-password" class="bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
-        <span>🔑</span> <span class="hidden sm:inline">Password</span>
-    </button>
-
-    <!-- VOCE MENU STAFF -->
-    <button id="nav-btn-staff" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
-        <span>⚙️</span> <span class="hidden sm:inline">Gestione Staff</span>
-    </button>
-
-    <!-- VOCE MENU GENITORI -->
-    <button id="nav-btn-parents" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
-        <span>👨‍👩‍👧‍👦</span> <span class="hidden sm:inline">Gestione Genitori</span>
-    </button>
+    <div class="flex items-center space-x-2 overflow-x-auto py-1 relative">
+        <!-- PULSANTE CAMBIO PASSWORD (Sempre visibile) -->
+        <button id="nav-btn-password" class="bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
+            <span>🔑</span> <span class="hidden sm:inline">Password</span>
+        </button>
     
-    <!-- IMPORTA / ESPORTA GIOCATORI -->
-    <button id="nav-btn-import-players" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
-        <span>📥</span> <span class="hidden sm:inline">Importa Giocatori</span>
-    </button>
-    <!-- Input file nascosti per le importazioni -->
-    <input type="file" id="import-players-file" class="hidden" accept=".xlsx, .xls, .csv" />
-    <button id="nav-btn-export-players" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
-        <span>📤</span> <span class="hidden sm:inline">Esporta Giocatori</span>
-    </button>
-
-    <!-- IMPORTA / ESPORTA GENITORI -->
-    <button id="nav-btn-import-parents" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
-        <span>👥📥</span> <span class="hidden sm:inline">Importa Genitori</span>
-    </button>
-    <!-- Input file nascosti per le importazioni -->
-    <input type="file" id="import-parents-file" class="hidden" accept=".xlsx, .xls, .csv" />
-    <button id="nav-btn-export-parents" class="hidden bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
-        <span>👥📤</span> <span class="hidden sm:inline">Esporta Genitori</span>
-    </button>
-    <button id="nav-btn-delete-all" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-md text-xs md:text-sm transition">
-        🗑️ Svuota Database
-    </button>
-    <!-- VOCE MENU BACKUP -->
-    <button id="nav-btn-backup" class="hidden bg-slate-800/80 hover:bg-emerald-600 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95 shrink-0">
-        <span>💾</span> <span class="hidden sm:inline">Backup</span>
-    </button>
-
-    <!-- PULSANTE LOGOUT -->
-    <button id="btn-logout" class="hidden bg-red-600/90 hover:bg-red-600 text-white text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 shadow-sm shadow-red-900/30 active:scale-95 shrink-0">
-        Esci
-    </button>
-</div>
+        <!-- MENU A TENDINA GESTIONE CLUB (Visibile solo per admin) -->
+        <div id="admin-management-menu" class="hidden relative inline-block text-left shrink-0">
+            <!-- Pulsante Hamburger / Apertura Menu -->
+            <button id="menu-toggle-btn" onclick="toggleManagementMenu(event)" class="bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 border border-slate-700/80 shadow-sm flex items-center gap-1.5 hover:border-slate-600 active:scale-95">
+                <span>⚙️</span> <span class="hidden sm:inline">Gestione Club</span>
+                <svg class="w-3.5 h-3.5 ml-0.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+    
+            <!-- Dropdown Content -->
+            <div id="menu-dropdown-content" class="hidden absolute left-0 sm:right-0 sm:left-auto mt-2 w-56 rounded-xl shadow-2xl bg-slate-900 border border-slate-700/90 py-1.5 z-50 divide-y divide-slate-800/80">
+                <div class="px-1.5 py-1 space-y-0.5">
+                    <!-- VOCE MENU STAFF -->
+                    <button id="nav-btn-staff" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800/90 rounded-lg flex items-center gap-2 transition">
+                        <span>👥</span> Gestione Staff
+                    </button>
+                    <!-- VOCE MENU GENITORI -->
+                    <button id="nav-btn-parents" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800/90 rounded-lg flex items-center gap-2 transition">
+                        <span>👨‍👩‍👧‍👦</span> Gestione Genitori
+                    </button>
+                </div>
+                
+                <div class="px-1.5 py-1 space-y-0.5">
+                    <!-- IMPORTA / ESPORTA GIOCATORI -->
+                    <button id="nav-btn-import-players" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800/90 rounded-lg flex items-center gap-2 transition">
+                        <span>📥</span> Importa Giocatori
+                    </button>
+                    <button id="nav-btn-export-players" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800/90 rounded-lg flex items-center gap-2 transition">
+                        <span>📤</span> Esporta Giocatori
+                    </button>
+                </div>
+    
+                <div class="px-1.5 py-1 space-y-0.5">
+                    <!-- IMPORTA / ESPORTA GENITORI -->
+                    <button id="nav-btn-import-parents" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800/90 rounded-lg flex items-center gap-2 transition">
+                        <span>👥📥</span> Importa Genitori
+                    </button>
+                    <button id="nav-btn-export-parents" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800/90 rounded-lg flex items-center gap-2 transition">
+                        <span>👥📤</span> Esporta Genitori
+                    </button>
+                </div>
+    
+                <div class="px-1.5 py-1 space-y-0.5">
+                    <!-- VOCE MENU BACKUP -->
+                    <button id="nav-btn-backup" class="w-full text-left px-3 py-2 text-xs font-medium text-emerald-400 hover:bg-slate-800/90 rounded-lg flex items-center gap-2 transition">
+                        <span>💾</span> Backup Database
+                    </button>
+                    <!-- SVUOTA DATABASE -->
+                    <button id="nav-btn-delete-all" class="w-full text-left px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-2 transition">
+                        <span>🗑️</span> Svuota Database
+                    </button>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Input file nascosti per le importazioni Excel (necessari al funzionamento) -->
+        <input type="file" id="import-players-file" class="hidden" accept=".xlsx, .xls, .csv" />
+        <input type="file" id="import-parents-file" class="hidden" accept=".xlsx, .xls, .csv" />
+    
+        <!-- PULSANTE LOGOUT -->
+        <button id="btn-logout" class="hidden bg-red-600/90 hover:bg-red-600 text-white text-xs px-3.5 py-2 rounded-lg font-semibold transition-all duration-200 shadow-sm shadow-red-900/30 active:scale-95 shrink-0">
+            Esci
+        </button>
+    </div>
     </nav>
 
     <!-- INTESTAZIONE UNICA PER LA STAMPA (HIDDEN ON SCREEN) -->
