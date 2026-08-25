@@ -2264,8 +2264,7 @@ window.renderTournaments = function() {
                                 ${m.played ? '● GIOCATA' : '● DA GIOCARE'}
                             </span>
                         </div>
-                        <p class="text-[11px] text-slate-500">📅 ${m.date || 'Data da definirsi'} - ⏰ ${m.time || '--:--'} | 📍 ${m.location || tour.location}</p>
-                        
+                        <p class="text-[11px] text-slate-500">📅 ${m.date || m.matchDate || 'Data da definirsi'} - ⏰ ${m.time || m.matchTime || '--:--'} | 📍 ${m.location || tour.location}</p>
                         <div class="flex flex-col gap-1 mt-1">
                             ${!m.played ? 
                                 `<button onclick="setResult('${m.id}')" class="w-full bg-slate-900 hover:bg-emerald-600 text-white font-bold text-[10px] py-1.5 rounded-lg transition">Inserisci Risultato</button>` 
