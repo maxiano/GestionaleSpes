@@ -1989,11 +1989,16 @@ window.openAddMatchModal = function(tournamentId) {
     const tour = tournamentsList.find(t => t.id === tournamentId);
     if (!tour) return;
 
+    // 1. Prima cosa: puliamo il form
+    const formMatch = document.getElementById('form-match');
+    if (formMatch) formMatch.reset();
+
+    // 2. Poi impostiamo i campi legati al torneo
     document.getElementById('match-tour-id').value = tour.id;
     document.getElementById('match-tour-name-display').value = tour.name;
-    document.getElementById('form-match').reset();
-    document.getElementById('match-location').value = tour.location; // Pre-imposta con la località del torneo
+    document.getElementById('match-location').value = tour.location || ''; // Pre-imposta con la località del torneo
 
+    // 3. Infine mostriamo il modale
     const modalMatch = document.getElementById('modal-match');
     if (modalMatch) modalMatch.classList.remove('hidden');
 };
