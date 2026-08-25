@@ -2717,19 +2717,48 @@ window.setResult = function(matchId) {
     }
 };
 
-// Modifica una partita esistente
+// ==========================================
+// MODIFICA PARTITA ESISTENTE
+// ==========================================
 window.editMatch = function(matchId) {
+    // Cerchiamo la partita nell'array delle partite del torneo
     const match = tournamentMatches.find(m => m.id === matchId);
-    if (!match) return;
+    if (!match) {
+        alert("Partita non trovata.");
+        return;
+    }
 
-    const newTeams = prompt("Modifica Incontro (es. Spes - Artiglio):", match.match);
-    if (newTeams !== null) {
-        match.match = newTeams.trim();
-        
-        // Update su Firestore (opzionale se sincronizzato)
-        // updateDoc(doc(db, "tournament_matches", matchId), { match: match.match });
+    // Troviamo anche il torneo di riferimento per visualizzarne il nome
+    const tour = tournamentsList.find(t => t.id === match.tournamentId);
 
-        renderTournaments();
+    // 1. Puliamo il form
+    const formMatch = document.getElementById('form-match');
+    if (formMatch) formMatch.reset();
+
+    // 2. Passiamo l'ID della partita che stiamo modificando (ci servirà al salvataggio)
+    // Se non hai un input hidden per il matchId, controlla il punto 2 qui sotto.
+    let matchIdInput = document.getElementById('match-edit-id');
+    if (!matchIdInput) {
+        // Se manca l'input nascosto per l'ID della partita, lo creiamo al volo nel form
+        matchIdInput = document.createElement('input');
+        matchIdInput.type = 'hidden';
+        matchIdInput.id = 'match-edit-id';
+        formMatch.appendChild(matchIdInput);
+    }
+    matchIdInput.value = match.id;
+
+    // 3. Compiliamo TUTTI i campi del modale con i dati salvati
+    document.getElementById('match-tour-id').value = match.tournamentId;
+    document.getElementById('match-tour-name-display').value = tour ? tour.name : 'Torneo';
+    document.getElementById('match-teams').value = match.match || '';
+    document.getElementById('match-date').value = match.date || '';
+    document.getElementById('match-time').value = match.time || '';
+    document.getElementById('match-location').value = match.location || '';
+
+    // 4. Mostriamo il modale
+    const modalMatch = document.getElementById('modal-match');
+    if (modalMatch) {
+        modalMatch.classList.remove('hidden');
     }
 };
 
