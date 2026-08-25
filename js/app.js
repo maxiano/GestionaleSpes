@@ -2644,6 +2644,29 @@ async function deleteAllFirebaseData() {
     }
 }
 
+window.handleTournamentSelectionChange = function(selectEl) {
+    const tourNameInput = document.getElementById('tour-name');
+    const newTourDetails = document.getElementById('new-tournament-details');
+    const locationInput = document.getElementById('tour-location');
+
+    if (!selectEl.value) {
+        // Se sceglie "+ Crea Nuovo Torneo..."
+        tourNameInput.value = '';
+        tourNameInput.disabled = false;
+        tourNameInput.placeholder = "Nome Torneo (es. Torneo NIKI)";
+        if (newTourDetails) newTourDetails.classList.remove('hidden');
+    } else {
+        // Se seleziona un torneo esistente dalla lista
+        const selectedTour = tournamentsList.find(t => t.id === selectEl.value);
+        if (selectedTour) {
+            tourNameInput.value = selectedTour.name;
+            tourNameInput.disabled = true; // Blocchiamo la modifica del nome qui dentro per coerenza
+            if (locationInput && selectedTour.location) locationInput.value = selectedTour.location;
+            if (newTourDetails) newTourDetails.classList.add('hidden');
+        }
+    }
+};
+
 // Funzione per aprire/chiudere il menu a tendina di gestione
 window.toggleManagementMenu = function(event) {
     if (event) event.stopPropagation();
