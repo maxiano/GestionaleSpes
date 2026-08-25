@@ -1931,226 +1931,220 @@ async function loadStaffList() {
 		// Carica i dati all'avvio
 		loadTournamentsFromDB();
 		
-		// MODALE E GESTIONE TORNEI
-		const btnOpenModalTournament = document.getElementById('btn-open-modal-tournament');
-		const modalTournament = document.getElementById('modal-tournament');
-		
-		if (btnOpenModalTournament && modalTournament) {
-		    btnOpenModalTournament.addEventListener('click', () => {
-		        if (typeof activeTeamId !== 'undefined' && !activeTeamId) {
-		            alert('Seleziona prima una squadra!');
-		            return;
-		        }
-		        // Resetta la tendina e i campi del modale per un inserimento pulito
-		        const tourSelectDropdown = document.getElementById('tour-select-dropdown');
-		        if (tourSelectDropdown) {
-		            tourSelectDropdown.value = "";
-		            handleTournamentSelectionChange(tourSelectDropdown);
-		        }
-		        
-		        populateTournamentSelectModal();
-		        modalTournament.classList.remove('hidden');
-		    });
-		}
-		
-		// Funzione di supporto per popolare la select dei tornei nel form di inserimento partita
-		function populateTournamentSelectModal() {
-		    const tourSelectModal = document.getElementById('tour-select-dropdown'); // ID del menu a tendina nel modale
-		    if (!tourSelectModal) return;
-		
-		    const currentId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
-		    const teamTournaments = tournamentsList.filter(t => t.teamId === currentId);
-		
-		    tourSelectModal.innerHTML = `<option value="">-- Crea Nuovo Torneo o Seleziona --</option>`;
-		    teamTournaments.forEach(t => {
-		        tourSelectModal.innerHTML += `<option value="${t.id}">${t.name} (${t.location})</option>`;
-		    });
-		}
-		
-		// 3. Salvataggio Torneo o Partita su Firebase Firestore
-		document.getElementById('form-tournament').addEventListener('submit', async function(e) {
-		    e.preventDefault();
-		    
-		    const currentTeamId = activeTeamId;
-		    const existingTourId = document.getElementById('tour-select-dropdown')?.value;
-		
-		    try {
-		        let targetTournamentId = existingTourId;
-		
-		        // Se non è stato selezionato un torneo esistente, creiamo prima il Torneo
-		        if (!targetTournamentId) {
-		            const tourName = document.getElementById('tour-name').value.trim();
-		            const tourLocation = document.getElementById('tour-location').value.trim();
-		            const tourStartDate = document.getElementById('tour-start-date').value;
-		            const tourEndDate = document.getElementById('tour-end-date').value;
-		
-		            if (!tourName) {
-		                alert("Inserisci il nome del torneo.");
-		                return;
-		            }
-		
-		            const newTournamentDoc = {
-		                teamId: currentTeamId,
-		                name: tourName,
-		                location: tourLocation,
-		                startDate: tourStartDate,
-		                endDate: tourEndDate
-		            };
-		
-		            const tourDocRef = await addDoc(collection(db, 'tournaments'), newTournamentDoc);
-		            targetTournamentId = tourDocRef.id;
-		            newTournamentDoc.id = targetTournamentId;
-		            tournamentsList.push(newTournamentDoc);
-		        }
-		
-		        // Ora salviamo la partita collegata al torneo (tramite tournamentId)
-		        const matchName = document.getElementById('tour-match').value.trim();
-		        if (matchName) {
-		            const newMatch = {
-		                teamId: currentTeamId,
-		                tournamentId: targetTournamentId,
-		                match: matchName,
-		                date: document.getElementById('tour-date').value,
-		                time: document.getElementById('tour-time').value,
-		                location: document.getElementById('tour-location')?.value || '',
-		                played: false,
-		                result: ""
-		            };
-		
-		            const matchDocRef = await addDoc(collection(db, 'tournament_matches'), newMatch);
-		            newMatch.id = matchDocRef.id;
-		            tournamentMatches.push(newMatch);
-		        }
-		        
-		        renderTournaments();
-		        closeTournamentModal();
-		        this.reset();
-		    } catch (error) {
-		        console.error("Errore durante il salvataggio su Firebase:", error);
-		        alert("Errore nel salvataggio del torneo o della partita.");
-		    }
-		});
-		
-		// 4. Renderizzazione dinamica delle card raggruppate per Torneo
-		window.renderTournaments = function() {
-		    const container = document.getElementById('tournament-grid');
-		    const teamSpan = document.getElementById('display-active-team-tour');
-		    const filterSelect = document.getElementById('filter-tournament-select');
-		    const statusSelect = document.getElementById('filter-status-select'); 
-		    
-		    const currentId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
-		    if (teamSpan) teamSpan.innerText = currentId;
-		    if (!container) return;
-		
-		    // Filtra tornei e partite della squadra attiva
-		    const teamTournaments = tournamentsList.filter(t => t.teamId === currentId);
-		    const teamMatches = tournamentMatches.filter(m => m.teamId === currentId);
-		
-		    // Popola il filtro generale dei tornei
-		    if (filterSelect) {
-		        const selectedValue = filterSelect.value;
-		        filterSelect.innerHTML = `<option value="">Tutti i tornei (${teamTournaments.length})</option>`;
-		        teamTournaments.forEach(tour => {
-		            const isSelected = tour.id === selectedValue ? 'selected' : '';
-		            filterSelect.innerHTML += `<option value="${tour.id}" ${isSelected}>${tour.name} - 📍 ${tour.location}</option>`;
-		        });
-		    }
-		
-		    const selectedTourFilter = filterSelect ? filterSelect.value : '';
-		    const statusFilter = statusSelect ? statusSelect.value : '';
-		
-		    container.innerHTML = '';
-			if (teamTournaments.length === 0) {
-			        container.innerHTML = `
-			            <div class="bg-slate-50 p-8 border border-slate-200 rounded-2xl text-center col-span-full flex flex-col items-center justify-center gap-3">
-			                <span class="text-3xl">🏆</span>
-			                <p class="text-xs font-bold text-slate-600">Nessun torneo registrato per questa squadra.</p>
-			                <button onclick="document.getElementById('btn-open-modal-tournament').click()" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-4 py-2 rounded-xl font-bold transition shadow-sm">
-			                    + Crea il primo Torneo / Partita
-			                </button>
-			            </div>
-			        `;
-			        return;
-			    }
-		
-		    // Mostra i tornei e le relative partite
-		    const tournamentsToShow = selectedTourFilter 
-		        ? teamTournaments.filter(t => t.id === selectedTourFilter)
-		        : teamTournaments;
-		
-		    tournamentsToShow.forEach(tour => {
-		        // Trova le partite di questo specifico torneo
-		        let matchesForThisTour = teamMatches.filter(m => m.tournamentId === tour.id);
-		
-		        // Applica filtro stato se attivo
-		        if (statusFilter === 'da_giocare') {
-		            matchesForThisTour = matchesForThisTour.filter(m => !m.played);
-		        } else if (statusFilter === 'giocata') {
-		            matchesForThisTour = matchesForThisTour.filter(m => m.played);
-		        }
-		
-		        // Se c'è un filtro di stato attivo e non ci sono partite corrispondenti, saltiamo il torneo (opzionale)
-		        if (statusFilter && matchesForThisTour.length === 0 && selectedTourFilter) {
-		            return;
-		        }
-		
-		        // HTML della sezione del Torneo con le sue informazioni (Nome, Località, Date)
-		        let matchesHtml = '';
-		        if (matchesForThisTour.length === 0) {
-		            matchesHtml = `<p class="text-xs text-slate-400 italic py-2">Nessuna partita inserita per questo torneo.</p>`;
-		        } else {
-		            matchesForThisTour.forEach(m => {
-		                matchesHtml += `
-		                    <div class="bg-white p-3 border border-slate-200 rounded-xl flex flex-col gap-1.5 shadow-sm">
-		                        <div class="flex justify-between items-center">
-		                            <span class="font-bold text-slate-800 text-xs">${m.match}</span>
-		                            <span class="text-[9px] font-bold ${m.played ? 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded' : 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded'}">
-		                                ${m.played ? '● GIOCATA' : '● DA GIOCARE'}
-		                            </span>
-		                        </div>
-		                        <p class="text-[11px] text-slate-500">📅 ${m.date || 'Data da definirsi'} - ⏰ ${m.time || '--:--'} | 📍 ${m.location || tour.location}</p>
-		                        
-		                        <div class="flex flex-col gap-1 mt-1">
-		                            ${!m.played ? 
-		                                `<button onclick="setResult('${m.id}')" class="w-full bg-slate-900 hover:bg-emerald-600 text-white font-bold text-[10px] py-1.5 rounded-lg transition">Inserisci Risultato</button>` 
-		                                : `<p class="text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-1 rounded-lg">Risultato: ${m.result}</p>`
-		                            }
-		                            <div class="flex gap-2 mt-1">
-		                                <button onclick="editMatch('${m.id}')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] py-1 rounded-lg transition">✏️ Modifica</button>
-		                                <button onclick="deleteMatch('${m.id}')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[10px] py-1 rounded-lg transition">🗑️ Elimina</button>
-		                            </div>
-		                        </div>
-		                    </div>
-		                `;
-		            });
-		        }
-		
-		        // Render card contenitore del torneo
-		        container.innerHTML += `
-		            <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-3 shadow-sm col-span-full">
-		                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-2">
-		                    <div>
-		                        <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">🏆 TORNEO UFFICIALE</span>
-		                        <h3 class="font-extrabold text-slate-900 text-base">${tour.name}</h3>
-		                    </div>
-		                    <div class="text-right text-xs text-slate-500 mt-1 sm:mt-0">
-		                        <p>📍 <strong>${tour.location || 'N/D'}</strong></p>
-		                        <p>📅 Dal ${tour.startDate || 'N/D'} al ${tour.endDate || 'N/D'}</p>
-		                    </div>
-		                </div>
-		                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
-		                    ${matchesHtml}
-		                </div>
-		            </div>
-		        `;
-		    });
-		};
-		
-		// Funzioni di utilità per chiudere il modale
-		window.closeTournamentModal = function() {
-		    const modal = document.getElementById('modal-tournament');
-		    if (modal) modal.classList.add('hidden');
-		};
+	// ==========================================
+// 1. GESTIONE MODALE CREAZIONE NUOVO TORNEO
+// ==========================================
+const btnOpenModalTournament = document.getElementById('btn-open-modal-tournament');
+const modalTournament = document.getElementById('modal-tournament');
+
+if (btnOpenModalTournament && modalTournament) {
+    btnOpenModalTournament.addEventListener('click', () => {
+        if (typeof activeTeamId !== 'undefined' && !activeTeamId) {
+            alert('Seleziona prima una squadra!');
+            return;
+        }
+        document.getElementById('form-tournament').reset();
+        modalTournament.classList.remove('hidden');
+    });
+}
+
+window.closeTournamentModal = function() {
+    if (modalTournament) modalTournament.classList.add('hidden');
+};
+
+// Salvataggio Nuovo Torneo su Firestore
+document.getElementById('form-tournament').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const currentTeamId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
+
+    try {
+        const newTournamentDoc = {
+            teamId: currentTeamId,
+            name: document.getElementById('tour-name').value.trim(),
+            startDate: document.getElementById('tour-start-date').value,
+            endDate: document.getElementById('tour-end-date').value,
+            location: document.getElementById('tour-location').value.trim()
+        };
+
+        const tourDocRef = await addDoc(collection(db, 'tournaments'), newTournamentDoc);
+        newTournamentDoc.id = tourDocRef.id;
+        tournamentsList.push(newTournamentDoc);
+
+        renderTournaments();
+        closeTournamentModal();
+        this.reset();
+    } catch (error) {
+        console.error("Errore nel salvataggio del torneo:", error);
+        alert("Errore nel salvataggio del torneo.");
+    }
+});
+
+
+// ==========================================
+// 2. GESTIONE MODALE AGGIUNGI PARTITA
+// ==========================================
+window.openAddMatchModal = function(tournamentId) {
+    const tour = tournamentsList.find(t => t.id === tournamentId);
+    if (!tour) return;
+
+    document.getElementById('match-tour-id').value = tour.id;
+    document.getElementById('match-tour-name-display').value = tour.name;
+    document.getElementById('form-match').reset();
+    document.getElementById('match-location').value = tour.location; // Pre-imposta con la località del torneo
+
+    const modalMatch = document.getElementById('modal-match');
+    if (modalMatch) modalMatch.classList.remove('hidden');
+};
+
+window.closeMatchModal = function() {
+    const modalMatch = document.getElementById('modal-match');
+    if (modalMatch) modalMatch.classList.add('hidden');
+};
+
+// Salvataggio Partita associata al Torneo su Firestore
+document.getElementById('form-match').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const currentTeamId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
+    const tournamentId = document.getElementById('match-tour-id').value;
+
+    try {
+        const newMatch = {
+            teamId: currentTeamId,
+            tournamentId: tournamentId,
+            match: document.getElementById('match-teams').value.trim(),
+            date: document.getElementById('match-date').value,
+            time: document.getElementById('match-time').value,
+            location: document.getElementById('match-location').value.trim(),
+            played: false,
+            result: ""
+        };
+
+        const matchDocRef = await addDoc(collection(db, 'tournament_matches'), newMatch);
+        newMatch.id = matchDocRef.id;
+        tournamentMatches.push(newMatch);
+
+        renderTournaments();
+        closeMatchModal();
+        this.reset();
+    } catch (error) {
+        console.error("Errore nel salvataggio della partita:", error);
+        alert("Errore nel salvataggio della partita.");
+    }
+});
+
+
+// ==========================================
+// 3. RENDERIZZAZIONE DINAMICA DEI TORNEI
+// ==========================================
+window.renderTournaments = function() {
+    const container = document.getElementById('tournament-grid');
+    const teamSpan = document.getElementById('display-active-team-tour');
+    const filterSelect = document.getElementById('filter-tournament-select');
+    const statusSelect = document.getElementById('filter-status-select'); 
+    
+    const currentId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
+    if (teamSpan) teamSpan.innerText = currentId;
+    if (!container) return;
+
+    // Filtra tornei e partite della squadra attiva
+    const teamTournaments = tournamentsList.filter(t => t.teamId === currentId);
+    const teamMatches = tournamentMatches.filter(m => m.teamId === currentId);
+
+    // Popola il filtro generale dei tornei
+    if (filterSelect) {
+        const selectedValue = filterSelect.value;
+        filterSelect.innerHTML = `<option value="">Tutti i tornei (${teamTournaments.length})</option>`;
+        teamTournaments.forEach(tour => {
+            const isSelected = tour.id === selectedValue ? 'selected' : '';
+            filterSelect.innerHTML += `<option value="${tour.id}" ${isSelected}>${tour.name} - 📍 ${tour.location}</option>`;
+        });
+    }
+
+    const selectedTourFilter = filterSelect ? filterSelect.value : '';
+    const statusFilter = statusSelect ? statusSelect.value : '';
+
+    container.innerHTML = '';
+    
+    if (teamTournaments.length === 0) {
+        container.innerHTML = `
+            <div class="bg-slate-50 p-8 border border-slate-200 rounded-2xl text-center col-span-full flex flex-col items-center justify-center gap-3">
+                <span class="text-3xl">🏆</span>
+                <p class="text-xs font-bold text-slate-600">Nessun torneo registrato per questa squadra.</p>
+                <button onclick="document.getElementById('btn-open-modal-tournament').click()" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-4 py-2 rounded-xl font-bold transition shadow-sm">
+                    + Crea il primo Torneo
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    const tournamentsToShow = selectedTourFilter 
+        ? teamTournaments.filter(t => t.id === selectedTourFilter)
+        : teamTournaments;
+
+    tournamentsToShow.forEach(tour => {
+        let matchesForThisTour = teamMatches.filter(m => m.tournamentId === tour.id);
+
+        if (statusFilter === 'da_giocare') {
+            matchesForThisTour = matchesForThisTour.filter(m => !m.played);
+        } else if (statusFilter === 'giocata') {
+            matchesForThisTour = matchesForThisTour.filter(m => m.played);
+        }
+
+        if (statusFilter && matchesForThisTour.length === 0 && selectedTourFilter) {
+            return;
+        }
+
+        let matchesHtml = '';
+        if (matchesForThisTour.length === 0) {
+            matchesHtml = `<p class="text-xs text-slate-400 italic py-2 col-span-full">Nessuna partita inserita per questo torneo.</p>`;
+        } else {
+            matchesForThisTour.forEach(m => {
+                matchesHtml += `
+                    <div class="bg-white p-3 border border-slate-200 rounded-xl flex flex-col gap-1.5 shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-800 text-xs">${m.match}</span>
+                            <span class="text-[9px] font-bold ${m.played ? 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded' : 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded'}">
+                                ${m.played ? '● GIOCATA' : '● DA GIOCARE'}
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">📅 ${m.date || 'Data da definirsi'} - ⏰ ${m.time || '--:--'} | 📍 ${m.location || tour.location}</p>
+                        
+                        <div class="flex flex-col gap-1 mt-1">
+                            ${!m.played ? 
+                                `<button onclick="setResult('${m.id}')" class="w-full bg-slate-900 hover:bg-emerald-600 text-white font-bold text-[10px] py-1.5 rounded-lg transition">Inserisci Risultato</button>` 
+                                : `<p class="text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-1 rounded-lg">Risultato: ${m.result}</p>`
+                            }
+                            <div class="flex gap-2 mt-1">
+                                <button onclick="editMatch('${m.id}')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] py-1 rounded-lg transition">✏️ Modifica</button>
+                                <button onclick="deleteMatch('${m.id}')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[10px] py-1 rounded-lg transition">🗑️ Elimina</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Render card contenitore del torneo con il pulsante dedicato per aggiungere partite
+        container.innerHTML += `
+            <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-3 shadow-sm col-span-full">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-3">
+                    <div>
+                        <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">🏆 TORNEO UFFICIALE</span>
+                        <h3 class="font-extrabold text-slate-900 text-base">${tour.name}</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">📍 ${tour.location || 'N/D'} | 📅 Dal ${tour.startDate || 'N/D'} al ${tour.endDate || 'N/D'}</p>
+                    </div>
+                    <button onclick="openAddMatchModal('${tour.id}')" class="mt-2 sm:mt-0 bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3 py-2 rounded-xl font-bold transition flex items-center gap-1 shadow-sm">
+                        <span>➕</span> Aggiungi Partita
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
+                    ${matchesHtml}
+                </div>
+            </div>
+        `;
+    });
+};
 
 
         // GESTIONE CAMBIO TAB CLICK
