@@ -2691,6 +2691,59 @@ window.addEventListener('click', () => {
     }
 });
 
+// ==========================================
+// 4. GESTIONE RISULTATI, MODIFICHE E CANCELLAZIONI
+// ==========================================
+
+// Inserisci / Aggiorna Risultato di una partita giocata
+window.setResult = function(matchId) {
+    const match = tournamentMatches.find(m => m.id === matchId);
+    if (!match) return;
+
+    const res = prompt("Inserisci il risultato (es. 3 - 1):", match.result || "");
+    if (res !== null) {
+        match.result = res.trim();
+        match.played = true;
+
+        // Se usi Firebase, qui puoi fare l'update su Firestore:
+        // updateDoc(doc(db, "tournament_matches", matchId), { result: match.result, played: true });
+
+        renderTournaments();
+    }
+};
+
+// Modifica una partita esistente
+window.editMatch = function(matchId) {
+    const match = tournamentMatches.find(m => m.id === matchId);
+    if (!match) return;
+
+    const newTeams = prompt("Modifica Incontro (es. Spes - Artiglio):", match.match);
+    if (newTeams !== null) {
+        match.match = newTeams.trim();
+        
+        // Update su Firestore (opzionale se sincronizzato)
+        // updateDoc(doc(db, "tournament_matches", matchId), { match: match.match });
+
+        renderTournaments();
+    }
+};
+
+// Elimina una partita
+window.deleteMatch = async function(matchId) {
+    if (!confirm("Sei sicuro di voler eliminare questa partita?")) return;
+
+    try {
+        // Se usi Firebase:
+        // await deleteDoc(doc(db, "tournament_matches", matchId));
+
+        tournamentMatches = tournamentMatches.filter(m => m.id !== matchId);
+        renderTournaments();
+    } catch (error) {
+        console.error("Errore durante l'eliminazione della partita:", error);
+        alert("Impossibile eliminare la partita.");
+    }
+};
+
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
