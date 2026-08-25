@@ -791,12 +791,12 @@
 
         <form id="form-match" class="space-y-3">
             <input type="hidden" id="match-tour-id">
-
+        
             <div>
                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Torneo di Riferimento</label>
                 <input type="text" id="match-tour-name-display" disabled class="w-full p-3 bg-slate-100 text-slate-600 rounded-xl border border-slate-200 text-sm font-bold">
             </div>
-
+        
             <div>
                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Incontro (Squadre)</label>
                 <input type="text" id="match-teams" placeholder="es. Spes Montesacro vs Artiglio" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
@@ -805,24 +805,24 @@
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Data Partita</label>
-                    <input type="date" id="match-date" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                    <input type="date" id="match-date-tour" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Ora Partita</label>
-                    <input type="time" id="match-time" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                    <input type="time" id="match-time-tour" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                 </div>
             </div>
             
             <div>
                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Campo di Gioco specifico (opzionale)</label>
-                <input type="text" id="match-location" placeholder="Se diverso dal campo principale del torneo" class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                <input type="text" id="match-location-tour" placeholder="Se diverso dal campo principale del torneo" class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
             </div>
-
+        
             <div class="flex gap-2 pt-2">
                 <button type="button" onclick="closeMatchModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition">Annulla</button>
                 <button type="submit" class="flex-1 py-3 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs transition">Salva Partita</button>
             </div>
-        </form>
+        </form>        
     </div>
 </div>
         <!-- MODALE AGGIUNTA / MODIFICA GIOCATORE -->
