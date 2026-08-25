@@ -2136,8 +2136,13 @@ window.editMatch = function(matchId) {
     document.getElementById('match-tour-id').value = match.tournamentId;
     document.getElementById('match-tour-name-display').value = tour ? tour.name : 'Torneo';
     document.getElementById('match-teams').value = match.match || '';
-    document.getElementById('match-date').value = match.date || '';
-    document.getElementById('match-time').value = match.time || '';
+    
+    // Assegnazione sicura di data e ora
+    const dateInput = document.getElementById('match-date');
+    const timeInput = document.getElementById('match-time');
+    if (dateInput) dateInput.value = match.date || '';
+    if (timeInput) timeInput.value = match.time || '';
+    
     document.getElementById('match-location').value = match.location || '';
 
     const modalMatch = document.getElementById('modal-match');
@@ -2159,14 +2164,20 @@ document.getElementById('form-match').addEventListener('submit', async function(
     const tournamentId = document.getElementById('match-tour-id').value;
     const matchEditId = document.getElementById('match-edit-id') ? document.getElementById('match-edit-id').value : '';
 
+    // Leggiamo i valori prima di qualsiasi operazione di reset
+    const matchName = document.getElementById('match-teams').value.trim();
+    const dateValue = document.getElementById('match-date').value;
+    const timeValue = document.getElementById('match-time').value;
+    const locationValue = document.getElementById('match-location').value.trim();
+
     try {
         const matchData = {
             teamId: currentTeamId,
             tournamentId: tournamentId,
-            match: document.getElementById('match-teams').value.trim(),
-            date: document.getElementById('match-date').value,
-            time: document.getElementById('match-time').value,
-            location: document.getElementById('match-location').value.trim(),
+            match: matchName,
+            date: dateValue,
+            time: timeValue,
+            location: locationValue,
             played: false,
             result: ""
         };
@@ -2192,7 +2203,6 @@ document.getElementById('form-match').addEventListener('submit', async function(
         alert("Errore nel salvataggio della partita.");
     }
 });
-
 
 // ==========================================
 // 4. RENDERIZZAZIONE DINAMICA DEI TORNEI
