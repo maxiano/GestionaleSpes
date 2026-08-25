@@ -1891,76 +1891,174 @@ async function loadStaffList() {
         });
 
 
-		// 1. Array in memoria per i tornei e le partite
-		let tournamentsList = [];
-		let tournamentMatches = [];
-		
-		// Funzione principale di caricamento dati da Firebase
-		async function loadTournamentsFromDB() {
-		    try {
-		        let qTournaments, qMatches;
-		        
-		        if (typeof currentUserRole !== 'undefined' && currentUserRole === 'coach' && typeof currentCoachTeamId !== 'undefined') {
-		            // 🔒 IL COACH: Scarica solo i tornei e le partite della sua squadra
-		            qTournaments = query(collection(db, 'tournaments'), where("teamId", "==", currentCoachTeamId));
-		            qMatches = query(collection(db, 'tournament_matches'), where("teamId", "==", currentCoachTeamId));
-		            window.activeTeamId = currentCoachTeamId;
-		            
-		            const teamSelectUI = document.getElementById('team-selector');
-		            if (teamSelectUI) teamSelectUI.disabled = true;
-		        } else {
-		            // 👑 L'ADMIN: Scarica tutto
-		            qTournaments = collection(db, 'tournaments');
-		            qMatches = collection(db, 'tournament_matches');
-		        }
-		
-		        const [tourSnap, matchSnap] = await Promise.all([getDocs(qTournaments), getDocs(qMatches)]);
-		        
-		        tournamentsList = [];
-		        tourSnap.forEach(docSnap => tournamentsList.push({ id: docSnap.id, ...docSnap.data() }));
-		
-		        tournamentMatches = [];
-		        matchSnap.forEach(docSnap => tournamentMatches.push({ id: docSnap.id, ...docSnap.data() }));
-		        
-		        renderTournaments();
-		    } catch (error) {
-		        console.error("Errore nel caricamento dei tornei:", error);
-		    }
-		}
-		
-		// Carica i dati all'avvio
-		loadTournamentsFromDB();
-		
-	// ==========================================
-// 1. GESTIONE MODALE CREAZIONE NUOVO TORNEO
 // ==========================================
-// Assicurati che l'ascoltatore sul bottone in alto sia registrato correttamente
+// 1. ARRAY IN MEMORIA E CARICAMENTO DA FIREBASE
+// ==========================================
+let tournamentsList = [];
+let tournamentMatches = [];
+
+// Funzione principale di caricamento dati da Firebase
+async function loadTournamentsFromDB() {
+    try {
+        let qTournaments, qMatches;
+        
+        if (typeof currentUserRole !== 'undefined' && currentUserRole === 'coach' && typeof currentCoachTeamId !== 'undefined') {
+            // 🔒 IL COACH: Scarica solo i tornei e le partite della sua squadra
+            qTournaments = query(collection(db, 'tournaments'), where("teamId", "==", currentCoachTeamId));
+            qMatches = query(collection(db, 'tournament_matches'), where("teamId", "==", currentCoachTeamId));
+            window.activeTeamId = currentCoachTeamId;
+            
+            const teamSelectUI = document.getElementById('team-selector');
+            if (teamSelectUI) teamSelectUI.disabled = true;
+        } else {
+            // 👑 L'ADMIN: Scarica tutto
+            qTournaments = collection(db, 'tournaments');
+            qMatches = collection(db, 'tournament_matches');
+        }
+
+        const [tourSnap, matchSnap] = await Promise.all([getDocs(qTournaments), getDocs(qMatches)]);
+        
+        tournamentsList = [];
+        tourSnap.forEach(docSnap => tournamentsList.push({ id: docSnap.id, ...docSnap.data() }));
+
+        tournamentMatches = [];
+        matchSnap.forEach(docSnap => tournamentMatches.push({ id: docSnap.id, ...docSnap.data() }));
+        
+        renderTournaments();
+    } catch (error) {
+        console.error("Errore nel caricamento dei tornei:", error);
+    }
+}
+
+// Carica i dati all'avvio
+loadTournamentsFromDB();
+
+
+// ==========================================
+// 2. GESTIONE MODALE CREAZIONE / MODIFICA / ELIMINAZIONE TORNEO
+// ==========================================
 const btnOpenModalTournament = document.getElementById('btn-open-modal-tournament');
 const modalTournament = document.getElementById('modal-tournament');
 
 if (btnOpenModalTournament && modalTournament) {
-    // Rimuoviamo eventuali doppi listener e riassegniamo l'apertura pulita
     btnOpenModalTournament.onclick = function() {
         if (typeof activeTeamId !== 'undefined' && !activeTeamId) {
             alert('Seleziona prima una squadra!');
             return;
         }
-        document.getElementById('form-tournament').reset();
+        
+        const form = document.getElementById('form-tournament');
+        if (form) form.reset();
+
+        // Rimuoviamo l'ID di modifica se presente
+        const editIdInput = document.getElementById('tour-edit-id');
+        if (editIdInput) editIdInput.value = '';
+
+        // Nascondi il tasto elimina per i nuovi tornei
+        const btnDelete = document.getElementById('btn-delete-tournament');
+        if (btnDelete) btnDelete.classList.add('hidden');
+
+        // Ripristina il testo del pulsante di submit
+        const submitBtn = document.getElementById('btn-submit-tournament');
+        if (submitBtn) submitBtn.textContent = "Crea Torneo";
+
         modalTournament.classList.remove('hidden');
     };
 }
 
-window.closeTournamentModal = function() {
-    if (modalTournament) modalTournament.classList.add('hidden');
+// Funzione per aprire il modale in modalità "Modifica Torneo"
+window.editTournament = function(tournamentId) {
+    const tour = tournamentsList.find(t => t.id === tournamentId);
+    if (!tour) return;
+
+    const form = document.getElementById('form-tournament');
+    if (form) form.reset();
+
+    // Gestiamo o creiamo l'input nascosto per l'ID del torneo in modifica
+    let editIdInput = document.getElementById('tour-edit-id');
+    if (!editIdInput) {
+        editIdInput = document.createElement('input');
+        editIdInput.type = 'hidden';
+        editIdInput.id = 'tour-edit-id';
+        form.appendChild(editIdInput);
+    }
+    editIdInput.value = tour.id;
+
+    // Compiliamo i campi del modale con i dati attuali
+    document.getElementById('tour-name').value = tour.name || '';
+    document.getElementById('tour-start-date').value = tour.startDate || '';
+    document.getElementById('tour-end-date').value = tour.endDate || '';
+    document.getElementById('tour-location').value = tour.location || '';
+
+    // ⭐ MOSTRA IL TASTO ELIMINA NEL MODALE ⭐
+    const btnDelete = document.getElementById('btn-delete-tournament');
+    if (btnDelete) btnDelete.classList.remove('hidden');
+
+    // Cambia il testo del pulsante di submit
+    const submitBtn = document.getElementById('btn-submit-tournament');
+    if (submitBtn) submitBtn.textContent = "Salva Modifiche";
+
+    if (modalTournament) modalTournament.classList.remove('hidden');
 };
 
-// Salvataggio Nuovo Torneo su Firestore
+window.closeTournamentModal = function() {
+    if (modalTournament) modalTournament.classList.add('hidden');
+    
+    // Pulisci l'ID di modifica e nascondi il tasto elimina alla chiusura
+    const editIdInput = document.getElementById('tour-edit-id');
+    if (editIdInput) editIdInput.value = '';
+    
+    const btnDelete = document.getElementById('btn-delete-tournament');
+    if (btnDelete) btnDelete.classList.add('hidden');
+
+    const submitBtn = document.getElementById('btn-submit-tournament');
+    if (submitBtn) submitBtn.textContent = "Crea Torneo";
+};
+
+// Funzione per eliminare il torneo e tutte le partite collegate da Firestore
+window.deleteCurrentTournament = async function() {
+    const editIdInput = document.getElementById('tour-edit-id');
+    if (!editIdInput || !editIdInput.value) return;
+
+    const tournamentId = editIdInput.value;
+    const tour = tournamentsList.find(t => t.id === tournamentId);
+    const tourName = tour ? tour.name : 'questo torneo';
+
+    if (!confirm(`Sei sicuro di voler eliminare "${tourName}"? Verranno eliminate anche tutte le partite collegate!`)) {
+        return;
+    }
+
+    try {
+        // 1. Elimina il torneo da Firestore
+        await deleteDoc(doc(db, 'tournaments', tournamentId));
+
+        // 2. Elimina tutte le partite associate a questo torneo da Firestore
+        const matchesToDelete = tournamentMatches.filter(m => m.tournamentId === tournamentId);
+        for (const match of matchesToDelete) {
+            await deleteDoc(doc(db, 'tournament_matches', match.id));
+        }
+
+        // 3. Aggiorna gli array in memoria
+        tournamentsList = tournamentsList.filter(t => t.id !== tournamentId);
+        tournamentMatches = tournamentMatches.filter(m => m.tournamentId !== tournamentId);
+
+        // 4. Chiudi il modale e aggiorna la UI
+        closeTournamentModal();
+        renderTournaments();
+    } catch (error) {
+        console.error("Errore durante l'eliminazione del torneo:", error);
+        alert("Errore durante l'eliminazione del torneo.");
+    }
+};
+
+// Salvataggio o Aggiornamento Torneo su Firestore
 document.getElementById('form-tournament').addEventListener('submit', async function(e) {
     e.preventDefault();
     const currentTeamId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
+    const tourEditId = document.getElementById('tour-edit-id') ? document.getElementById('tour-edit-id').value : '';
 
     try {
-        const newTournamentDoc = {
+        const tournamentData = {
             teamId: currentTeamId,
             name: document.getElementById('tour-name').value.trim(),
             startDate: document.getElementById('tour-start-date').value,
@@ -1968,9 +2066,20 @@ document.getElementById('form-tournament').addEventListener('submit', async func
             location: document.getElementById('tour-location').value.trim()
         };
 
-        const tourDocRef = await addDoc(collection(db, 'tournaments'), newTournamentDoc);
-        newTournamentDoc.id = tourDocRef.id;
-        tournamentsList.push(newTournamentDoc);
+        if (tourEditId) {
+            // --- AGGIORNAMENTO TORNEO ESISTENTE ---
+            await updateDoc(doc(db, 'tournaments', tourEditId), tournamentData);
+
+            const index = tournamentsList.findIndex(t => t.id === tourEditId);
+            if (index !== -1) {
+                tournamentsList[index] = { ...tournamentsList[index], ...tournamentData };
+            }
+        } else {
+            // --- CREAZIONE NUOVO TORNEO ---
+            const tourDocRef = await addDoc(collection(db, 'tournaments'), tournamentData);
+            tournamentData.id = tourDocRef.id;
+            tournamentsList.push(tournamentData);
+        }
 
         renderTournaments();
         closeTournamentModal();
@@ -1983,30 +2092,26 @@ document.getElementById('form-tournament').addEventListener('submit', async func
 
 
 // ==========================================
-// 2. GESTIONE MODALE AGGIUNGI / MODIFICA PARTITA
+// 3. GESTIONE MODALE AGGIUNGI / MODIFICA PARTITA
 // ==========================================
 window.openAddMatchModal = function(tournamentId) {
     const tour = tournamentsList.find(t => t.id === tournamentId);
     if (!tour) return;
 
-    // 1. Prima cosa: puliamo il form e rimuoviamo eventuali ID di modifica precedenti
     const formMatch = document.getElementById('form-match');
     if (formMatch) formMatch.reset();
     
     let matchEditIdInput = document.getElementById('match-edit-id');
     if (matchEditIdInput) matchEditIdInput.value = '';
 
-    // 2. Poi impostiamo i campi legati al torneo
     document.getElementById('match-tour-id').value = tour.id;
     document.getElementById('match-tour-name-display').value = tour.name;
-    document.getElementById('match-location').value = tour.location || ''; // Pre-imposta con la località del torneo
+    document.getElementById('match-location').value = tour.location || '';
 
-    // 3. Infine mostriamo il modale
     const modalMatch = document.getElementById('modal-match');
     if (modalMatch) modalMatch.classList.remove('hidden');
 };
 
-// Funzione per aprire la modifica di una partita esistente popolando TUTTI i campi
 window.editMatch = function(matchId) {
     const match = tournamentMatches.find(m => m.id === matchId);
     if (!match) {
@@ -2016,11 +2121,9 @@ window.editMatch = function(matchId) {
 
     const tour = tournamentsList.find(t => t.id === match.tournamentId);
 
-    // 1. Puliamo il form
     const formMatch = document.getElementById('form-match');
     if (formMatch) formMatch.reset();
 
-    // 2. Gestiamo l'input nascosto per l'ID della partita da modificare
     let matchEditIdInput = document.getElementById('match-edit-id');
     if (!matchEditIdInput) {
         matchEditIdInput = document.createElement('input');
@@ -2030,7 +2133,6 @@ window.editMatch = function(matchId) {
     }
     matchEditIdInput.value = match.id;
 
-    // 3. Compiliamo TUTTI i campi del modale con i dati correnti della partita
     document.getElementById('match-tour-id').value = match.tournamentId;
     document.getElementById('match-tour-name-display').value = tour ? tour.name : 'Torneo';
     document.getElementById('match-teams').value = match.match || '';
@@ -2038,7 +2140,6 @@ window.editMatch = function(matchId) {
     document.getElementById('match-time').value = match.time || '';
     document.getElementById('match-location').value = match.location || '';
 
-    // 4. Mostriamo il modale
     const modalMatch = document.getElementById('modal-match');
     if (modalMatch) modalMatch.classList.remove('hidden');
 };
@@ -2047,7 +2148,6 @@ window.closeMatchModal = function() {
     const modalMatch = document.getElementById('modal-match');
     if (modalMatch) modalMatch.classList.add('hidden');
     
-    // Pulisci l'ID di modifica alla chiusura
     const matchEditIdInput = document.getElementById('match-edit-id');
     if (matchEditIdInput) matchEditIdInput.value = '';
 };
@@ -2072,16 +2172,13 @@ document.getElementById('form-match').addEventListener('submit', async function(
         };
 
         if (matchEditId) {
-            // --- AGGIORNAMENTO PARTITA ESISTENTE SU FIRESTORE ---
             await updateDoc(doc(db, 'tournament_matches', matchEditId), matchData);
 
-            // Aggiorna anche nell'array locale
             const matchIndex = tournamentMatches.findIndex(m => m.id === matchEditId);
             if (matchIndex !== -1) {
                 tournamentMatches[matchIndex] = { ...tournamentMatches[matchIndex], ...matchData };
             }
         } else {
-            // --- CREAZIONE NUOVA PARTITA SU FIRESTORE ---
             const matchDocRef = await addDoc(collection(db, 'tournament_matches'), matchData);
             matchData.id = matchDocRef.id;
             tournamentMatches.push(matchData);
@@ -2098,7 +2195,7 @@ document.getElementById('form-match').addEventListener('submit', async function(
 
 
 // ==========================================
-// RENDERIZZAZIONE DINAMICA DEI TORNEI (Aggiornata)
+// 4. RENDERIZZAZIONE DINAMICA DEI TORNEI
 // ==========================================
 window.renderTournaments = function() {
     const container = document.getElementById('tournament-grid');
@@ -2110,14 +2207,11 @@ window.renderTournaments = function() {
     if (teamSpan) teamSpan.innerText = currentId;
     if (!container) return;
 
-    // Filtra tornei e partite della squadra attiva
     const teamTournaments = tournamentsList.filter(t => t.teamId === currentId);
     const teamMatches = tournamentMatches.filter(m => m.teamId === currentId);
 
-    // Salva il valore attuale del filtro prima di ricaricarlo per non perderlo
     const currentFilterValue = filterSelect ? filterSelect.value : '';
 
-    // Popola il filtro generale dei tornei
     if (filterSelect) {
         filterSelect.innerHTML = `<option value="">Tutti i tornei (${teamTournaments.length})</option>`;
         teamTournaments.forEach(tour => {
@@ -2144,7 +2238,6 @@ window.renderTournaments = function() {
         return;
     }
 
-    // Seleziona quali tornei mostrare (tutti o solo quello filtrato)
     const tournamentsToShow = selectedTourFilter 
         ? teamTournaments.filter(t => t.id === selectedTourFilter)
         : teamTournaments;
@@ -2188,13 +2281,16 @@ window.renderTournaments = function() {
             });
         }
 
-        // Render card contenitore del torneo
+        // Render card contenitore del torneo (con il tasto Modifica torneo aggiunto vicino al titolo)
         container.innerHTML += `
             <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-3 shadow-sm col-span-full">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-3">
                     <div>
                         <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">🏆 TORNEO UFFICIALE</span>
-                        <h3 class="font-extrabold text-slate-900 text-base">${tour.name}</h3>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <h3 class="font-extrabold text-slate-900 text-base">${tour.name}</h3>
+                            <button onclick="editTournament('${tour.id}')" class="text-xs text-slate-400 hover:text-slate-700 font-bold transition">✏️ Modifica</button>
+                        </div>
                         <p class="text-xs text-slate-500 mt-0.5">📍 ${tour.location || 'N/D'} | 📅 Dal ${tour.startDate || 'N/D'} al ${tour.endDate || 'N/D'}</p>
                     </div>
                     <button onclick="openAddMatchModal('${tour.id}')" class="mt-2 sm:mt-0 bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3 py-2 rounded-xl font-bold transition flex items-center gap-1 shadow-sm">
