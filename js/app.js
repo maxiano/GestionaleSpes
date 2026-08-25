@@ -2157,18 +2157,29 @@ window.closeMatchModal = function() {
     if (matchEditIdInput) matchEditIdInput.value = '';
 };
 
-// Salvataggio o Aggiornamento Partita su Firestore
+// ==========================================
+// SALVATAGGIO O AGGIORNAMENTO PARTITA (Con Debug)
+// ==========================================
 document.getElementById('form-match').addEventListener('submit', async function(e) {
     e.preventDefault();
+
+    // 1. Verifichiamo cosa leggiamo dai campi HTML
+    const dateInput = document.getElementById('match-date');
+    const timeInput = document.getElementById('match-time');
+    const matchInput = document.getElementById('match-teams');
+    const locationInput = document.getElementById('match-location');
+
+    console.log("Valore letto da #match-date:", dateInput ? dateInput.value : "ELEMENTO NON TROVATO");
+    console.log("Valore letto da #match-time:", timeInput ? timeInput.value : "ELEMENTO NON TROVATO");
+
     const currentTeamId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
     const tournamentId = document.getElementById('match-tour-id').value;
     const matchEditId = document.getElementById('match-edit-id') ? document.getElementById('match-edit-id').value : '';
 
-    // Leggiamo i valori prima di qualsiasi operazione di reset
-    const matchName = document.getElementById('match-teams').value.trim();
-    const dateValue = document.getElementById('match-date').value;
-    const timeValue = document.getElementById('match-time').value;
-    const locationValue = document.getElementById('match-location').value.trim();
+    const matchName = matchInput ? matchInput.value.trim() : "";
+    const dateValue = dateInput ? dateInput.value : "";
+    const timeValue = timeInput ? timeInput.value : "";
+    const locationValue = locationInput ? locationInput.value.trim() : "";
 
     try {
         const matchData = {
@@ -2181,6 +2192,8 @@ document.getElementById('form-match').addEventListener('submit', async function(
             played: false,
             result: ""
         };
+
+        console.log("Oggetto matchData inviato a Firestore:", matchData);
 
         if (matchEditId) {
             await updateDoc(doc(db, 'tournament_matches', matchEditId), matchData);
