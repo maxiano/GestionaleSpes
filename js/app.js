@@ -2034,7 +2034,7 @@ document.getElementById('form-match').addEventListener('submit', async function(
 
 
 // ==========================================
-// 3. RENDERIZZAZIONE DINAMICA DEI TORNEI
+// RENDERIZZAZIONE DINAMICA DEI TORNEI (Aggiornata)
 // ==========================================
 window.renderTournaments = function() {
     const container = document.getElementById('tournament-grid');
@@ -2050,12 +2050,14 @@ window.renderTournaments = function() {
     const teamTournaments = tournamentsList.filter(t => t.teamId === currentId);
     const teamMatches = tournamentMatches.filter(m => m.teamId === currentId);
 
+    // Salva il valore attuale del filtro prima di ricaricarlo per non perderlo
+    const currentFilterValue = filterSelect ? filterSelect.value : '';
+
     // Popola il filtro generale dei tornei
     if (filterSelect) {
-        const selectedValue = filterSelect.value;
         filterSelect.innerHTML = `<option value="">Tutti i tornei (${teamTournaments.length})</option>`;
         teamTournaments.forEach(tour => {
-            const isSelected = tour.id === selectedValue ? 'selected' : '';
+            const isSelected = tour.id === currentFilterValue ? 'selected' : '';
             filterSelect.innerHTML += `<option value="${tour.id}" ${isSelected}>${tour.name} - 📍 ${tour.location}</option>`;
         });
     }
@@ -2078,6 +2080,7 @@ window.renderTournaments = function() {
         return;
     }
 
+    // Seleziona quali tornei mostrare (tutti o solo quello filtrato)
     const tournamentsToShow = selectedTourFilter 
         ? teamTournaments.filter(t => t.id === selectedTourFilter)
         : teamTournaments;
@@ -2091,13 +2094,9 @@ window.renderTournaments = function() {
             matchesForThisTour = matchesForThisTour.filter(m => m.played);
         }
 
-        if (statusFilter && matchesForThisTour.length === 0 && selectedTourFilter) {
-            return;
-        }
-
         let matchesHtml = '';
         if (matchesForThisTour.length === 0) {
-            matchesHtml = `<p class="text-xs text-slate-400 italic py-2 col-span-full">Nessuna partita inserita per questo torneo.</p>`;
+            matchesHtml = `<p class="text-xs text-slate-400 italic py-2 col-span-full">Nessuna partita inserita per questo torneo. Clicca su "Aggiungi Partita" per iniziare.</p>`;
         } else {
             matchesForThisTour.forEach(m => {
                 matchesHtml += `
@@ -2125,7 +2124,7 @@ window.renderTournaments = function() {
             });
         }
 
-        // Render card contenitore del torneo con il pulsante dedicato per aggiungere partite
+        // Render card contenitore del torneo
         container.innerHTML += `
             <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-3 shadow-sm col-span-full">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-3">
@@ -2145,7 +2144,6 @@ window.renderTournaments = function() {
         `;
     });
 };
-
 
         // GESTIONE CAMBIO TAB CLICK
 		document.addEventListener('DOMContentLoaded', () => {
