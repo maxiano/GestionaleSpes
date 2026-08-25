@@ -1941,7 +1941,13 @@ async function loadStaffList() {
 		            alert('Seleziona prima una squadra!');
 		            return;
 		        }
-		        // Popola la tendina dei tornei esistenti nel modale se l'utente vuole aggiungere una partita a un torneo già creato
+		        // Resetta la tendina e i campi del modale per un inserimento pulito
+		        const tourSelectDropdown = document.getElementById('tour-select-dropdown');
+		        if (tourSelectDropdown) {
+		            tourSelectDropdown.value = "";
+		            handleTournamentSelectionChange(tourSelectDropdown);
+		        }
+		        
 		        populateTournamentSelectModal();
 		        modalTournament.classList.remove('hidden');
 		    });
@@ -2054,11 +2060,18 @@ async function loadStaffList() {
 		    const statusFilter = statusSelect ? statusSelect.value : '';
 		
 		    container.innerHTML = '';
-		
-		    if (teamTournaments.length === 0) {
-		        container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10 w-full col-span-2">Nessun torneo registrato per questa squadra. Clicca su "Nuovo Torneo" per iniziare.</p>`;
-		        return;
-		    }
+			if (teamTournaments.length === 0) {
+			        container.innerHTML = `
+			            <div class="bg-slate-50 p-8 border border-slate-200 rounded-2xl text-center col-span-full flex flex-col items-center justify-center gap-3">
+			                <span class="text-3xl">🏆</span>
+			                <p class="text-xs font-bold text-slate-600">Nessun torneo registrato per questa squadra.</p>
+			                <button onclick="document.getElementById('btn-open-modal-tournament').click()" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-4 py-2 rounded-xl font-bold transition shadow-sm">
+			                    + Crea il primo Torneo / Partita
+			                </button>
+			            </div>
+			        `;
+			        return;
+			    }
 		
 		    // Mostra i tornei e le relative partite
 		    const tournamentsToShow = selectedTourFilter 
