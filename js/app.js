@@ -2274,7 +2274,7 @@ window.renderTournaments = function() {
                                 ${m.played ? '● GIOCATA' : '● DA GIOCARE'}
                             </span>
                         </div>
-                        <p class="text-[11px] text-slate-500">📅 ${m.date || m.matchDate || 'Data da definirsi'} - ⏰ ${m.time || m.matchTime || '--:--'} | 📍 ${m.location || tour.location}</p>
+                        <p class="text-[11px] text-slate-500">📅 ${formatDate(m.date || m.matchDate)} - ⏰ ${m.time || m.matchTime || '--:--'} | 📍 ${m.location || tour.location}</p>
                         <div class="flex flex-col gap-1 mt-1">
                             ${!m.played ? 
                                 `<button onclick="setResult('${m.id}')" class="w-full bg-slate-900 hover:bg-emerald-600 text-white font-bold text-[10px] py-1.5 rounded-lg transition">Inserisci Risultato</button>` 
@@ -2297,7 +2297,7 @@ window.renderTournaments = function() {
                     <div>
                         <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">🏆 TORNEO UFFICIALE</span>
                         <h3 class="font-extrabold text-slate-900 text-base">${tour.name}</h3>
-                        <p class="text-xs text-slate-500 mt-0.5">📍 ${tour.location || 'N/D'} | 📅 Dal ${tour.startDate || 'N/D'} al ${tour.endDate || 'N/D'}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">📍 ${tour.location || 'N/D'} | 📅 Dal ${formatDate(tour.startDate)} al ${formatDate(tour.endDate)}</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
                         <button onclick="editTournament('${tour.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-3 py-2 rounded-xl font-bold transition shadow-sm">
