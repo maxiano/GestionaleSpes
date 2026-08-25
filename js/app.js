@@ -2281,21 +2281,26 @@ window.renderTournaments = function() {
             });
         }
 
-        // Render card contenitore del torneo (con il tasto Modifica torneo aggiunto vicino al titolo)
+        // Card contenitore del torneo con pulsanti Modifica, Elimina e Aggiungi Partita visibili
         container.innerHTML += `
             <div class="bg-slate-50 p-4 border border-slate-200 rounded-2xl flex flex-col gap-3 shadow-sm col-span-full">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-3">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-3 gap-2">
                     <div>
                         <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">🏆 TORNEO UFFICIALE</span>
-                        <div class="flex items-center gap-2 mt-0.5">
-                            <h3 class="font-extrabold text-slate-900 text-base">${tour.name}</h3>
-                            <button onclick="editTournament('${tour.id}')" class="text-xs text-slate-400 hover:text-slate-700 font-bold transition">✏️ Modifica</button>
-                        </div>
+                        <h3 class="font-extrabold text-slate-900 text-base">${tour.name}</h3>
                         <p class="text-xs text-slate-500 mt-0.5">📍 ${tour.location || 'N/D'} | 📅 Dal ${tour.startDate || 'N/D'} al ${tour.endDate || 'N/D'}</p>
                     </div>
-                    <button onclick="openAddMatchModal('${tour.id}')" class="mt-2 sm:mt-0 bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3 py-2 rounded-xl font-bold transition flex items-center gap-1 shadow-sm">
-                        <span>➕</span> Aggiungi Partita
-                    </button>
+                    <div class="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+                        <button onclick="editTournament('${tour.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-3 py-2 rounded-xl font-bold transition shadow-sm">
+                            ✏️ Modifica
+                        </button>
+                        <button onclick="deleteTournamentDirect('${tour.id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs px-3 py-2 rounded-xl font-bold transition shadow-sm">
+                            🗑️ Elimina
+                        </button>
+                        <button onclick="openAddMatchModal('${tour.id}')" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3 py-2 rounded-xl font-bold transition flex items-center gap-1 shadow-sm">
+                            <span>➕</span> Aggiungi Partita
+                        </button>
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
                     ${matchesHtml}
@@ -2304,7 +2309,6 @@ window.renderTournaments = function() {
         `;
     });
 };
-
         // GESTIONE CAMBIO TAB CLICK
 		document.addEventListener('DOMContentLoaded', () => {
 		    // Collegamenti sicuri ai tab
@@ -2912,6 +2916,31 @@ window.editMatch = function(matchId) {
     const modalMatch = document.getElementById('modal-match');
     if (modalMatch) {
         modalMatch.classList.remove('hidden');
+    }
+};
+window.deleteTournamentDirect = async function(tournamentId) {
+    const tour = tournamentsList.find(t => t.id === tournamentId);
+    const tourName = tour ? tour.name : 'questo torneo';
+
+    if (!confirm(`Sei sicuro di voler eliminare "${tourName}"? Verranno eliminate anche tutte le partite collegate!`)) {
+        return;
+    }
+
+    try {
+        await deleteDoc(doc(db, 'tournaments', tournamentId));
+
+        const matchesToDelete = tournamentMatches.filter(m => m.tournamentId === tournamentId);
+        for (const match of matchesToDelete) {
+            await deleteDoc(doc(db, 'tournament_matches', match.id));
+        }
+
+        tournamentsList = tournamentsList.filter(t => t.id !== tournamentId);
+        tournamentMatches = tournamentMatches.filter(m => m.tournamentId !== tournamentId);
+
+        renderTournaments();
+    } catch (error) {
+        console.error("Errore durante l'eliminazione del torneo:", error);
+        alert("Errore durante l'eliminazione del torneo.");
     }
 };
 
