@@ -1934,18 +1934,20 @@ async function loadStaffList() {
 	// ==========================================
 // 1. GESTIONE MODALE CREAZIONE NUOVO TORNEO
 // ==========================================
+// Assicurati che l'ascoltatore sul bottone in alto sia registrato correttamente
 const btnOpenModalTournament = document.getElementById('btn-open-modal-tournament');
 const modalTournament = document.getElementById('modal-tournament');
 
 if (btnOpenModalTournament && modalTournament) {
-    btnOpenModalTournament.addEventListener('click', () => {
+    // Rimuoviamo eventuali doppi listener e riassegniamo l'apertura pulita
+    btnOpenModalTournament.onclick = function() {
         if (typeof activeTeamId !== 'undefined' && !activeTeamId) {
             alert('Seleziona prima una squadra!');
             return;
         }
         document.getElementById('form-tournament').reset();
         modalTournament.classList.remove('hidden');
-    });
+    };
 }
 
 window.closeTournamentModal = function() {
