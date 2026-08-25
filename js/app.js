@@ -2780,8 +2780,10 @@ function handleParentsExcelUpload(event) {
     reader.readAsArrayBuffer(file);
 }
 
-//elimina tutti i dati delle collezioni db tranne utenti admin e coach
-async function deleteAllFirebaseData() {
+// ==========================================
+// ELIMINAZIONE TOTALE DATI (Tranne Admin e Coach)
+// ==========================================
+window.deleteAllFirebaseData = async function() {
     // 1. Controllo di sicurezza sul ruolo
     if (!currentUserProfile || currentUserProfile.role !== 'admin') {
         return alert("Accesso non autorizzato.");
@@ -2796,16 +2798,14 @@ async function deleteAllFirebaseData() {
         return alert("Operazione annullata.");
     }
 
- // 🗑️ Funzione per svuotare le collection (inclusi i tornei e le partite dei tornei)
-window.clearAllData = async function() {
-    // Elenco delle collection standard da svuotare completamente (aggiunti tournaments e tournament_matches)
+    // Elenco delle collection da svuotare completamente
     const collectionsToClear = [
         'players', 
         'callups', 
         'attendances', 
         'tournaments', 
         'match_history', 
-        'tournament_matches' // <-- Aggiunta la collection delle partite dei tornei
+        'tournament_matches'
     ]; 
 
     try {
@@ -2819,13 +2819,14 @@ window.clearAllData = async function() {
             console.log(`Collection '${colName}' svuotata con successo.`);
         }
 
-        // 2. Svuota la collection 'users' eliminando SOLO gli utenti con role === 'parent'
+        // 2. Svuota la collection 'users' eliminando SOLO gli utenti con role === 'parent' (preservando admin e coach)
         const usersSnapshot = await getDocs(collection(db, 'users'));
         const deleteUsersPromises = [];
         
         usersSnapshot.docs.forEach(docSnap => {
             const userData = docSnap.data();
-            if (userData.role === 'parent') {
+            // Controlla se il ruolo è genitore (gestendo eventuali variazioni minuscole/maiuscole)
+            if (userData.role && userData.role.toLowerCase() === 'parent') {
                 deleteUsersPromises.push(deleteDoc(doc(db, 'users', docSnap.id)));
             }
         });
