@@ -2796,8 +2796,17 @@ async function deleteAllFirebaseData() {
         return alert("Operazione annullata.");
     }
 
-    // Elenco delle collection standard da svuotare completamente
-    const collectionsToClear = ['players', 'callups', 'attendances', 'tournaments', 'match_history']; 
+ // 🗑️ Funzione per svuotare le collection (inclusi i tornei e le partite dei tornei)
+window.clearAllData = async function() {
+    // Elenco delle collection standard da svuotare completamente (aggiunti tournaments e tournament_matches)
+    const collectionsToClear = [
+        'players', 
+        'callups', 
+        'attendances', 
+        'tournaments', 
+        'match_history', 
+        'tournament_matches' // <-- Aggiunta la collection delle partite dei tornei
+    ]; 
 
     try {
         console.log("Inizio eliminazione totale dei dati...");
@@ -2826,7 +2835,7 @@ async function deleteAllFirebaseData() {
             console.log(`Rimossi ${deleteUsersPromises.length} account genitori dalla collection 'users'.`);
         }
 
-        alert("🗑️ Tutti i dati dei giocatori, delle partite e dei genitori sono stati eliminati con successo dal database (account Admin e Coach preservati).");
+        alert("🗑️ Tutti i dati dei giocatori, tornei, partite e genitori sono stati eliminati con successo dal database (account Admin e Coach preservati).");
         
         // Ricarica la pagina o resetta la vista
         location.reload();
@@ -2835,8 +2844,7 @@ async function deleteAllFirebaseData() {
         console.error("Errore durante la cancellazione:", error);
         alert("Errore durante l'eliminazione dei dati: " + error.message);
     }
-}
-
+};
 window.handleTournamentSelectionChange = function(selectEl) {
     const tourNameInput = document.getElementById('tour-name');
     const newTourDetails = document.getElementById('new-tournament-details');
