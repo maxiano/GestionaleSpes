@@ -2969,6 +2969,16 @@ window.deleteMatch = async function(matchId) {
     }
 };
 
+function formatDate(dateString) {
+    if (!dateString) return 'N/D';
+    // Se la data è nel formato AAAA-MM-GG (es. 2026-08-25) la trasforma in GG/MM/AAAA
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateString; // Ritorna la stringa originale se ha un formato diverso
+}
+
 	if ('serviceWorker' in navigator) {
   		window.addEventListener('load', () => {
     		navigator.serviceWorker.register('/sw.js')
