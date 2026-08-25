@@ -739,51 +739,161 @@
             </div>
         </div>
 
-        <!--  MODALE TORNEI -->
+      <!-- TAB 6: TORNEI -->
+            <div id="tab-tournaments" class="tab-content hidden bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 print:shadow-none print:p-0 print:border-none">
+
+                <!-- Header del Tab Organizzato -->
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-5 mb-6 border-b border-slate-100 pb-5 print:hidden">
+
+                    <!-- 🏷️ Titolo e Categoria -->
+                    <div class="flex items-start gap-3.5">
+                        <div class="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 text-lg shadow-sm flex-shrink-0">
+                            🏆
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">Tornei e Partite</h3>
+                                <span class="text-xs font-black px-2.5 py-0.5 bg-slate-900 text-emerald-400 rounded-lg shadow-sm" id="display-active-team-tour">--</span>
+                            </div>
+                            <p class="text-xs text-slate-500 font-medium mt-0.5">Gestione calendario, risultati e classifiche di squadra</p>
+                        </div>
+                    </div>
+
+                    <!-- 🎛️ Controlli e Pulsanti di Azione Organizzati -->
+                    <div class="flex flex-wrap items-center gap-2.5">
+
+                        <!-- 🔍 Gruppo Filtri (Torneo e Stato) -->
+                        <div class="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-2xl border border-slate-200">
+                            <select id="filter-tournament-select" onchange="renderTournaments()" class="bg-white border border-slate-200/80 text-slate-700 text-xs px-3 py-2 rounded-xl font-bold shadow-sm focus:outline-none focus:border-emerald-500">
+                                <option value="">Tutti i tornei</option>
+                            </select>
+
+                            <select id="filter-status-select" onchange="renderTournaments()" class="bg-white border border-slate-200/80 text-slate-700 text-xs px-3 py-2 rounded-xl font-bold shadow-sm focus:outline-none focus:border-emerald-500">
+                                <option value="">Tutti gli stati</option>
+                                <option value="da_giocare">Da giocare</option>
+                                <option value="giocata">Giocate</option>
+                            </select>
+                        </div>
+
+                        <!-- 📁 Gruppo Utility CSV (Import / Export) -->
+                        <div class="flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200">
+                            <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="importCSV(this)">
+
+                            <button onclick="exportToCSV()" class="hover:bg-white text-slate-700 hover:text-emerald-700 text-xs px-3 py-2 rounded-xl font-bold transition-all duration-150 shadow-sm active:scale-95 flex items-center gap-1">
+                                <span>📥</span> Export
+                            </button>
+
+                            <div class="w-[1px] h-4 bg-slate-300"></div>
+
+                            <button onclick="document.getElementById('csvFileInput').click()" class="hover:bg-white text-slate-700 hover:text-blue-700 text-xs px-3 py-2 rounded-xl font-bold transition-all duration-150 shadow-sm active:scale-95 flex items-center gap-1">
+                                <span>📤</span> Import
+                            </button>
+                        </div>
+
+                        <!-- 🚀 Gruppo Azioni Principali (Nuovo Torneo / WhatsApp) -->
+                        <div class="flex items-center gap-2">
+                            <button id="btn-open-modal-tournament" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition-all duration-150 shadow-md shadow-slate-900/10 active:scale-95 flex items-center gap-1.5">
+                                <span>➕</span> Nuovo Torneo
+                            </button>
+
+                            <button id="btn-share-tournament-wa" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition-all duration-150 shadow-md shadow-emerald-600/20 active:scale-95 flex items-center gap-1.5">
+                                <span>📲</span> WhatsApp
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Griglia Tornei e Partite -->
+                <div id="tournament-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 print:hidden">
+                    <!-- Caricato via JS -->
+                </div>
+
+                <!-- Container Stampa -->
+                <div id="tournament-print-container" class="hidden print:block">
+                    <!-- Caricato via JS per la stampa -->
+                </div>
+            </div>
+
+        <!-- 🏆 MODALE CREAZIONE NUOVO TORNEO -->
         <div id="modal-tournament" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
             <div class="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
                 <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <h3 class="font-black text-slate-900 text-lg">📅 Gestione Tornei e Partite</h3>
+                    <h3 class="font-black text-slate-900 text-lg">🏆 Nuovo Torneo</h3>
                     <button type="button" onclick="closeTournamentModal()" class="text-slate-400 hover:text-slate-600 font-bold text-sm">✕</button>
                 </div>
 
                 <form id="form-tournament" class="space-y-3">
-                    <!-- Selezione o creazione Torneo -->
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Seleziona Torneo Esistente o Scrivi Nome Nuovo</label>
-                        <select id="tour-select-dropdown" class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs font-semibold mb-2" onchange="handleTournamentSelectionChange(this)">
-                            <option value="">+ Crea Nuovo Torneo...</option>
-                        </select>
-                        <input type="text" id="tour-name" placeholder="Nome Torneo (es. Torneo NIKI)" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-semibold">
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Nome Torneo</label>
+                        <input type="text" id="tour-name" placeholder="es. Torneo NIKI 2026" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-semibold">
                     </div>
 
-                    <!-- Dettagli del Torneo (visibili solo se si crea un nuovo torneo) -->
-                    <div id="new-tournament-details" class="grid grid-cols-2 gap-2 bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60">
+                    <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Inizio Torneo</label>
-                            <input type="date" id="tour-start-date" class="w-full p-2 bg-white rounded-xl border border-slate-200 text-xs">
+                            <input type="date" id="tour-start-date" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Fine Torneo</label>
-                            <input type="date" id="tour-end-date" class="w-full p-2 bg-white rounded-xl border border-slate-200 text-xs">
+                            <input type="date" id="tour-end-date" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                         </div>
                     </div>
 
-                    <hr class="border-slate-100 my-1">
-
-                    <!-- Dettagli della Partita -->
-                    <input type="text" id="tour-match" placeholder="Incontro (es. Spes Montesacro vs Artiglio)" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
-                    
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="date" id="tour-date" required class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
-                        <input type="time" id="tour-time" required class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Campo di Gioco / Località Principale</label>
+                        <input type="text" id="tour-location" placeholder="es. Centro Sportivo Spes Montesacro" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
                     </div>
-                    
-                    <input type="text" id="tour-location" placeholder="Campo di gioco / Località" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
 
                     <div class="flex gap-2 pt-2">
                         <button type="button" onclick="closeTournamentModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition">Annulla</button>
-                        <button type="submit" class="flex-1 py-3 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs transition">Salva sul Cloud</button>
+                        <button type="submit" class="flex-1 py-3 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs transition">Crea Torneo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ⚽ MODALE AGGIUNGI PARTITA AL TORNEO -->
+        <div id="modal-match" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <h3 class="font-black text-slate-900 text-lg">⚽ Aggiungi Partita</h3>
+                    <button type="button" onclick="closeMatchModal()" class="text-slate-400 hover:text-slate-600 font-bold text-sm">✕</button>
+                </div>
+
+                <form id="form-match" class="space-y-3">
+                    <!-- ID nascosto del torneo a cui stiamo aggiungendo la partita -->
+                    <input type="hidden" id="match-tour-id">
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Torneo di Riferimento</label>
+                        <input type="text" id="match-tour-name-display" disabled class="w-full p-3 bg-slate-100 text-slate-600 rounded-xl border border-slate-200 text-sm font-bold">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Incontro (Squadre)</label>
+                        <input type="text" id="match-teams" placeholder="es. Spes Montesacro vs Artiglio" required class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Data Partita</label>
+                            <input type="date" id="match-date" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Ora Partita</label>
+                            <input type="time" id="match-time" required class="w-full p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Campo di Gioco specifico (opzionale)</label>
+                        <input type="text" id="match-location" placeholder="Se diverso dal campo principale del torneo" class="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                    </div>
+
+                    <div class="flex gap-2 pt-2">
+                        <button type="button" onclick="closeMatchModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition">Annulla</button>
+                        <button type="submit" class="flex-1 py-3 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs transition">Salva Partita</button>
                     </div>
                 </form>
             </div>
