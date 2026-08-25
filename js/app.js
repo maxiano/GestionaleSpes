@@ -2106,7 +2106,7 @@ window.openAddMatchModal = function(tournamentId) {
 
     document.getElementById('match-tour-id').value = tour.id;
     document.getElementById('match-tour-name-display').value = tour.name;
-    document.getElementById('match-location').value = tour.location || '';
+    document.getElementById('match-location-tour').value = tour.location || '';
 
     const modalMatch = document.getElementById('modal-match');
     if (modalMatch) modalMatch.classList.remove('hidden');
@@ -2137,13 +2137,13 @@ window.editMatch = function(matchId) {
     document.getElementById('match-tour-name-display').value = tour ? tour.name : 'Torneo';
     document.getElementById('match-teams').value = match.match || '';
     
-    // Assegnazione sicura di data e ora
-    const dateInput = document.getElementById('match-date');
-    const timeInput = document.getElementById('match-time');
+    // Assegnazione sicura di data e ora con i nuovi ID specifici
+    const dateInput = document.getElementById('match-date-tour');
+    const timeInput = document.getElementById('match-time-tour');
     if (dateInput) dateInput.value = match.date || '';
     if (timeInput) timeInput.value = match.time || '';
     
-    document.getElementById('match-location').value = match.location || '';
+    document.getElementById('match-location-tour').value = match.location || '';
 
     const modalMatch = document.getElementById('modal-match');
     if (modalMatch) modalMatch.classList.remove('hidden');
@@ -2158,19 +2158,19 @@ window.closeMatchModal = function() {
 };
 
 // ==========================================
-// SALVATAGGIO O AGGIORNAMENTO PARTITA (Con Debug)
+// SALVATAGGIO O AGGIORNAMENTO PARTITA
 // ==========================================
 document.getElementById('form-match').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    // 1. Verifichiamo cosa leggiamo dai campi HTML
-    const dateInput = document.getElementById('match-date');
-    const timeInput = document.getElementById('match-time');
+    // 1. Lettura dai campi specifici del modale torneo
+    const dateInput = document.getElementById('match-date-tour');
+    const timeInput = document.getElementById('match-time-tour');
     const matchInput = document.getElementById('match-teams');
-    const locationInput = document.getElementById('match-location');
+    const locationInput = document.getElementById('match-location-tour');
 
-    console.log("Valore letto da #match-date:", dateInput ? dateInput.value : "ELEMENTO NON TROVATO");
-    console.log("Valore letto da #match-time:", timeInput ? timeInput.value : "ELEMENTO NON TROVATO");
+    console.log("Valore letto da #match-date-tour:", dateInput ? dateInput.value : "ELEMENTO NON TROVATO");
+    console.log("Valore letto da #match-time-tour:", timeInput ? timeInput.value : "ELEMENTO NON TROVATO");
 
     const currentTeamId = typeof activeTeamId !== 'undefined' ? activeTeamId : '';
     const tournamentId = document.getElementById('match-tour-id').value;
@@ -2216,7 +2216,6 @@ document.getElementById('form-match').addEventListener('submit', async function(
         alert("Errore nel salvataggio della partita.");
     }
 });
-
 // ==========================================
 // 4. RENDERIZZAZIONE DINAMICA DEI TORNEI
 // ==========================================
