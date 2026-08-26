@@ -1752,119 +1752,151 @@ async function loadStaffList() {
             window.print();
         });
 
-        // MODALE E GESTIONE GIOCATORE
-        document.getElementById('btn-open-add-player').addEventListener('click', () => {
-            if (!activeTeamId) return alert('Seleziona prima una squadra!');
-            editingPlayerId = null;
-            document.getElementById('modal-player-title').innerText = "Aggiungi Nuovo Giocatore";
-            document.getElementById('btn-submit-player').innerText = "Salva Giocatore";
+// Apertura modale per nuovo giocatore
+document.getElementById('btn-open-add-player')?.addEventListener('click', () => {
+    if (!activeTeamId) return alert('Seleziona prima una squadra!');
+    
+    if (typeof editingPlayerId !== 'undefined') editingPlayerId = null;
+    
+    const titleEl = document.getElementById('modal-player-title');
+    const submitBtn = document.getElementById('btn-submit-player');
+    if (titleEl) titleEl.innerText = "Aggiungi Nuovo Giocatore";
+    if (submitBtn) submitBtn.innerText = "Salva Giocatore";
 
-            document.getElementById('player-first-name').value = '';
-            document.getElementById('player-last-name').value = '';
-            document.getElementById('player-dob').value = '';
-            document.getElementById('player-jersey').value = '';
-            document.getElementById('player-role').value = '';
-            document.getElementById('player-medical-exp').value = '';
-            document.getElementById('player-parent-phone').value = '';
-            document.getElementById('modal-add-player').classList.remove('hidden');
-        });
+    // Reset campi input
+    const fields = ['player-first-name', 'player-last-name', 'player-dob', 'player-jersey', 'player-role', 'player-medical-exp', 'player-parent-phone'];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
 
-       function openEditPlayerModal(playerId) {
-            const player = activeTeamPlayers.find(p => p.id === playerId);
-            if (!player) return;
+    document.getElementById('modal-add-player')?.classList.remove('hidden');
+});
 
-            editingPlayerId = playerId;
-            document.getElementById('modal-player-title').innerText = "Modifica Giocatore";
-            document.getElementById('btn-submit-player').innerText = "Aggiorna Giocatore";
+// Apertura modale per modifica giocatore esistente
+window.openEditPlayerModal = function(playerId) {
+    if (typeof activeTeamPlayers === 'undefined') return;
+    const player = activeTeamPlayers.find(p => p.id === playerId);
+    if (!player) return alert("Giocatore non trovato.");
 
-            document.getElementById('player-first-name').value = player.firstName || '';
-            document.getElementById('player-last-name').value = player.lastName || '';
-            document.getElementById('player-dob').value = player.dob || '';
-            document.getElementById('player-jersey').value = player.jersey || '';
-            document.getElementById('player-role').value = player.role || '';
-            document.getElementById('player-medical-exp').value = player.medicalExp || '';
-            document.getElementById('player-parent-phone').value = player.parentPhone || '';
+    if (typeof editingPlayerId !== 'undefined') editingPlayerId = playerId;
+    
+    const titleEl = document.getElementById('modal-player-title');
+    const submitBtn = document.getElementById('btn-submit-player');
+    if (titleEl) titleEl.innerText = "Modifica Giocatore";
+    if (submitBtn) submitBtn.innerText = "Aggiorna Giocatore";
 
-            document.getElementById('modal-add-player').classList.remove('hidden');
+    document.getElementById('player-first-name').value = player.firstName || '';
+    document.getElementById('player-last-name').value = player.lastName || '';
+    document.getElementById('player-dob').value = player.dob || '';
+    document.getElementById('player-jersey').value = player.jersey || '';
+    document.getElementById('player-role').value = player.role || '';
+    document.getElementById('player-medical-exp').value = player.medicalExp || '';
+    document.getElementById('player-parent-phone').value = player.parentPhone || '';
+
+    document.getElementById('modal-add-player')?.classList.remove('hidden');
+};
+
+// Chiusura modale
+document.getElementById('btn-close-modal-player')?.addEventListener('click', () => {
+    document.getElementById('modal-add-player')?.classList.add('hidden');
+});
+
+// Invio form (Salvataggio o Modifica)
+document.getElementById('form-add-player')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!activeTeamId) return alert("Errore: Nessuna squadra attiva selezionata.");
+
+    // Acquisizione valori
+    const firstName = document.getElementById('player-first-name')?.value.trim() || "";
+    const lastName = document.getElementById('player-last-name')?.value.trim() || "";
+    const dob = document.getElementById('player-dob')?.value.trim() || "";
+    const jersey = document.getElementById('player-jersey')?.value.trim() || "";
+    const role = document.getElementById('player-role')?.value.trim() || "";
+    const medicalExp = document.getElementById('player-medical-exp')?.value.trim() || "";
+    const parentPhone = document.getElementById('player-parent-phone')?.value.trim() || "";
+
+    // --- VALIDAZIONE INPUT ---
+    if (!isValidString(firstName, 2)) {
+        return alert("⚠️ Inserisci un Nome valido (almeno 2 caratteri).");
+    }
+    if (!isValidString(lastName, 2)) {
+        return alert("⚠️ Inserisci un Cognome valido (almeno 2 caratteri).");
+    }
+    if (dob && !isValidDate(dob)) {
+        return alert("⚠️ La data di nascita non è valida. Usa il formato YYYY-MM-DD.");
+    }
+    if (medicalExp && !isValidDate(medicalExp)) {
+        return alert("⚠️ La scadenza medica non è valida. Usa il formato YYYY-MM-DD.");
+    }
+
+    const playerData = {
+        firstName,
+        lastName,
+        name: `${lastName} ${firstName}`.trim(),
+        dob: dob || null,
+        jersey: jersey ? String(parseInt(jersey, 10)) : "", // pulizia zeri iniziali maglia
+        role: role || "Non specificato",
+        medicalExp: medicalExp || null,
+        parentPhone: parentPhone || "",
+        teamId: activeTeamId
+    };
+
+    try {
+        // --- CERCA IL GENITORE TRAMITE IL NUMERO DI TELEFONO ---
+        if (parentPhone) {
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where("phone", "==", parentPhone), where("role", "==", "parent"));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                querySnapshot.forEach((docSnap) => {
+                    playerData.parentId = docSnap.id;
+                });
+            } else {
+                playerData.parentId = null;
+            }
+        } else {
+            playerData.parentId = null;
         }
 
-        document.getElementById('btn-close-modal-player').addEventListener('click', () => {
-            document.getElementById('modal-add-player').classList.add('hidden');
-        });
+        const currentEditingId = typeof editingPlayerId !== 'undefined' ? editingPlayerId : null;
+        let savedPlayerId = currentEditingId;
 
-        document.getElementById('form-add-player').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!activeTeamId) return;
+        if (currentEditingId) {
+            // Aggiornamento
+            await updateDoc(doc(db, 'players', currentEditingId), playerData);
+            alert("✅ Giocatore aggiornato con successo!");
+        } else {
+            // Creazione nuovo
+            playerData.createdAt = serverTimestamp();
+            const docRef = await addDoc(collection(db, 'players'), playerData);
+            savedPlayerId = docRef.id;
+            alert("✅ Nuovo giocatore aggiunto con successo!");
+        }
 
-            const firstName = document.getElementById('player-first-name').value.trim();
-            const lastName = document.getElementById('player-last-name').value.trim();
-            const dob = document.getElementById('player-dob').value;
-            const jersey = document.getElementById('player-jersey').value.trim();
-            const role = document.getElementById('player-role').value;
-            const medicalExp = document.getElementById('player-medical-exp').value;
-            const parentPhone = document.getElementById('player-parent-phone').value.trim();
+        // --- AGGIORNA ANCHE IL GENITORE COLLEGANDO IL FIGLIO (SE TROVATO) ---
+        if (playerData.parentId && savedPlayerId) {
+            const parentRef = doc(db, 'users', playerData.parentId);
+            await updateDoc(parentRef, {
+                childIds: arrayUnion(savedPlayerId)
+            });
+        }
 
-            const playerData = {
-                firstName: firstName,
-                lastName: lastName,
-                name: `${lastName} ${firstName}`.trim(),
-                dob: dob,
-                jersey: jersey,
-                role: role,
-                medicalExp: medicalExp,
-                parentPhone: parentPhone,
-                teamId: activeTeamId
-            };
+        // Chiusura e pulizia cache/dati
+        document.getElementById('modal-add-player')?.classList.add('hidden');
+        if (typeof AppCache !== 'undefined' && AppCache.clearPlayers) {
+            AppCache.clearPlayers(activeTeamId);
+        }
+        if (typeof loadTeamData === 'function') {
+            loadTeamData(true);
+        }
 
-            try {
-                // --- CERCA IL GENITORE TRAMITE IL NUMERO DI TELEFONO ---
-                if (parentPhone) {
-                    const usersRef = collection(db, 'users');
-                    const q = query(usersRef, where("phone", "==", parentPhone), where("role", "==", "parent"));
-                    const querySnapshot = await getDocs(q);
-
-                    if (!querySnapshot.empty) {
-                        // Se trova il genitore, associa il suo UID al giocatore
-                        querySnapshot.forEach((docSnap) => {
-                            playerData.parentId = docSnap.id;
-                        });
-                    } else {
-                        // Se non trova nessun utente registrato con quel telefono, rimuoviamo l'eventuale vecchio parentId
-                        playerData.parentId = null;
-                    }
-                } else {
-                    playerData.parentId = null;
-                }
-                // --------------------------------------------------------
-
-                let savedPlayerId = editingPlayerId;
-
-                if (editingPlayerId) {
-                    await updateDoc(doc(db, 'players', editingPlayerId), playerData);
-                    alert("Giocatore aggiornato con successo!");
-                } else {
-                    playerData.createdAt = serverTimestamp();
-                    const docRef = await addDoc(collection(db, 'players'), playerData);
-                    savedPlayerId = docRef.id;
-                    alert("Nuovo giocatore aggiunto con successo!");
-                }
-
-                // --- AGGIORNA ANCHE IL GENITORE COLLEGANDO IL FIGLIO (SE TROVATO) ---
-                if (playerData.parentId && savedPlayerId) {
-                    const parentRef = doc(db, 'users', playerData.parentId);
-                    await updateDoc(parentRef, {
-                        childIds: arrayUnion(savedPlayerId)
-                    });
-                }
-                // -----------------------------------------------------------------
-
-                document.getElementById('modal-add-player').classList.add('hidden');
-                AppCache.clearPlayers(activeTeamId);
-                loadTeamData(true);
-            } catch (err) {
-                alert("Errore salvataggio giocatore: " + err.message);
-            }
-        });
+    } catch (err) {
+        console.error("Errore salvataggio giocatore:", err);
+        alert("❌ Errore durante il salvataggio del giocatore: " + err.message);
+    }
+});
 
         async function deletePlayer(playerId) {
             if (!confirm("Sei sicuro di voler rimuovere questo giocatore dalla rosa?")) return;
@@ -2680,8 +2712,8 @@ async function exportPlayersToExcel() {
     }
 }
 
-function handlePlayersExcelUpload(event) {
-    const file = event.target.files[0];
+async function handlePlayersExcelUpload(event) {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
@@ -2718,8 +2750,13 @@ function handlePlayersExcelUpload(event) {
                     createdAt: new Date()
                 };
 
-                // Salvataggio con sintassi Modular SDK v9
-                await addDoc(collection(db, 'players'), playerPayload);
+                // Salvataggio su Firestore e recupero dell'ID generato
+                const docRef = await addDoc(collection(db, 'players'), playerPayload);
+                playerPayload.id = docRef.id; // Assegnazione fondamentale per coerenza locale!
+
+                // Se tieni un array globale dei giocatori (es. playersList), puoi aggiungerlo qui:
+                // if (typeof playersList !== 'undefined') playersList.push(playerPayload);
+
                 importedCount++;
             }
 
@@ -2953,20 +2990,29 @@ window.addEventListener('click', () => {
 // 4. GESTIONE RISULTATI, MODIFICHE E CANCELLAZIONI
 // ==========================================
 
-// Inserisci / Aggiorna Risultato di una partita giocata
-window.setResult = function(matchId) {
+window.setResult = async function(matchId) {
     const match = tournamentMatches.find(m => m.id === matchId);
     if (!match) return;
 
     const res = prompt("Inserisci il risultato (es. 3 - 1):", match.result || "");
     if (res !== null) {
-        match.result = res.trim();
-        match.played = true;
+        const trimmedRes = res.trim();
+        try {
+            // 1. Scrittura su Firebase prima di aggiornare la UI
+            await updateDoc(doc(db, "tournament_matches", matchId), { 
+                result: trimmedRes, 
+                played: true 
+            });
 
-        // Se usi Firebase, qui puoi fare l'update su Firestore:
-        // updateDoc(doc(db, "tournament_matches", matchId), { result: match.result, played: true });
+            // 2. Aggiornamento dello stato locale
+            match.result = trimmedRes;
+            match.played = true;
 
-        renderTournaments();
+            renderTournaments();
+        } catch (error) {
+            console.error("Errore aggiornamento risultato:", error);
+            alert("Impossibile salvare il risultato su Firebase.");
+        }
     }
 };
 
@@ -3023,36 +3069,41 @@ window.deleteTournamentDirect = async function(tournamentId) {
     }
 
     try {
-        await deleteDoc(doc(db, 'tournaments', tournamentId));
-
+        // 1. Individua le partite collegate
         const matchesToDelete = tournamentMatches.filter(m => m.tournamentId === tournamentId);
-        for (const match of matchesToDelete) {
-            await deleteDoc(doc(db, 'tournament_matches', match.id));
-        }
 
+        // 2. Esegue tutte le cancellazioni su Firestore in parallelo in modo sicuro
+        await Promise.all([
+            deleteDoc(doc(db, 'tournaments', tournamentId)),
+            ...matchesToDelete.map(match => deleteDoc(doc(db, 'tournament_matches', match.id)))
+        ]);
+
+        // 3. Aggiorna lo stato locale solo dopo il successo del DB
         tournamentsList = tournamentsList.filter(t => t.id !== tournamentId);
         tournamentMatches = tournamentMatches.filter(m => m.tournamentId !== tournamentId);
 
         renderTournaments();
+        alert("🗑️ Torneo e partite collegate eliminati con successo.");
     } catch (error) {
         console.error("Errore durante l'eliminazione del torneo:", error);
-        alert("Errore durante l'eliminazione del torneo.");
+        alert("Errore durante l'eliminazione del torneo sul database.");
     }
 };
 
-// Elimina una partita
 window.deleteMatch = async function(matchId) {
     if (!confirm("Sei sicuro di voler eliminare questa partita?")) return;
 
     try {
-        // Se usi Firebase:
-        // await deleteDoc(doc(db, "tournament_matches", matchId));
+        // 1. Cancellazione su Firebase
+        await deleteDoc(doc(db, "tournament_matches", matchId));
 
+        // 2. Aggiornamento array locale
         tournamentMatches = tournamentMatches.filter(m => m.id !== matchId);
+        
         renderTournaments();
     } catch (error) {
         console.error("Errore durante l'eliminazione della partita:", error);
-        alert("Impossibile eliminare la partita.");
+        alert("Impossibile eliminare la partita dal database.");
     }
 };
 
@@ -3064,6 +3115,18 @@ function formatDate(dateString) {
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
     return dateString; // Ritorna la stringa originale se ha un formato diverso
+}
+
+function isValidString(value, minLength = 1) {
+    return typeof value === 'string' && value.trim().length >= minLength;
+}
+
+function isValidDate(dateString) {
+    // Controllo basato sul formato standard YYYY-MM-DD
+    const regex = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/;
+    if (!regex.test(dateString)) return false;
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
 }
 
 	if ('serviceWorker' in navigator) {
