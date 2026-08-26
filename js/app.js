@@ -2472,41 +2472,54 @@ window.exportToCSV = function() {
 		    });
 		});
 		// 3. Esegue il Backup dei dati
+window.downloadDatabaseBackup = async function() {
+    // Seleziona o crea dinamicamente un indicatore di caricamento visivo
+    let loader = document.getElementById('loadingOverlay');
+    if (!loader) {
+        // Creiamo un overlay di caricamento al volo se non esiste nel DOM
+        loader = document.createElement('div');
+        loader.id = 'loadingOverlay';
+        loader.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999; color:white; font-family:sans-serif; font-size:18px;';
+        loader.innerHTML = '<div style="background:#222; padding:20px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3);">⏳ Backup del database in corso, attendere...</div>';
+        document.body.appendChild(loader);
+    } else {
+        loader.style.display = 'flex';
+    }
 
-		window.downloadDatabaseBackup = async function() {
-		    const backupData = {};
-		    
-		    // Elenco delle tue collection (ho aggiunto anche 'tournaments' che ho visto nel tuo codice)
-		    const collectionsToBackup = ['tournaments', 'users', 'players', 'callups', 'attendances'];  
-		
-		    try {
-		        console.log("Inizio backup del database...");
-		        
-		        for (const colName of collectionsToBackup) {
-		            // Sintassi Firebase v9+ Modular SDK
-		            const querySnapshot = await getDocs(collection(db, colName));
-		            backupData[colName] = querySnapshot.docs.map(docSnapshot => ({
-		                id: docSnapshot.id,
-		                ...docSnapshot.data()
-		            }));
-		        }
-		
-		        // Creazione e download automatico del file JSON
-		        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-		        const downloadAnchorNode = document.createElement('a');
-		        downloadAnchorNode.setAttribute("href", dataStr);
-		        downloadAnchorNode.setAttribute("download", `Spes_Backup_${new Date().toISOString().slice(0,10)}.json`);
-		        document.body.appendChild(downloadAnchorNode);
-		        downloadAnchorNode.click();
-		        downloadAnchorNode.remove();
-		        
-		        alert("Backup del database completato con successo!");
-		    } catch (error) {
-		        console.error("Errore durante il backup:", error);
-		        alert("Errore nel backup: " + error.message);
-		    }
-		};
+    const backupData = {};
+    const collectionsToBackup = ['tournaments', 'users', 'players', 'callups', 'attendances'];  
 
+    try {
+        console.log("Inizio backup del database...");
+        
+        for (const colName of collectionsToBackup) {
+            const querySnapshot = await getDocs(collection(db, colName));
+            backupData[colName] = querySnapshot.docs.map(docSnapshot => ({
+                id: docSnapshot.id,
+                ...docSnapshot.data()
+            }));
+        }
+
+        // Creazione e download automatico del file JSON
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `Spes_Backup_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        
+        alert("Backup del database completato con successo!");
+    } catch (error) {
+        console.error("Errore durante il backup:", error);
+        alert("Errore nel backup: " + error.message);
+    } finally {
+        // Nascondi o rimuovi l'indicatore di caricamento in ogni caso (successo o errore)
+        if (loader) {
+            loader.style.display = 'none';
+        }
+    }
+};
 	// 1. Invio invito iniziale (Mercoledì)
 	function sendInviteWhatsApp(id) {
 	    const callup = loadedCallupsList.find(c => c.id === id);
@@ -2831,6 +2844,18 @@ window.deleteAllFirebaseData = async function() {
         return alert("Operazione annullata.");
     }
 
+    // Attivazione dell'indicatore di caricamento visivo (Overlay)
+    let loader = document.getElementById('loadingOverlay');
+    if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'loadingOverlay';
+        loader.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:9999; color:white; font-family:sans-serif; font-size:18px;';
+        loader.innerHTML = '<div style="background:#222; padding:20px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3); text-align:center;">🗑️ Eliminazione totale dei dati in corso...<br><small style="color:#aaa;">Attendere prego</small></div>';
+        document.body.appendChild(loader);
+    } else {
+        loader.style.display = 'flex';
+    }
+
     // Elenco delle collection da svuotare completamente
     const collectionsToClear = [
         'players', 
@@ -2877,6 +2902,11 @@ window.deleteAllFirebaseData = async function() {
     } catch (error) {
         console.error("Errore durante la cancellazione:", error);
         alert("Errore durante l'eliminazione dei dati: " + error.message);
+    } finally {
+        // Nascondi il loader in caso di errore (se c'è successo la pagina ricarica comunque con location.reload())
+        if (loader) {
+            loader.style.display = 'none';
+        }
     }
 };
 window.handleTournamentSelectionChange = function(selectEl) {
