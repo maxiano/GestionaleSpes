@@ -2553,50 +2553,83 @@ window.exportToCSV = function() {
 	    document.getElementById('form-callup').scrollIntoView({ behavior: 'smooth' });
 	}
 
-async function linkParentToPlayerByPhone(playerId, parentPhone) {
-    try {
-        // 1. Pulisci il numero di telefono (rimuovi spazi o trattini per evitare errori di battitura)
-        const cleanPhone = parentPhone.trim();
-
-        // 2. Cerca nella collezione 'users' (o 'parents') se esiste un utente con questo telefono e ruolo 'parent'
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where("phone", "==", cleanPhone), where("role", "==", "parent"));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            console.warn("Nessun genitore trovato con questo numero di telefono:", cleanPhone);
-            // Puoi comunque salvare il telefono nella scheda del giocatore senza legare l'account Auth per ora
-            await updateDoc(doc(db, 'players', playerId), { parentPhone: cleanPhone });
-            return;
-        }
-
-        // 3. Prendi il primo genitore trovato (o gestisci più genitori se necessario)
-        let parentDocId = null;
-        querySnapshot.forEach((docSnap) => {
-            parentDocId = docSnap.id; // Questo è l'UID del genitore in Firebase Auth
-        });
-
-        // 4. Aggiorna la scheda del giocatore collegando l'ID del genitore
-        await updateDoc(doc(db, 'players', playerId), {
-            parentPhone: cleanPhone,
-            parentId: parentDocId // Collega direttamente l'UID del genitore
-        });
-
-        // 5. (Opzionale) Aggiorna anche il genitore aggiungendo il figlio nel suo array 'childIds'
-        const parentRef = doc(db, 'users', parentDocId);
-        // Usiamo arrayUnion per aggiungere il playerId senza duplicarlo
-        await updateDoc(parentRef, {
-            childIds: arrayUnion(playerId)
-        });
-
-        console.log("Associazione avvenuta con successo tra giocatore e genitore!");
-        alert("Genitore associato con successo al giocatore!");
-
-    } catch (err) {
-        console.error("Errore durante l'associazione:", err);
-        alert("Errore nell'associazione: " + err.message);
-    }
-}
+	// Funzione di utilità per pulire e normalizzare il numero di telefono
+	function normalizePhoneNumber(phone) {
+	    if (!phone) return '';
+	    // Rimuove tutti gli spazi, trattini, parentesi ecc.
+	    let cleaned = String(phone).trim().replace(/[\s\-\(\)\.]/g, '');
+	    
+	    // Se inizia con +39, rimuoviamolo per avere una base comune (oppure gestiscilo in base alle tue preferenze di DB)
+	    // Qui normalizziamo rimuovendo il +39 iniziale se presente
+	    if (cleaned.startsWith('+39')) {
+	        cleaned = cleaned.substring(3);
+	    } else if (cleaned.startsWith('39') && cleaned.length > 10) {
+	        // Gestione nel caso ci sia 39 senza il più ma con lunghezza da prefisso
+	        cleaned = cleaned.substring(2);
+	    }
+	    
+	    return cleaned;
+	}
+	
+	async function linkParentToPlayerByPhone(playerId, parentPhone) {
+	    try {
+	        // 1. Normalizza il numero inserito (es. da "+39 333 1234567" a "3331234567")
+	        const cleanPhone = normalizePhoneNumber(parentPhone);
+	
+	        if (!cleanPhone) {
+	            alert("Inserisci un numero di telefono valido.");
+	            return;
+	        }
+	
+	        // 2. Cerca nella collezione 'users' un utente con ruolo 'parent'
+	        // Nota: se nel database i numeri sono salvati con formati misti, 
+	        // l'ideale è confrontarli o assicurarsi che anche in fase di registrazione utente vengano normalizzati allo stesso modo.
+	        const usersRef = collection(db, 'users');
+	        const q = query(usersRef, where("role", "==", "parent"));
+	        const querySnapshot = await getDocs(q);
+	
+	        let parentDocId = null;
+	        let matchedPhone = cleanPhone;
+	
+	        // Iteriamo per trovare una corrispondenza pulita indipendentemente da come è formattato nel DB
+	        querySnapshot.forEach((docSnap) => {
+	            const userData = docSnap.data();
+	            const dbPhoneNormalized = normalizePhoneNumber(userData.phone);
+	            
+	            if (dbPhoneNormalized === cleanPhone) {
+	                parentDocId = docSnap.id;
+	                matchedPhone = userData.phone; // Mantiene il formato originale del db se preferisci
+	            }
+	        });
+	
+	        if (!parentDocId) {
+	            console.warn("Nessun genitore trovato con questo numero di telefono:", parentPhone);
+	            // Salva comunque il numero nella scheda del giocatore
+	            await updateDoc(doc(db, 'players', playerId), { parentPhone: parentPhone.trim() });
+	            alert("Nessun account genitore trovato con questo numero. Il numero è stato comunque salvato nella scheda giocatore.");
+	            return;
+	        }
+	
+	        // 3. Aggiorna la scheda del giocatore collegando l'ID del genitore
+	        await updateDoc(doc(db, 'players', playerId), {
+	            parentPhone: matchedPhone,
+	            parentId: parentDocId // Collega direttamente l'UID del genitore
+	        });
+	
+	        // 4. Aggiorna il genitore aggiungendo il figlio nel suo array 'childIds'
+	        const parentRef = doc(db, 'users', parentDocId);
+	        await updateDoc(parentRef, {
+	            childIds: arrayUnion(playerId)
+	        });
+	
+	        console.log("Associazione avvenuta con successo tra giocatore e genitore!");
+	        alert("Genitore associato con successo al giocatore!");
+	
+	    } catch (err) {
+	        console.error("Errore durante l'associazione:", err);
+	        alert("Errore nell'associazione: " + err.message);
+	    }
+	}
 
 async function exportPlayersToExcel() {
     if (typeof XLSX === 'undefined') {
