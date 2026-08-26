@@ -4,6 +4,46 @@
  * @author Massimiliano Nanni
  * @copyright © 2026 Spes Montesacro. Tutti i diritti riservati.
  */
+
+/* ==========================================================
+   SFONDO PERSONALIZZATO CON OVERLAY DI LEGGIBILITÀ (PORTALE/APP)
+   ========================================================== */
+#parent-portal-container {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Immagine di sfondo */
+#parent-portal-container::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image: url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80');
+    background-size: cover;
+    background-position: center;
+}
+
+/* Velo/Overlay scuro semitrasparente per preservare la leggibilità dei font */
+#parent-portal-container::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-color: rgba(3, 7, 18, 0.85); /* Tonalità scura profonda al 85% di opacità */
+    backdrop-filter: blur(2px); /* Leggero effetto sfocato moderno */
+}
+
+/* Assicura che tutto il contenuto interno stia sopra lo sfondo e l'overlay */
+#parent-portal-container > * {
+    position: relative;
+    z-index: 10;
+}
+
+
+/* ==========================================================
+   REGOLE DI STAMPA ESISTENTI
+   ========================================================== */
 @media print {
     @page {
         size: A4 portrait;
