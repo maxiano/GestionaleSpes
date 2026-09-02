@@ -42,7 +42,7 @@
 
 
 /* ==========================================================
-   REGOLE DI STAMPA ESISTENTI E AGGIORNATE
+   REGOLE DI STAMPA AGGIORNATE
    ========================================================== */
 @media print {
     @page {
@@ -78,23 +78,36 @@
     body:not(.print-roster) #tab-roster { display: none !important; }
     body:not(.print-monthly) #tab-monthly { display: none !important; }
     body:not(.print-callup) #tab-callup { display: none !important; }
-    body:not(.print-staff-attendance) #tab-staff-attendance { display: none !important; }
+    body:not(.print-staff-attendance):not(.print-staff-equipment) #tab-staff-attendance { display: none !important; }
 
     body.print-roster #tab-roster,
     body.print-monthly #tab-monthly,
     body.print-callup #tab-callup,
-    body.print-staff-attendance #tab-staff-attendance {
+    body.print-staff-attendance #tab-staff-attendance,
+    body.print-staff-equipment #tab-staff-attendance {
         display: block !important;
         width: 100% !important;
     }
 
-    /* Ottimizzazione specifica per la stampa del tab Presenze & Sostituzioni Staff */
+    /* Ottimizzazione specifica per la stampa delle Presenze & Sostituzioni Staff */
     body.print-staff-attendance #form-staff-attendance,
     body.print-staff-attendance button {
         display: none !important;
     }
 
     body.print-staff-attendance #tab-staff-attendance {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+
+    /* Ottimizzazione specifica per la stampa del Materiale Consegnato */
+    body.print-staff-equipment #form-staff-equipment,
+    body.print-staff-equipment button {
+        display: none !important;
+    }
+
+    body.print-staff-equipment #tab-staff-attendance {
         border: none !important;
         box-shadow: none !important;
         padding: 0 !important;
