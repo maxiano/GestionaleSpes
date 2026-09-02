@@ -417,6 +417,18 @@
             }
         });
 
+		// --- EVENTO PULSANTE GESTIONE ASSENZE STAFF ---
+
+		document.getElementById('nav-btn-attendance-staff').addEventListener('click', (e) => {
+			e.stopPropagation(); // Blocca altri eventi in ascolto sul click
+            if (currentUserProfile && currentUserProfile.role === 'admin') {
+                document.getElementById('navigation-tabs').classList.add('hidden');
+                document.getElementById('main-content-area').classList.remove('hidden');
+                switchTab('tab-parents');
+            }
+			
+		});
+
 		// EVENTO PULSANTE IMPORT GIOCATORI NELLA NAV BAR SUPERIORE (AGGIUNGI QUI)
         document.getElementById('nav-btn-import-players').addEventListener('click', (e) => {
 			e.stopPropagation(); // Blocca altri eventi in ascolto sul click
@@ -483,16 +495,7 @@
 
 
 
-		// --- EVENTO PULSANTE GESTIONE ASSENZE STAFF ---
 
-		const btnAttendanceStaff = document.getElementById('nav-btn-attendance-staff');
-        if (btnAttendanceStaff){
-			btnAttendanceStaff.addEventListener('click', (e) => {
-				if (currentUserProfile && currentUserProfile.role === 'admin') {
-                    
-                }
-			});
-		}
 		// --- EVENTI PULSANTI IMPORT / EXPORT NELLA NAV BAR ---
         // 1. Export Giocatori
         const btnExportPlayers = document.getElementById('nav-btn-export-players');
