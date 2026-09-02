@@ -788,53 +788,64 @@ window.loadStaffAttendanceList = async function() {
         // Ordina per data decrescente (più recente prima)
         attendances.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        container.innerHTML = attendances.map(item => {
+        let html = `
+            <div class="overflow-x-auto border border-slate-200 rounded-2xl bg-white shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900 text-white text-xs uppercase tracking-wider">
+                            <th class="p-3 font-bold">Data</th>
+                            <th class="p-3 font-bold">Tecnico</th>
+                            <th class="p-3 font-bold">Stato</th>
+                            <th class="p-3 font-bold">Sostituito da</th>
+                            <th class="p-3 font-bold">Note / Motivo</th>
+                            <th class="p-3 font-bold text-center print:hidden">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+        `;
+
+        attendances.forEach(item => {
             const coachName = usersMap[item.coachId] || 'Tecnico Sconosciuto';
-            const repName = item.replacementId ? (usersMap[item.replacementId] || 'Sostituto') : null;
+            const repName = item.replacementId ? (usersMap[item.replacementId] || 'Sostituto') : '-';
             const isPresent = item.status === 'Presente';
 
             const badgeClass = isPresent ?
                 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                 'bg-rose-50 text-rose-700 border-rose-200';
 
-            return `
-			                <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-			                    <div class="space-y-1">
-			                        <div class="flex items-center gap-2">
-			                            <span class="text-xs font-bold text-slate-500">📅 ${formatDateIT(item.date)}</span>
-			                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold border ${badgeClass}">
-			                                ${item.status}
-			                            </span>
-			                        </div>
-			                        <div class="text-xs font-bold text-slate-800">
-			                            👤 Tecnico: <span class="font-normal text-slate-600">${coachName}</span>
-			                        </div>
-			                        ${!isPresent && repName ? `
-			                            <div class="text-xs font-semibold text-amber-800">
-			                                🔄 Sostituito da: <span class="font-normal">${repName}</span>
-			                            </div>
-			                        ` : ''}
-			                        ${item.notes ? `
-			                            <div class="text-xs text-slate-500 italic">
-			                                💬 Note: "${item.notes}"
-			                            </div>
-			                        ` : ''}
-			                    </div>
-			                    <div>
-			                        <button onclick="window.deleteStaffAttendance('${item.id}')" class="text-rose-600 hover:text-rose-800 text-xs font-bold px-3 py-1.5 bg-white border border-rose-200 rounded-lg shadow-sm transition">
-			                            🗑️ Elimina
-			                        </button>
-			                    </div>
-			                </div>
-			            `;
-        }).join('');
+            html += `
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="p-3 whitespace-nowrap font-bold text-slate-600">📅 ${typeof formatDateIT === 'function' ? formatDateIT(item.date) : item.date}</td>
+                    <td class="p-3 font-bold text-slate-900">👤 ${coachName}</td>
+                    <td class="p-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold border ${badgeClass}">
+                            ${item.status}
+                        </span>
+                    </td>
+                    <td class="p-3 font-medium text-amber-800">${!isPresent && repName !== '-' ? `🔄 ${repName}` : '-'}</td>
+                    <td class="p-3 text-slate-500 italic">${item.notes ? `"${item.notes}"` : '-'}</td>
+                    <td class="p-3 text-center print:hidden">
+                        <button onclick="window.deleteStaffAttendance('${item.id}')" class="text-rose-600 hover:text-rose-800 text-xs font-bold px-3 py-1.5 bg-white border border-rose-200 rounded-lg shadow-sm transition">
+                            🗑️ Elimina
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        container.innerHTML = html;
 
     } catch (error) {
         console.error("Errore caricamento storico presenze:", error);
         container.innerHTML = '<div class="text-xs text-rose-500 p-4 text-center">Errore nel caricamento dello storico.</div>';
     }
 };
-
 // Eliminazione singola voce dallo storico presenze staff
 window.deleteStaffAttendance = async function(id) {
     if (!confirm("Sei sicuro di voler eliminare questa registrazione?")) return;
