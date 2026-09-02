@@ -3471,6 +3471,11 @@ function isValidDate(dateString) {
     const date = new Date(dateString);
     return !isNaN(date.getTime());
 }
+// Funzione per stampare il report delle presenze e sostituzioni dello staff
+window.printStaffAttendanceReport = function() {
+    // Prima di stampare, assicurati che la finestra si prepari correttamente
+    window.print();
+};
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
