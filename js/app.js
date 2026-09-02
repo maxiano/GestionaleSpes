@@ -116,75 +116,88 @@
       
 
 
-		function switchTab(tabId) {
-            // Definiamo quali sono le tab "amministrative" che non richiedono squadra
-            const adminTabs = ['tab-staff', 'tab-parents','tab-staff-attendance'];
-            const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
-        
-            // Controllo permessi per tab protette
-            if (adminTabs.includes(tabId) && !isAdmin) {
-                return alert("Accesso non autorizzato.");
-            }
-        
-            // Controllo Squadra: solo se NON è una tab amministrativa, blocca se manca activeTeamId
-            if (!adminTabs.includes(tabId)) {
-                if (!activeTeamId || activeTeamId === "SELECT_TEAM" || activeTeamId === "ALL") {
-                    alert("⚠️ Attenzione: Devi prima selezionare una Categoria / Gruppo!");
-                    return;
-                }
-            }
-
-            // 1. Nascondi tutti i tab
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-
-            // 2. Gestisci lo stile standard di tutti gli altri bottoni normali (escludendo staff e parents)
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                // Assegna lo stile standard solo ai bottoni che non gestiamo altrove
-                if (btn.id !== 'btn-tab-staff' && btn.id !== 'btn-tab-parents' && btn.id != 'btn-tab-staff-attendance') {
-                    btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
-                }
-            });
-
-            // 3. Mostra il tab selezionato
-            const targetTab = document.getElementById(tabId);
-            if (targetTab) {
-                targetTab.classList.remove('hidden');
-            }
-
-            // 4. Evidenzia il bottone attivo o gestisci le tab amministrative senza bottone interno
-            if (tabId === 'tab-staff') {
-                // Assicurati che il bottone interno resti nascosto e aggiorna l'etichetta
-                const btnStaff = document.getElementById('btn-tab-staff');
-                if (btnStaff) btnStaff.classList.add('hidden');
-                
-                const activeLabel = document.getElementById('current-active-tab-label');
-                if (activeLabel) activeLabel.innerText = 'Staff';
-            } else if (tabId === 'tab-parents') {
-                // Assicurati che il bottone interno resti nascosto e aggiorna l'etichetta
-                const btnParents = document.getElementById('btn-tab-parents');
-                if (btnParents) btnParents.classList.add('hidden');
-                
-                const activeLabel = document.getElementById('current-active-tab-label');
-                if (activeLabel) activeLabel.innerText = 'Genitori';
-            } else {
-                // Gestione normale per le tab delle squadre
-                const activeBtn = document.getElementById(`btn-${tabId}`);
-                if (activeBtn) {
-                    activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
-                    
-                    const activeLabel = document.getElementById('current-active-tab-label');
-                    if (activeLabel) {
-                        activeLabel.innerText = activeBtn.innerText.trim();
-                    }
-                }
-            }
-
-            // 5. Caricamenti specifici per tab
-            if (tabId === 'tab-callup') loadCallups();
-            if (tabId === 'tab-staff') loadStaffList();
-            if (tabId === 'tab-parents') loadParentsList();
-            if (tabId === 'tab-tournaments') renderTournaments();
+	function switchTab(tabId) {
+    // Definiamo quali sono le tab "amministrative" che non richiedono squadra
+    const adminTabs = ['tab-staff', 'tab-parents', 'tab-staff-attendance'];
+    const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
+  
+    // Controllo permessi per tab protette
+    if (adminTabs.includes(tabId) && !isAdmin) {
+        return alert("Accesso non autorizzato.");
+    }
+  
+    // Controllo Squadra: solo se NON è una tab amministrativa, blocca se manca activeTeamId
+    if (!adminTabs.includes(tabId)) {
+        if (!activeTeamId || activeTeamId === "SELECT_TEAM" || activeTeamId === "ALL") {
+            alert("⚠️ Attenzione: Devi prima selezionare una Categoria / Gruppo!");
+            return;
         }
+    }
+
+    // 1. Nascondi tutti i tab
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+    // 2. Gestisci lo stile standard di tutti gli altri bottoni normali (escludendo staff, parents e staff-attendance)
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.id !== 'btn-tab-staff' && btn.id !== 'btn-tab-parents' && btn.id !== 'btn-tab-staff-attendance' && btn.id !== 'nav-btn-attendance-staff') {
+            btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
+        }
+    });
+
+    // 3. Mostra il tab selezionato
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) {
+        targetTab.classList.remove('hidden');
+    }
+
+    // 4. Evidenzia il bottone attivo o gestisci le tab amministrative senza bottone interno
+    if (tabId === 'tab-staff') {
+        const btnStaff = document.getElementById('btn-tab-staff');
+        if (btnStaff) btnStaff.classList.add('hidden');
+        
+        const activeLabel = document.getElementById('current-active-tab-label');
+        if (activeLabel) activeLabel.innerText = 'Staff';
+    } else if (tabId === 'tab-parents') {
+        const btnParents = document.getElementById('btn-tab-parents');
+        if (btnParents) btnParents.classList.add('hidden');
+        
+        const activeLabel = document.getElementById('current-active-tab-label');
+        if (activeLabel) activeLabel.innerText = 'Genitori';
+    } else if (tabId === 'tab-staff-attendance') {
+        const btnStaffAtt = document.getElementById('btn-tab-staff-attendance');
+        if (btnStaffAtt) btnStaffAtt.classList.add('hidden');
+        
+        const activeLabel = document.getElementById('current-active-tab-label');
+        if (activeLabel) activeLabel.innerText = 'Presenze Staff';
+    } else {
+        // Gestione normale per le tab delle squadre
+        const activeBtn = document.getElementById(`btn-${tabId}`);
+        if (activeBtn) {
+            activeBtn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm transition text-white bg-black shadow";
+            
+            const activeLabel = document.getElementById('current-active-tab-label');
+            if (activeLabel) {
+                activeLabel.innerText = activeBtn.innerText.trim();
+            }
+        }
+    }
+
+    // 5. Caricamenti specifici per tab
+    if (tabId === 'tab-callup') loadCallups();
+    if (tabId === 'tab-staff') loadStaffList();
+    if (tabId === 'tab-parents') loadParentsList();
+    if (tabId === 'tab-tournaments') renderTournaments();
+    if (tabId === 'tab-staff-attendance') {
+        if (typeof populateStaffSelects === 'function') populateStaffSelects();
+        if (typeof loadStaffAttendanceList === 'function') loadStaffAttendanceList();
+        
+        // Imposta la data odierna di default nel form se vuota
+        const attDateInput = document.getElementById('att-date');
+        if (attDateInput && !attDateInput.value) {
+            attDateInput.value = new Date().toISOString().split('T')[0];
+        }
+    }
+}
         // CONFIGURAZIONE SELETTORE SQUADRE
 		function setupTeamSelectorUI() {
             const selectorContainer = document.getElementById('admin-team-selector');
