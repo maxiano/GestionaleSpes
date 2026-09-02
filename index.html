@@ -629,79 +629,73 @@
                 </div>
             </div>
 
-            <!-- TAB 6: ESCLUSIVA ADMIN - PRESENZE E SOSTITUZIONI STAFF -->
-            <div id="tab-staff-attendance" class="tab-content hidden print:hidden bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
-                <div class="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h3 class="text-lg font-black text-slate-900 tracking-tight">📌 Presenze & Sostituzioni Tecnici</h3>
-                        <p class="text-xs text-slate-500 font-medium mt-0.5">Monitoraggio presenze in campo, assenze e cambi/sostituzioni dello staff tecnico.</p>
-                    </div>
-                    <!-- Contatore rapido o badge -->
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold">
-                                        🔒 Area riservata Admin
-                                    </span>
-                </div>
+<!-- TAB: PRESENZE E SOSTITUZIONI STAFF -->
+<div id="tab-staff-attendance" class="tab-content hidden print:hidden bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+    <div class="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="text-lg font-black text-slate-900 tracking-tight">📌 Presenze & Sostituzioni Tecnici</h3>
+            <p class="text-xs text-slate-500 font-medium mt-0.5">Monitoraggio presenze in campo, assenze e cambi/sostituzioni dello staff tecnico.</p>
+        </div>
+    </div>
 
-                <!-- FORM INSERIMENTO PRESENZA / ASSENZA / SOSTITUZIONE -->
-                <form id="form-staff-attendance" class="bg-slate-50 p-5 border border-slate-200 rounded-2xl space-y-4">
-                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">✍️ Registra Evento / Sostituzione</h4>
+    <!-- FORM INSERIMENTO PRESENZA / ASSENZA / SOSTITUZIONE -->
+    <form id="form-staff-attendance" class="bg-slate-50 p-5 border border-slate-200 rounded-2xl space-y-4">
+        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">✍️ Registra Evento / Sostituzione</h4>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <!-- Data -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Data *</label>
-                            <input type="date" id="att-date" required class="w-full bg-white border border-slate-200 p-3 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                        </div>
-
-                        <!-- Tecnico Interessato -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tecnico *</label>
-                            <select id="att-coach" required class="w-full bg-white border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer">
-                                <option value="">Seleziona tecnico...</option>
-                                <!-- Popolato dinamicamente da JS con l'elenco dello staff -->
-                            </select>
-                        </div>
-
-                        <!-- Stato (Presente / Assente) -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Stato *</label>
-                            <select id="att-status" onchange="toggleReplacementField()" required class="w-full bg-white border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer">
-                                <option value="Presente">Presente</option>
-                                <option value="Assente">Assente</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Campo Sostituto (Visibile solo se viene selezionato "Assente") -->
-                    <div id="replacement-container" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 bg-amber-50/50 p-4 rounded-xl border border-amber-200/60">
-                        <div>
-                            <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1.5">🔄 Sostituito da (Coach di riserva)</label>
-                            <select id="att-replacement" class="w-full bg-white border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none cursor-pointer">
-                                <option value="">Nessun sostituto / Campo scoperto</option>
-                                <!-- Popolato dinamicamente da JS -->
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1.5">Note / Motivo Assenza</label>
-                            <input type="text" id="att-notes" placeholder="es. Motivi personali, influenza..." class="w-full bg-white border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none">
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end pt-1">
-                        <button type="submit" class="bg-slate-900 hover:bg-emerald-600 text-white font-bold text-xs px-5 py-3 rounded-xl tracking-wide uppercase transition-all duration-300 shadow-md active:scale-95">
-                            💾 Salva Registrazione
-                        </button>
-                    </div>
-                </form>
-
-                <!-- STORICO REGISTRAZIONI / ASSENZE -->
-                <div>
-                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">📋 Storico Presenze e Sostituzioni</h4>
-                    <div id="attendance-list-container" class="space-y-3">
-                        <!-- Caricato via JS -->
-                    </div>
-                </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Data -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Data *</label>
+                <input type="date" id="att-date" required class="w-full bg-white border border-slate-200 p-3 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
             </div>
+
+            <!-- Tecnico Interessato -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tecnico *</label>
+                <select id="att-coach" required class="w-full bg-white border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer">
+                    <option value="">Seleziona tecnico...</option>
+                </select>
+            </div>
+
+            <!-- Stato (Presente / Assente) -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Stato *</label>
+                <select id="att-status" onchange="toggleReplacementField()" required class="w-full bg-white border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer">
+                    <option value="Presente">Presente</option>
+                    <option value="Assente">Assente</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Campo Sostituto (Visibile solo se viene selezionato "Assente") -->
+        <div id="replacement-container" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 bg-amber-50/50 p-4 rounded-xl border border-amber-200/60">
+            <div>
+                <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1.5">🔄 Sostituito da (Coach di riserva)</label>
+                <select id="att-replacement" class="w-full bg-white border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none cursor-pointer">
+                    <option value="">Nessun sostituto / Campo scoperto</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1.5">Note / Motivo Assenza</label>
+                <input type="text" id="att-notes" placeholder="es. Motivi personali, influenza..." class="w-full bg-white border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none">
+            </div>
+        </div>
+
+        <div class="flex justify-end pt-1">
+            <button type="submit" class="bg-slate-900 hover:bg-emerald-600 text-white font-bold text-xs px-5 py-3 rounded-xl tracking-wide uppercase transition-all duration-300 shadow-md active:scale-95">
+                💾 Salva Registrazione
+            </button>
+        </div>
+    </form>
+
+    <!-- STORICO REGISTRAZIONI / ASSENZE -->
+    <div>
+        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">📋 Storico Presenze e Sostituzioni</h4>
+        <div id="attendance-list-container" class="space-y-3">
+            <!-- Caricato via JS -->
+        </div>
+    </div>
+</div>
 
             <!-- TAB 7 GESTIONE GENITORI -->
             <div id="tab-parents" class="tab-content hidden print:hidden bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6 mt-6">
