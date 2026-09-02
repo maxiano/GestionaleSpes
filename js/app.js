@@ -204,14 +204,18 @@ function switchTab(tabId) {
     if (tabId === 'tab-staff') loadStaffList();
     if (tabId === 'tab-parents') loadParentsList();
     if (tabId === 'tab-tournaments') renderTournaments();
-    if (tabId === 'tab-staff-attendance') {
+  	if (tabId === 'tab-staff-attendance') {
         if (typeof populateStaffSelects === 'function') populateStaffSelects();
         if (typeof loadStaffAttendanceList === 'function') loadStaffAttendanceList();
-
-        // Imposta la data odierna di default nel form se vuota
+        if (typeof loadStaffEquipmentList === 'function') loadStaffEquipmentList(); // <--- Aggiunto qui
+        
         const attDateInput = document.getElementById('att-date');
         if (attDateInput && !attDateInput.value) {
             attDateInput.value = new Date().toISOString().split('T')[0];
+        }
+        const eqDateInput = document.getElementById('eq-date');
+        if (eqDateInput && !eqDateInput.value) {
+            eqDateInput.value = new Date().toISOString().split('T')[0];
         }
     }
 }
@@ -857,6 +861,152 @@ window.deleteStaffAttendance = async function(id) {
         console.error("Errore eliminazione record presenza:", error);
         alert("Impossibile eliminare il record.");
     }
+};
+
+// GESTIONE MATERIALI TECNICI ////
+// Salvataggio Assegnazione Materiale
+window.saveStaffEquipment = async function(event) {
+    event.preventDefault();
+
+    const coachId = document.getElementById('eq-coach-id').value;
+    const itemDescription = document.getElementById('eq-item-desc').value.trim();
+    const date = document.getElementById('eq-date').value;
+
+    if (!coachId || !itemDescription || !date) {
+        alert("Compila tutti i campi obbligatori.");
+        return;
+    }
+
+    try {
+        await addDoc(collection(db, 'staff_equipment'), {
+            coachId,
+            itemDescription,
+            date,
+            createdAt: new Date().toISOString()
+        });
+
+        // Reset form e ricarica lista
+        document.getElementById('form-staff-equipment').reset();
+        document.getElementById('eq-date').value = new Date().toISOString().split('T')[0];
+        loadStaffEquipmentList();
+        
+        alert("✅ Materiale registrato con successo!");
+    } catch (error) {
+        console.error("Errore salvataggio materiale:", error);
+        alert("Errore durante il salvataggio.");
+    }
+};
+
+// Caricamento Storico Materiale
+window.loadStaffEquipmentList = async function() {
+    const container = document.getElementById('equipment-list-container');
+    if (!container) return;
+
+    container.innerHTML = '<div class="text-xs text-slate-400 p-4 text-center">Caricamento inventario materiale...</div>';
+
+    try {
+        const [equipmentSnap, usersSnap] = await Promise.all([
+            getDocs(collection(db, 'staff_equipment')),
+            getDocs(collection(db, 'users'))
+        ]);
+
+        const usersMap = {};
+        usersSnap.docs.forEach(docSnap => {
+            usersMap[docSnap.id] = docSnap.data().name || docSnap.data().email || 'Utente';
+        });
+
+        // Popola anche la select dei tecnici se vuota o non aggiornata
+        const coachSelect = document.getElementById('eq-coach-id');
+        if (coachSelect) {
+            let optionsHtml = '<option value="">Seleziona tecnico...</option>';
+            usersSnap.docs.forEach(docSnap => {
+                const data = docSnap.data();
+                // Filtra eventualmente per ruolo tecnico se necessario, o mostra tutti gli utenti
+                optionsHtml += `<option value="${docSnap.id}">${data.name || data.email}</option>`;
+            });
+            coachSelect.innerHTML = optionsHtml;
+        }
+
+        if (equipmentSnap.empty) {
+            container.innerHTML = '<div class="text-xs text-slate-500 italic p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">Nessun materiale registrato.</div>';
+            return;
+        }
+
+        let equipmentList = equipmentSnap.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+        }));
+
+        equipmentList.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        let html = `
+            <div class="overflow-x-auto border border-slate-200 rounded-2xl bg-white shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900 text-white text-xs uppercase tracking-wider">
+                            <th class="p-3 font-bold">Data Consegna</th>
+                            <th class="p-3 font-bold">Tecnico Assegnatario</th>
+                            <th class="p-3 font-bold">Materiale / Dotazione</th>
+                            <th class="p-3 font-bold text-center print:hidden">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+        `;
+
+        equipmentList.item = equipmentList.forEach(item => {
+            // Piccolo fix di scope per ilforEach sotto
+        });
+
+        equipmentList.forEach(item => {
+            const coachName = usersMap[item.coachId] || 'Tecnico Sconosciuto';
+
+            html += `
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="p-3 whitespace-nowrap font-bold text-slate-600">📅 ${typeof formatDateIT === 'function' ? formatDateIT(item.date) : item.date}</td>
+                    <td class="p-3 font-bold text-slate-900">👤 ${coachName}</td>
+                    <td class="p-3 text-slate-800">${item.itemDescription}</td>
+                    <td class="p-3 text-center print:hidden">
+                        <button onclick="window.deleteStaffEquipment('${item.id}')" class="text-rose-600 hover:text-rose-800 text-xs font-bold px-3 py-1.5 bg-white border border-rose-200 rounded-lg shadow-sm transition">
+                            🗑️ Restituito / Elimina
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error("Errore caricamento materiale:", error);
+        container.innerHTML = '<div class="text-xs text-rose-500 p-4 text-center">Errore nel caricamento del materiale.</div>';
+    }
+};
+
+// Funzione di eliminazione/restituzione materiale
+window.deleteStaffEquipment = async function(id) {
+    if (!confirm("Confermi la rimozione o la restituzione di questo materiale?")) return;
+    try {
+        await deleteDoc(doc(db, 'staff_equipment', id));
+        loadStaffEquipmentList();
+    } catch (error) {
+        console.error("Errore eliminazione materiale:", error);
+        alert("Impossibile eliminare il record.");
+    }
+};
+
+// Funzione di stampa dedicata al report materiale
+window.printStaffEquipmentReport = function() {
+    document.body.classList.add('print-staff-equipment');
+    window.print();
+    setTimeout(() => {
+        document.body.classList.remove('print-staff-equipment');
+    }, 500);
 };
 
 // GESTIONE CREAZIONE ED ELIMINAZIONE UTENTI GENITORI (SOLO ADMIN)
