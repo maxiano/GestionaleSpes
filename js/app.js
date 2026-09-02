@@ -200,6 +200,10 @@
                 document.getElementById('nav-btn-staff').classList.remove('hidden');
                 document.getElementById('nav-btn-parents').classList.remove('hidden');
 
+				//Mostra il pulsante del form assenze staff
+				const btnAttendanceStaff = document.getElementById('nav-btn-attendance-staff');
+                if (btnAttendanceStaff) btnAttendanceStaff.classList.remove('hidden');
+
                 // Mostra i pulsanti di import/export per l'admin
                 const btnImportPlayers = document.getElementById('nav-btn-import-players');
                 if (btnImportPlayers) btnImportPlayers.classList.remove('hidden');
@@ -248,6 +252,9 @@
                 // Nascondi i pulsanti di import/export ai coach
                 const btnImportPlayers = document.getElementById('nav-btn-import-players');
                 if (btnImportPlayers) btnImportPlayers.classList.add('hidden');
+
+				const btnAttendanceStaff = document.getElementById('nav-btn-attendance-staff');
+                if (btnAttendanceStaff) btnAttendanceStaff.classList.add('hidden');
 
                 const btnExportPlayers = document.getElementById('nav-btn-export-players');
                 if (btnExportPlayers) btnExportPlayers.classList.add('hidden');
@@ -473,8 +480,20 @@
                 downloadDatabaseBackup();
             }
         });
-		// --- EVENTI PULSANTI IMPORT / EXPORT NELLA NAV BAR ---
 
+
+
+		// --- EVENTO PULSANTE GESTIONE ASSENZE STAFF ---
+
+		const btnAttendanceStaff = document.getElementById('nav-btn-attendance-staff');
+        if (btnAttendanceStaff){
+			btnAttendanceStaff.addEventListener('click', (e) => {
+				if (currentUserProfile && currentUserProfile.role === 'admin') {
+                    
+                }
+			});
+		}
+		// --- EVENTI PULSANTI IMPORT / EXPORT NELLA NAV BAR ---
         // 1. Export Giocatori
         const btnExportPlayers = document.getElementById('nav-btn-export-players');
         if (btnExportPlayers) {
