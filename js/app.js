@@ -3484,8 +3484,12 @@ function isValidDate(dateString) {
 }
 // Funzione per stampare il report delle presenze e sostituzioni dello staff
 window.printStaffAttendanceReport = function() {
-    // Prima di stampare, assicurati che la finestra si prepari correttamente
+    document.body.classList.add('print-staff-attendance');
     window.print();
+    // Rimuovi la classe subito dopo la stampa per ripristinare lo stato normale
+    setTimeout(() => {
+        document.body.classList.remove('print-staff-attendance');
+    }, 500);
 };
 
 if ('serviceWorker' in navigator) {
