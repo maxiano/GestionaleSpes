@@ -618,6 +618,204 @@
             }
         });
 
+			// ==========================================
+			// GESTIONE PRESENZE & SOSTITUZIONI STAFF (UI & DB)
+			// ==========================================
+			
+			// Mostra o nasconde il container di sostituzione in base allo stato (Presente / Assente)
+			window.toggleReplacementField = function() {
+			    const statusSelect = document.getElementById('att-status');
+			    const container = document.getElementById('replacement-container');
+			    
+			    if (!statusSelect || !container) return;
+			
+			    if (statusSelect.value === 'Assente') {
+			        container.classList.remove('hidden');
+			    } else {
+			        container.classList.add('hidden');
+			        // Pulisce i campi se torna a "Presente"
+			        const repSelect = document.getElementById('att-replacement');
+			        const notesInput = document.getElementById('att-notes');
+			        if (repSelect) repSelect.value = '';
+			        if (notesInput) notesInput.value = '';
+			    }
+			};
+			
+			// Popola le select dei tecnici (sia per il tecnico principale che per il sostituto)
+			window.populateStaffSelects = async function() {
+			    const coachSelect = document.getElementById('att-coach');
+			    const replacementSelect = document.getElementById('att-replacement');
+			    
+			    if (!coachSelect && !replacementSelect) return;
+			
+			    try {
+			        const usersSnapshot = await getDocs(collection(db, 'users'));
+			        let staffList = [];
+			
+			        usersSnapshot.docs.forEach(docSnap => {
+			            const userData = docSnap.data();
+			            // Filtra per utenti che sono coach o admin (o staff)
+			            const role = (userData.role || '').toLowerCase();
+			            if (role === 'coach' || role === 'admin' || role === 'staff') {
+			                staffList.push({
+			                    id: docSnap.id,
+			                    name: userData.name || userData.email || 'Tecnico senza nome'
+			                });
+			            }
+			        });
+			
+			        // Ordinamento alfabetico per nome
+			        staffList.sort((a, b) => a.name.localeCompare(b.name));
+			
+			        const optionsHTML = '<option value="">Seleziona tecnico...</option>' + 
+			            staffList.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+			
+			        if (coachSelect) coachSelect.innerHTML = optionsHTML;
+			        
+			        const replacementOptionsHTML = '<option value="">Nessun sostituto / Campo scoperto</option>' + 
+			            staffList.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+			            
+			        if (replacementSelect) replacementSelect.innerHTML = replacementOptionsHTML;
+			
+			    } catch (error) {
+			        console.error("Errore nel caricamento dello staff:", error);
+			    }
+			};
+			
+			// Gestione submit del form Presenze Staff
+			document.addEventListener('DOMContentLoaded', () => {
+			    const staffAttendanceForm = document.getElementById('form-staff-attendance');
+			    if (staffAttendanceForm) {
+			        staffAttendanceForm.addEventListener('submit', async function(e) {
+			            e.preventDefault();
+			
+			            const date = document.getElementById('att-date').value;
+			            const coachId = document.getElementById('att-coach').value;
+			            const status = document.getElementById('att-status').value;
+			            const replacementId = document.getElementById('att-replacement') ? document.getElementById('att-replacement').value : '';
+			            const notes = document.getElementById('att-notes') ? document.getElementById('att-notes').value.trim() : '';
+			
+			            if (!date || !coachId || !status) {
+			                return alert("Compila tutti i campi obbligatori (*).");
+			            }
+			
+			            try {
+			                const payload = {
+			                    date: date,
+			                    coachId: coachId,
+			                    status: status,
+			                    replacementId: replacementId || null,
+			                    notes: notes,
+			                    createdAt: new Date()
+			                };
+			
+			                await addDoc(collection(db, 'staff_attendances'), payload);
+			                
+			                alert("Registrazione presenza salvata con successo!");
+			                staffAttendanceForm.reset();
+			                window.toggleReplacementField(); // Nasconde il box sostituto se visibile
+			                window.loadStaffAttendanceList(); // Ricarica lo storico
+			
+			            } catch (error) {
+			                console.error("Errore salvataggio presenza staff:", error);
+			                alert("Errore durante il salvataggio: " + error.message);
+			            }
+			        });
+			    }
+			});
+			
+			// Caricamento dello Storico Presenze e Sostituzioni Staff
+			window.loadStaffAttendanceList = async function() {
+			    const container = document.getElementById('attendance-list-container');
+			    if (!container) return;
+			
+			    container.innerHTML = '<div class="text-xs text-slate-400 p-4 text-center">Caricamento storico in corso...</div>';
+			
+			    try {
+			        // Recupera utenti e presenze in parallelo per mappare i nomi
+			        const [attendancesSnap, usersSnap] = await Promise.all([
+			            getDocs(collection(db, 'staff_attendances')),
+			            getDocs(collection(db, 'users'))
+			        ]);
+			
+			        const usersMap = {};
+			        usersSnap.docs.forEach(docSnap => {
+			            usersMap[docSnap.id] = docSnap.data().name || docSnap.data().email || 'Utente';
+			        });
+			
+			        if (attendancesSnap.empty) {
+			            container.innerHTML = '<div class="text-xs text-slate-500 italic p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">Nessuna registrazione presente nello storico.</div>';
+			            return;
+			        }
+			
+			        let attendances = attendancesSnap.docs.map(docSnap => ({
+			            id: docSnap.id,
+			            ...docSnap.data()
+			        }));
+			
+			        // Ordina per data decrescente (più recente prima)
+			        attendances.sort((a, b) => new Date(b.date) - new Date(a.date));
+			
+			        container.innerHTML = attendances.map(item => {
+			            const coachName = usersMap[item.coachId] || 'Tecnico Sconosciuto';
+			            const repName = item.replacementId ? (usersMap[item.replacementId] || 'Sostituto') : null;
+			            const isPresent = item.status === 'Presente';
+			            
+			            const badgeClass = isPresent 
+			                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+			                : 'bg-rose-50 text-rose-700 border-rose-200';
+			
+			            return `
+			                <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+			                    <div class="space-y-1">
+			                        <div class="flex items-center gap-2">
+			                            <span class="text-xs font-bold text-slate-500">📅 ${formatDateIT(item.date)}</span>
+			                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold border ${badgeClass}">
+			                                ${item.status}
+			                            </span>
+			                        </div>
+			                        <div class="text-xs font-bold text-slate-800">
+			                            👤 Tecnico: <span class="font-normal text-slate-600">${coachName}</span>
+			                        </div>
+			                        ${!isPresent && repName ? `
+			                            <div class="text-xs font-semibold text-amber-800">
+			                                🔄 Sostituito da: <span class="font-normal">${repName}</span>
+			                            </div>
+			                        ` : ''}
+			                        ${item.notes ? `
+			                            <div class="text-xs text-slate-500 italic">
+			                                💬 Note: "${item.notes}"
+			                            </div>
+			                        ` : ''}
+			                    </div>
+			                    <div>
+			                        <button onclick="window.deleteStaffAttendance('${item.id}')" class="text-rose-600 hover:text-rose-800 text-xs font-bold px-3 py-1.5 bg-white border border-rose-200 rounded-lg shadow-sm transition">
+			                            🗑️ Elimina
+			                        </button>
+			                    </div>
+			                </div>
+			            `;
+			        }).join('');
+			
+			    } catch (error) {
+			        console.error("Errore caricamento storico presenze:", error);
+			        container.innerHTML = '<div class="text-xs text-rose-500 p-4 text-center">Errore nel caricamento dello storico.</div>';
+			    }
+			};
+			
+			// Eliminazione singola voce dallo storico presenze staff
+			window.deleteStaffAttendance = async function(id) {
+			    if (!confirm("Sei sicuro di voler eliminare questa registrazione?")) return;
+			
+			    try {
+			        await deleteDoc(doc(db, 'staff_attendances', id));
+			        window.loadStaffAttendanceList();
+			    } catch (error) {
+			        console.error("Errore eliminazione record presenza:", error);
+			        alert("Impossibile eliminare il record.");
+			    }
+			};
+
 		// GESTIONE CREAZIONE ED ELIMINAZIONE UTENTI GENITORI (SOLO ADMIN)
 		document.getElementById('form-create-parent').addEventListener('submit', async (e) => {
 		    e.preventDefault();
