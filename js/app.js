@@ -118,7 +118,7 @@
 
 		function switchTab(tabId) {
             // Definiamo quali sono le tab "amministrative" che non richiedono squadra
-            const adminTabs = ['tab-staff', 'tab-parents'];
+            const adminTabs = ['tab-staff', 'tab-parents','tab-staff-attendance'];
             const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
         
             // Controllo permessi per tab protette
@@ -140,7 +140,7 @@
             // 2. Gestisci lo stile standard di tutti gli altri bottoni normali (escludendo staff e parents)
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 // Assegna lo stile standard solo ai bottoni che non gestiamo altrove
-                if (btn.id !== 'btn-tab-staff' && btn.id !== 'btn-tab-parents') {
+                if (btn.id !== 'btn-tab-staff' && btn.id !== 'btn-tab-parents' && btn.id != 'btn-tab-staff-attendance') {
                     btn.className = "tab-btn flex-1 py-2 px-3 text-center rounded-md font-bold text-xs md:text-sm text-gray-600 hover:bg-gray-100 transition";
                 }
             });
@@ -424,7 +424,7 @@
             if (currentUserProfile && currentUserProfile.role === 'admin') {
                 document.getElementById('navigation-tabs').classList.add('hidden');
                 document.getElementById('main-content-area').classList.remove('hidden');
-                switchTab('tab-parents');
+                switchTab('tab-staff-attendance');
             }
 			
 		});
