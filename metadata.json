@@ -1,0 +1,6 @@
+{
+  "name": "Spes Montesacro - Gestionale Tecnico",
+  "description": "Gestionale tecnico per scuola calcio Spes Montesacro: rosa giocatori, presenze allenamenti, registro mensile, convocazioni gare, tornei, gestione staff e portale genitori.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
