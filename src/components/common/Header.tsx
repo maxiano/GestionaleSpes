@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../../types';
+import { PWAInstallButton } from '../pwa/PWAInstallButton';
 import {
   KeyRound,
   Settings,
@@ -46,8 +47,13 @@ export const Header: React.FC<HeaderProps> = ({
     <nav className="bg-slate-950/90 backdrop-blur-xl text-white px-4 sm:px-6 py-3 flex justify-between items-center shadow-xl shadow-black/30 border-b border-slate-800 sticky top-0 z-50 print:hidden">
       {/* Brand & User info */}
       <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-gradient-to-tr from-slate-900 via-slate-800 to-emerald-900 rounded-xl flex items-center justify-center p-1.5 shadow-md ring-1 ring-emerald-500/30 overflow-hidden">
-          <span className="text-xl">⚽</span>
+        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1 shadow-md ring-1 ring-emerald-500/30 overflow-hidden">
+          <img
+            src="./icon-192.png"
+            alt="Spes Montesacro"
+            className="w-full h-full object-contain"
+            referrerPolicy="no-referrer"
+          />
         </div>
         <div>
           <h1 className="text-sm sm:text-base font-black tracking-wider uppercase bg-gradient-to-r from-white via-slate-100 to-emerald-300 bg-clip-text text-transparent">
@@ -68,6 +74,8 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Action buttons */}
       <div className="flex items-center space-x-2">
+        <PWAInstallButton />
+
         {userProfile && (
           <button
             id="nav-btn-password"

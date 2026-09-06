@@ -6,7 +6,7 @@ import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
-    base: '/',
+    base: process.env.GITHUB_PAGES === 'true' ? '/GestionaleSpes/' : '/',
     plugins: [
       react(),
       tailwindcss(),

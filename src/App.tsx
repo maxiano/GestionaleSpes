@@ -30,6 +30,7 @@ import { StaffTab } from './components/staff/StaffTab';
 import { StaffAttendanceTab } from './components/staff/StaffAttendanceTab';
 import { ParentsTab } from './components/parents/ParentsTab';
 import { ParentPortal } from './components/parent-portal/ParentPortal';
+import { OfflineIndicator } from './components/pwa/OfflineIndicator';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -411,6 +412,9 @@ export default function App() {
       <footer className="text-center py-6 text-xs text-slate-500 print:hidden border-t border-slate-200 mt-8">
         &copy; 2026 Spes Montesacro - Tutti i diritti riservati. Sviluppato per la gestione tecnica scuola calcio.
       </footer>
+
+      {/* PWA Offline notification */}
+      <OfflineIndicator />
     </div>
   );
 }
