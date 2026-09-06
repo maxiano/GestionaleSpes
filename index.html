@@ -15,7 +15,19 @@
   </head>
   <body class="bg-slate-50 font-sans text-slate-800 antialiased selection:bg-emerald-500 selection:text-white">
     <div id="root"></div>
-    <script type="module" src="./src/main.js"></script>
+        <script type="module">
+      import React, { StrictMode } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import App from './src/App.tsx';
+      import './src/index.css';
+
+      const rootElement = document.getElementById('root');
+      if (rootElement) {
+        createRoot(rootElement).render(
+          React.createElement(StrictMode, null, React.createElement(App))
+        );
+      }
+    </script>
   </body>
 </html>
 
