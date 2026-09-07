@@ -261,72 +261,83 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
               return (
                 <div
                   key={player.id}
-                  className="flex flex-col md:flex-row md:justify-between md:items-center py-2.5 px-2 gap-2 hover:bg-white rounded-xl transition"
+                  className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2.5 px-2 gap-2 hover:bg-white rounded-xl transition"
                 >
-                  <span className="font-bold text-xs sm:text-sm text-slate-900">
+                  <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
                     {displayName}
                   </span>
 
-                  <div className="flex flex-wrap items-center gap-3">
-                    <label className="inline-flex items-center text-xs cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`att_${player.id}`}
-                        value="present"
-                        checked={curStatus === 'present'}
-                        onChange={() => handleStatusChange(player.id, 'present')}
-                        className="text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span className="ml-1 text-emerald-800 font-bold">Presente (P)</span>
-                    </label>
+                  {/* Touch-friendly segmented status pills for mobile & desktop */}
+                  <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(player.id, 'present')}
+                      className={`px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                        curStatus === 'present'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                      }`}
+                      title="Presente"
+                    >
+                      <span>P</span>
+                      <span className="hidden md:inline font-normal text-[11px]">(Presente)</span>
+                    </button>
 
-                    <label className="inline-flex items-center text-xs cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`att_${player.id}`}
-                        value="absent"
-                        checked={curStatus === 'absent'}
-                        onChange={() => handleStatusChange(player.id, 'absent')}
-                        className="text-rose-600 focus:ring-rose-500"
-                      />
-                      <span className="ml-1 text-rose-700 font-bold">Assente (A)</span>
-                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(player.id, 'absent')}
+                      className={`px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                        curStatus === 'absent'
+                          ? 'bg-rose-600 text-white shadow-xs'
+                          : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                      }`}
+                      title="Assente"
+                    >
+                      <span>A</span>
+                      <span className="hidden md:inline font-normal text-[11px]">(Assente)</span>
+                    </button>
 
-                    <label className="inline-flex items-center text-xs cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`att_${player.id}`}
-                        value="justified"
-                        checked={curStatus === 'justified'}
-                        onChange={() => handleStatusChange(player.id, 'justified')}
-                        className="text-amber-600 focus:ring-amber-500"
-                      />
-                      <span className="ml-1 text-amber-700 font-bold">Giustificato (AG)</span>
-                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(player.id, 'justified')}
+                      className={`px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                        curStatus === 'justified'
+                          ? 'bg-amber-500 text-white shadow-xs'
+                          : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                      }`}
+                      title="Giustificato"
+                    >
+                      <span>AG</span>
+                      <span className="hidden md:inline font-normal text-[11px]">(Giustif.)</span>
+                    </button>
 
-                    <label className="inline-flex items-center text-xs cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`att_${player.id}`}
-                        value="injured"
-                        checked={curStatus === 'injured'}
-                        onChange={() => handleStatusChange(player.id, 'injured')}
-                        className="text-purple-600 focus:ring-purple-500"
-                      />
-                      <span className="ml-1 text-purple-700 font-bold">Infortunato (INF)</span>
-                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(player.id, 'injured')}
+                      className={`px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                        curStatus === 'injured'
+                          ? 'bg-purple-600 text-white shadow-xs'
+                          : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+                      }`}
+                      title="Infortunato"
+                    >
+                      <span>INF</span>
+                      <span className="hidden md:inline font-normal text-[11px]">(Infortunato)</span>
+                    </button>
 
-                    <label className="inline-flex items-center text-xs cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`att_${player.id}`}
-                        value="late"
-                        checked={curStatus === 'late'}
-                        onChange={() => handleStatusChange(player.id, 'late')}
-                        className="text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-1 text-blue-700 font-bold">Ritardo (R)</span>
-                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(player.id, 'late')}
+                      className={`px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                        curStatus === 'late'
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                      }`}
+                      title="Ritardo"
+                    >
+                      <span>R</span>
+                      <span className="hidden md:inline font-normal text-[11px]">(Ritardo)</span>
+                    </button>
                   </div>
                 </div>
               );

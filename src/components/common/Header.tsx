@@ -52,10 +52,10 @@ export const Header: React.FC<HeaderProps> = ({
   const isAdmin = userProfile?.role === 'admin';
 
   return (
-    <nav className="bg-slate-950/90 backdrop-blur-xl text-white px-4 sm:px-6 py-3 flex justify-between items-center shadow-xl shadow-black/30 border-b border-slate-800 sticky top-0 z-50 print:hidden">
+    <nav className="bg-slate-950/90 backdrop-blur-xl text-white px-3 sm:px-6 py-2.5 sm:py-3 flex justify-between items-center shadow-xl shadow-black/30 border-b border-slate-800 sticky top-0 z-50 print:hidden">
       {/* Brand & User info */}
-      <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1 shadow-md ring-1 ring-emerald-500/30 overflow-hidden">
+      <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center p-1 shadow-md ring-1 ring-emerald-500/30 overflow-hidden shrink-0">
           <img
             src="./icon-192.png"
             alt="Spes Montesacro"
@@ -63,14 +63,14 @@ export const Header: React.FC<HeaderProps> = ({
             referrerPolicy="no-referrer"
           />
         </div>
-        <div>
-          <h1 className="text-sm sm:text-base font-black tracking-wider uppercase bg-gradient-to-r from-white via-slate-100 to-emerald-300 bg-clip-text text-transparent">
+        <div className="min-w-0 truncate">
+          <h1 className="text-xs sm:text-base font-black tracking-wider uppercase bg-gradient-to-r from-white via-slate-100 to-emerald-300 bg-clip-text text-transparent truncate">
             Spes Montesacro
           </h1>
-          <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium flex items-center gap-1.5 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
             {userProfile ? (
-              <span>
+              <span className="truncate">
                 {userProfile.name} <strong className="text-emerald-400 uppercase">({userProfile.role})</strong>
               </span>
             ) : (
@@ -81,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Action buttons */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
         <NotificationBell
           userProfile={userProfile}
           notifications={notifications}
@@ -94,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="nav-btn-password"
             onClick={onOpenPasswordModal}
-            className="bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs px-3 py-2 rounded-xl font-semibold border border-slate-800 hover:border-slate-700 transition flex items-center gap-1.5"
+            className="bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs p-2 sm:px-3 sm:py-2 rounded-xl font-semibold border border-slate-800 hover:border-slate-700 transition flex items-center gap-1.5 cursor-pointer"
             title="Cambia Password"
           >
             <KeyRound className="w-3.5 h-3.5 text-slate-400" />
@@ -108,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="menu-toggle-btn"
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-100 text-xs px-3.5 py-2 rounded-xl font-bold transition border border-slate-700/60 shadow flex items-center gap-1.5"
+              className="bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-100 text-xs p-2 sm:px-3.5 sm:py-2 rounded-xl font-bold transition border border-slate-700/60 shadow flex items-center gap-1.5 cursor-pointer"
             >
               <Settings className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden sm:inline">Gestione Club</span>
@@ -121,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="fixed inset-0 z-40"
                   onClick={() => setDropdownOpen(false)}
                 />
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl shadow-2xl bg-slate-900 border border-slate-800 py-2 z-50 divide-y divide-slate-800">
+                <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-24px)] rounded-2xl shadow-2xl bg-slate-900 border border-slate-800 py-2 z-50 divide-y divide-slate-800">
                   <div className="px-2 py-1 space-y-0.5">
                     <button
                       onClick={() => {

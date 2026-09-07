@@ -484,23 +484,23 @@ export const LockerRoomsTab: React.FC = () => {
       </div>
 
       {/* 2. AREA LOCANDINA DI STAMPA & ANTEPRIMA (Stile fedele al template Spes Montesacro) */}
-      <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-lg border border-slate-200 min-h-[700px] print:shadow-none print:border-0 print:p-0 print:m-0">
+      <div className="bg-white p-4 sm:p-10 rounded-2xl shadow-lg border border-slate-200 min-h-[700px] print:shadow-none print:border-0 print:p-0 print:m-0">
         {/* Poster Header */}
-        <div className="flex items-center justify-center gap-4 sm:gap-6 border-b-[3px] border-[#102C57] pb-4 mb-6">
+        <div className="flex items-center justify-center gap-3 sm:gap-6 border-b-[3px] border-[#102C57] pb-4 mb-6">
           <img
             src="./icon-192.png"
             alt="Logo Spes Montesacro"
-            className="max-h-20 w-auto object-contain"
+            className="h-14 sm:h-20 w-auto object-contain shrink-0"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
             }}
             referrerPolicy="no-referrer"
           />
           <div className="text-center">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-wider text-[#102C57] uppercase m-0">
+            <h1 className="text-xl sm:text-3xl font-black tracking-wider text-[#102C57] uppercase m-0">
               SPES MONTESACRO
             </h1>
-            <h3 className="text-sm sm:text-base font-bold text-[#35598F] uppercase mt-1 tracking-wide">
+            <h3 className="text-xs sm:text-base font-bold text-[#35598F] uppercase mt-1 tracking-wide">
               {schedule.weekTitle || 'Programmazione Spogliatoi e Campi'}
             </h3>
           </div>
@@ -525,8 +525,8 @@ export const LockerRoomsTab: React.FC = () => {
                   </div>
 
                   {/* Schedule Table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border-b border-slate-200 text-sm">
+                  <div className="overflow-x-auto -mx-2 sm:mx-0 px-2 sm:px-0">
+                    <table className="w-full min-w-[500px] border-collapse border-b border-slate-200 text-sm">
                       <thead>
                         <tr className="bg-[#35598F] text-white text-xs sm:text-sm uppercase tracking-wider">
                           <th className="py-2.5 px-3 text-center w-[15%]">ORARIO</th>
