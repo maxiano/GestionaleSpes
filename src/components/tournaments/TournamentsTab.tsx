@@ -10,7 +10,14 @@ import {
 import { TournamentModal } from './TournamentModal';
 import { MatchModal } from './MatchModal';
 import { formatDateIT } from '../../utils/formatters';
-import { downloadCSV, parseCSVFile, sendToWhatsApp } from '../../utils/exports';
+import {
+  downloadCSV,
+  parseCSVFile,
+  sendToWhatsApp,
+  formatNewTournamentCoachWhatsApp,
+  sendWhatsAppToPhoneOrShare
+} from '../../utils/exports';
+import { fetchStaffUsers } from '../../services/authService';
 import {
   Trophy,
   Plus,
@@ -24,8 +31,11 @@ import {
   Pencil,
   Trash2,
   CheckCircle2,
-  Clock3
+  Clock3,
+  MessageCircle,
+  BellRing
 } from 'lucide-react';
+import { createPushNotification } from '../../services/notificationService';
 
 interface TournamentsTabProps {
   activeTeamId: string;
@@ -179,6 +189,55 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
     });
 
     sendToWhatsApp(text, `Tornei ${activeTeamId}`);
+  };
+
+  // Notifica specifica del singolo torneo al Mister via WhatsApp
+  const handleNotifyCoach = async (tour: Tournament) => {
+    try {
+      const staff = await fetchStaffUsers();
+      // Trova il mister della categoria attiva
+      const coach = staff.find(
+        (u) =>
+          u.role === 'coach' &&
+          (u.teams?.includes(activeTeamId) ||
+            u.teamId === activeTeamId ||
+            u.teams?.includes('ALL'))
+      );
+
+      const msg = formatNewTournamentCoachWhatsApp(
+        {
+          name: tour.name,
+          startDate: tour.startDate,
+          endDate: tour.endDate,
+          location: tour.location
+        },
+        activeTeamId,
+        coach?.name
+      );
+
+      sendWhatsAppToPhoneOrShare(msg, coach?.phone, `Torneo ${tour.name}`);
+    } catch (err: any) {
+      alert('Errore invio notifica: ' + err.message);
+    }
+  };
+
+  const handlePushNotifyTournament = async (tour: Tournament) => {
+    try {
+      await createPushNotification({
+        title: `🏆 Promemoria Torneo: ${tour.name}`,
+        body: `Aggiornamento Cat. ${activeTeamId}: dal ${formatDateIT(tour.startDate)} al ${formatDateIT(tour.endDate)} presso ${tour.location || 'Spes Montesacro'}.`,
+        type: 'tournament',
+        targetTeamId: activeTeamId,
+        targetRole: 'coach',
+        data: {
+          tournamentId: tour.id,
+          teamId: activeTeamId
+        }
+      });
+      alert('🔔 Notifica Push PWA inviata allo smartphone del Mister!');
+    } catch (err: any) {
+      alert('Errore invio notifica push: ' + err.message);
+    }
   };
 
   // Filter tournaments & matches
@@ -337,6 +396,22 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+                    <button
+                      onClick={() => handlePushNotifyTournament(tour)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold transition shadow-sm flex items-center gap-1.5"
+                      title="Invia Notifica Push PWA allo smartphone del Mister"
+                    >
+                      <BellRing className="w-3.5 h-3.5" />
+                      <span>Push PWA</span>
+                    </button>
+                    <button
+                      onClick={() => handleNotifyCoach(tour)}
+                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs px-3 py-1.5 rounded-xl font-bold border border-emerald-200 transition shadow-sm flex items-center gap-1.5"
+                      title="Notifica o ricondividi il torneo con il Mister su WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>WhatsApp</span>
+                    </button>
                     <button
                       onClick={() => handleEditTournament(tour)}
                       className="bg-white hover:bg-slate-100 text-slate-700 text-xs px-3 py-1.5 rounded-xl font-bold border border-slate-200 transition shadow-sm flex items-center gap-1"

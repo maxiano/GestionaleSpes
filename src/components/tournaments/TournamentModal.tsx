@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Tournament } from '../../types';
+import { Tournament, UserProfile } from '../../types';
 import { saveTournament, deleteTournament } from '../../services/tournamentsService';
-import { X, Loader2, Trash2 } from 'lucide-react';
+import { fetchStaffUsers } from '../../services/authService';
+import { createPushNotification } from '../../services/notificationService';
+import {
+  formatNewTournamentCoachWhatsApp,
+  sendWhatsAppToPhoneOrShare
+} from '../../utils/exports';
+import { formatDateIT } from '../../utils/formatters';
+import { X, Loader2, Trash2, MessageCircle, Smartphone, BellRing } from 'lucide-react';
 
 interface TournamentModalProps {
   isOpen: boolean;
@@ -24,19 +31,70 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Notifications
+  const [notifyPush, setNotifyPush] = useState(true);
+  const [notifyCoach, setNotifyCoach] = useState(false);
+  const [coaches, setCoaches] = useState<UserProfile[]>([]);
+  const [selectedCoachUid, setSelectedCoachUid] = useState<string>('custom');
+  const [coachPhone, setCoachPhone] = useState<string>('');
+  const [coachName, setCoachName] = useState<string>('');
+
   useEffect(() => {
     if (tournamentToEdit) {
       setName(tournamentToEdit.name || '');
       setStartDate(tournamentToEdit.startDate || '');
       setEndDate(tournamentToEdit.endDate || '');
       setLocation(tournamentToEdit.location || '');
+      setNotifyPush(false);
+      setNotifyCoach(false);
     } else {
       setName('');
       setStartDate('');
       setEndDate('');
       setLocation('');
+      setNotifyPush(true);
+      setNotifyCoach(false);
     }
   }, [tournamentToEdit, isOpen]);
+
+  // Load coaches for this category
+  useEffect(() => {
+    if (!isOpen) return;
+
+    async function loadCoaches() {
+      try {
+        const staffList = await fetchStaffUsers();
+        // Filter coaches for active team or all
+        const teamCoaches = staffList.filter(
+          (u) =>
+            u.role === 'coach' &&
+            (u.teams?.includes(activeTeamId) ||
+              u.teamId === activeTeamId ||
+              u.teams?.includes('ALL') ||
+              u.teams?.length === 0)
+        );
+
+        if (teamCoaches.length > 0) {
+          setCoaches(teamCoaches);
+          setSelectedCoachUid(teamCoaches[0].uid);
+          setCoachPhone(teamCoaches[0].phone || '');
+          setCoachName(teamCoaches[0].name || '');
+        } else {
+          const allCoaches = staffList.filter((u) => u.role === 'coach');
+          setCoaches(allCoaches);
+          if (allCoaches.length > 0) {
+            setSelectedCoachUid(allCoaches[0].uid);
+            setCoachPhone(allCoaches[0].phone || '');
+            setCoachName(allCoaches[0].name || '');
+          }
+        }
+      } catch (err) {
+        console.warn('Impossibile caricare lista staff per notifica WhatsApp:', err);
+      }
+    }
+
+    loadCoaches();
+  }, [isOpen, activeTeamId]);
 
   if (!isOpen) return null;
 
@@ -56,6 +114,43 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
         },
         tournamentToEdit ? tournamentToEdit.id : null
       );
+
+      // 1. Invio Notifica Push PWA automatica al Mister (anche a schermo bloccato)
+      if (notifyPush && !tournamentToEdit) {
+        try {
+          await createPushNotification({
+            title: `🏆 Nuovo Torneo: ${name.trim()}`,
+            body: `È stato inserito il torneo per la Cat. ${activeTeamId} (${formatDateIT(startDate)} - ${formatDateIT(endDate)}) presso ${location.trim() || 'Spes Montesacro'}.`,
+            type: 'tournament',
+            targetTeamId: activeTeamId,
+            targetRole: 'coach',
+            data: {
+              tournamentName: name.trim(),
+              teamId: activeTeamId,
+              startDate,
+              endDate,
+              location: location.trim()
+            }
+          });
+        } catch (pushErr) {
+          console.warn('Errore invio push PWA:', pushErr);
+        }
+      }
+
+      // 2. Notifica opzionale via WhatsApp
+      if (notifyCoach && !tournamentToEdit) {
+        const msg = formatNewTournamentCoachWhatsApp(
+          {
+            name: name.trim(),
+            startDate,
+            endDate,
+            location: location.trim()
+          },
+          activeTeamId,
+          coachName
+        );
+        sendWhatsAppToPhoneOrShare(msg, coachPhone, `Nuovo Torneo ${name.trim()}`);
+      }
 
       onSaved();
       onClose();
@@ -154,6 +249,103 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             />
           </div>
 
+          {/* Opzioni Notifiche per il Mister */}
+          {!tournamentToEdit && (
+            <div className="space-y-2 pt-1">
+              {/* Notifica Push PWA (Automatica su smartphone) */}
+              <div className="bg-emerald-50/90 border border-emerald-200/90 rounded-2xl p-3">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={notifyPush}
+                      onChange={(e) => setNotifyPush(e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <BellRing className="w-3.5 h-3.5 text-emerald-600" />
+                      Notifica Push PWA sul telefono del Mister
+                    </span>
+                  </label>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    Automatica
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-800 mt-1 pl-6">
+                  Invia istantaneamente un avviso a comparsa sullo smartphone del mister (anche a schermo bloccato).
+                </p>
+              </div>
+
+              {/* Notifica WhatsApp (Opzionale con testo preimpostato) */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={notifyCoach}
+                      onChange={(e) => setNotifyCoach(e.target.checked)}
+                      className="w-4 h-4 text-slate-700 rounded border-slate-300 focus:ring-slate-500 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                      Apri anche messaggio WhatsApp
+                    </span>
+                  </label>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600 bg-slate-200/80 px-2 py-0.5 rounded-full">
+                    Opzionale
+                  </span>
+                </div>
+
+                {notifyCoach && (
+                  <div className="space-y-2 pt-1 border-t border-slate-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
+                          Destinatario Mister
+                        </label>
+                        <select
+                          value={selectedCoachUid}
+                          onChange={(e) => {
+                            const uid = e.target.value;
+                            setSelectedCoachUid(uid);
+                            const coach = coaches.find((c) => c.uid === uid);
+                            if (coach) {
+                              setCoachName(coach.name);
+                              setCoachPhone(coach.phone || '');
+                            } else {
+                              setCoachName('');
+                            }
+                          }}
+                          className="w-full p-2 bg-white rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        >
+                          {coaches.map((c) => (
+                            <option key={c.uid} value={c.uid}>
+                              {c.name} {c.phone ? `(${c.phone})` : ''}
+                            </option>
+                          ))}
+                          <option value="custom">Altro numero / Manuale</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
+                          Telefono (WhatsApp)
+                        </label>
+                        <input
+                          type="tel"
+                          value={coachPhone}
+                          onChange={(e) => setCoachPhone(e.target.value)}
+                          placeholder="es. 3401234567"
+                          className="w-full p-2 bg-white rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2 pt-2">
             <button
               type="button"
@@ -188,3 +380,4 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
     </div>
   );
 };
+

@@ -130,4 +130,37 @@ export type ActiveTab =
   | 'tab-tournaments'
   | 'tab-staff'
   | 'tab-parents'
-  | 'tab-staff-attendance';
+  | 'tab-staff-attendance'
+  | 'tab-locker-rooms';
+
+export interface LockerAssignment {
+  id: string;
+  day: string;
+  time: string;
+  category: string;
+  lockerRoom: string;
+  field: string;
+  notes?: string;
+}
+
+export interface LockerSchedule {
+  id?: string;
+  weekTitle: string;
+  generalNotes: string[];
+  assignments: LockerAssignment[];
+  updatedAt?: string;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  type: 'tournament' | 'locker_room' | 'match' | 'general';
+  targetTeamId?: string; // e.g. "2014" or "ALL"
+  targetRole?: 'coach' | 'admin' | 'parent' | 'all';
+  targetUserId?: string;
+  createdAt: string;
+  readBy?: string[];
+  data?: Record<string, any>;
+}
+

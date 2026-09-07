@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, Player, ActiveTab } from './types';
+import { UserProfile, Player, ActiveTab, AppNotification } from './types';
 import { subscribeToAuth, logoutUser } from './services/authService';
 import { getPlayersByTeam, getAllPlayers, batchImportPlayers } from './services/playersService';
+import { subscribeToNotifications } from './services/notificationService';
+import { NotificationToast } from './components/notifications/NotificationToast';
 import {
   downloadDatabaseBackup,
   wipeAllDataExceptCoachesAndAdmins
@@ -9,8 +11,10 @@ import {
 import {
   exportPlayersToExcelFile,
   exportParentsToExcelFile,
+  exportLockerRoomsToExcelFile,
   readExcelFile
 } from './utils/exports';
+import { getLockerSchedule } from './services/lockerRoomsService';
 import { fetchParentsUsers, createParentAccount } from './services/authService';
 
 // Reusable Components
@@ -28,6 +32,7 @@ import { CallupsTab } from './components/callups/CallupsTab';
 import { TournamentsTab } from './components/tournaments/TournamentsTab';
 import { StaffTab } from './components/staff/StaffTab';
 import { StaffAttendanceTab } from './components/staff/StaffAttendanceTab';
+import { LockerRoomsTab } from './components/locker-rooms/LockerRoomsTab';
 import { ParentsTab } from './components/parents/ParentsTab';
 import { ParentPortal } from './components/parent-portal/ParentPortal';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator';
@@ -47,6 +52,10 @@ export default function App() {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [playerModalOpen, setPlayerModalOpen] = useState(false);
   const [playerToEdit, setPlayerToEdit] = useState<Player | null>(null);
+
+  // Push Notifications state
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [toastNotification, setToastNotification] = useState<AppNotification | null>(null);
 
   // Hidden file inputs for Excel import
   const playersExcelInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +81,27 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // 1b. Real-time Push Notifications subscription
+  useEffect(() => {
+    if (!userProfile) return;
+
+    const unsubscribe = subscribeToNotifications(
+      userProfile,
+      (newNotif) => {
+        setToastNotification(newNotif);
+        // Auto-dismiss banner toast after 7 seconds
+        setTimeout(() => {
+          setToastNotification((prev) => (prev?.id === newNotif.id ? null : prev));
+        }, 7000);
+      },
+      (list) => {
+        setNotifications(list);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userProfile]);
 
   // 2. Fetch players whenever activeTeamId changes
   const loadRoster = async () => {
@@ -257,6 +287,11 @@ export default function App() {
       <div className="min-h-screen bg-slate-900/90 text-slate-800 flex flex-col justify-between">
         <Header
           userProfile={userProfile}
+          notifications={notifications}
+          onSelectTournament={(teamId) => {
+            setActiveTeamId(teamId);
+            setActiveTab('tab-tournaments');
+          }}
           onOpenPasswordModal={() => setPasswordModalOpen(true)}
           onLogout={logoutUser}
           onSelectAdminTab={() => {}}
@@ -266,6 +301,17 @@ export default function App() {
           onImportParentsExcel={() => {}}
           onDownloadBackup={() => {}}
           onWipeDatabase={() => {}}
+        />
+
+        <NotificationToast
+          notification={toastNotification}
+          onClose={() => setToastNotification(null)}
+          onClick={() => {
+            if (toastNotification?.targetTeamId) {
+              setActiveTeamId(toastNotification.targetTeamId);
+            }
+            setToastNotification(null);
+          }}
         />
 
         <main className="flex-1 max-w-4xl w-full mx-auto py-6">
@@ -308,6 +354,11 @@ export default function App() {
       {/* Main Top Header */}
       <Header
         userProfile={userProfile}
+        notifications={notifications}
+        onSelectTournament={(teamId) => {
+          setActiveTeamId(teamId);
+          setActiveTab('tab-tournaments');
+        }}
         onOpenPasswordModal={() => setPasswordModalOpen(true)}
         onLogout={logoutUser}
         onSelectAdminTab={(tab) => setActiveTab(tab as ActiveTab)}
@@ -315,8 +366,29 @@ export default function App() {
         onImportPlayersExcel={() => playersExcelInputRef.current?.click()}
         onExportParentsExcel={handleExportParentsExcel}
         onImportParentsExcel={() => parentsExcelInputRef.current?.click()}
+        onExportLockerRoomsExcel={async () => {
+          try {
+            const sched = await getLockerSchedule();
+            exportLockerRoomsToExcelFile(sched.assignments, sched.weekTitle);
+          } catch (err: any) {
+            alert('Errore export spogliatoi: ' + err.message);
+          }
+        }}
         onDownloadBackup={downloadDatabaseBackup}
         onWipeDatabase={handleWipeDatabase}
+      />
+
+      {/* Real-time incoming Notification Banner Toast */}
+      <NotificationToast
+        notification={toastNotification}
+        onClose={() => setToastNotification(null)}
+        onClick={() => {
+          if (toastNotification?.targetTeamId) {
+            setActiveTeamId(toastNotification.targetTeamId);
+          }
+          setActiveTab('tab-tournaments');
+          setToastNotification(null);
+        }}
       />
 
       {/* Official Print Header */}
@@ -331,6 +403,8 @@ export default function App() {
             ? 'Modulo Convocazione Gara Ufficiale'
             : activeTab === 'tab-staff-attendance'
             ? 'Report Presenze & Sostituzioni Staff'
+            : activeTab === 'tab-locker-rooms'
+            ? 'Programmazione Spogliatoi e Campi'
             : 'Documento Tecnico Ufficiale'
         }
       />
@@ -383,6 +457,8 @@ export default function App() {
           {activeTab === 'tab-tournaments' && (
             <TournamentsTab activeTeamId={activeTeamId} />
           )}
+
+          {activeTab === 'tab-locker-rooms' && isAdmin && <LockerRoomsTab />}
 
           {activeTab === 'tab-staff' && isAdmin && (
             <StaffTab currentUserId={userProfile.uid} />

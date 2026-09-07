@@ -16,7 +16,8 @@ export default defineConfig(() => {
           'icon-192.png',
           'icon-512.png',
           'screenshot-wide.png',
-          'screenshot-mobile.png'
+          'screenshot-mobile.png',
+          'sw-push.js'
         ],
         manifest: {
           name: 'Spes Montesacro Gestionale',
@@ -57,6 +58,7 @@ export default defineConfig(() => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          importScripts: ['./sw-push.js'],
         },
         devOptions: {
           enabled: true,

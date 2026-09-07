@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { UserProfile } from '../../types';
+import { UserProfile, AppNotification } from '../../types';
 import { PWAInstallButton } from '../pwa/PWAInstallButton';
+import { NotificationBell } from '../notifications/NotificationBell';
 import {
   KeyRound,
   Settings,
@@ -12,11 +13,14 @@ import {
   CalendarCheck,
   Database,
   Trash2,
-  ChevronDown
+  ChevronDown,
+  DoorClosed
 } from 'lucide-react';
 
 interface HeaderProps {
   userProfile: UserProfile | null;
+  notifications?: AppNotification[];
+  onSelectTournament?: (teamId: string) => void;
   onOpenPasswordModal: () => void;
   onLogout: () => void;
   onSelectAdminTab: (tabId: string) => void;
@@ -24,12 +28,15 @@ interface HeaderProps {
   onImportPlayersExcel: () => void;
   onExportParentsExcel: () => void;
   onImportParentsExcel: () => void;
+  onExportLockerRoomsExcel?: () => void;
   onDownloadBackup: () => void;
   onWipeDatabase: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   userProfile,
+  notifications = [],
+  onSelectTournament,
   onOpenPasswordModal,
   onLogout,
   onSelectAdminTab,
@@ -37,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   onImportPlayersExcel,
   onExportParentsExcel,
   onImportParentsExcel,
+  onExportLockerRoomsExcel,
   onDownloadBackup,
   onWipeDatabase
 }) => {
@@ -74,6 +82,12 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Action buttons */}
       <div className="flex items-center space-x-2">
+        <NotificationBell
+          userProfile={userProfile}
+          notifications={notifications}
+          onSelectTournament={onSelectTournament}
+        />
+
         <PWAInstallButton />
 
         {userProfile && (
@@ -111,6 +125,16 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="px-2 py-1 space-y-0.5">
                     <button
                       onClick={() => {
+                        onSelectAdminTab('tab-locker-rooms');
+                        setDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs font-bold text-amber-300 hover:bg-slate-800 hover:text-amber-200 rounded-xl flex items-center gap-2 transition"
+                    >
+                      <DoorClosed className="w-4 h-4 text-amber-400" />
+                      Piano Spogliatoi &amp; Campi
+                    </button>
+                    <button
+                      onClick={() => {
                         onSelectAdminTab('tab-staff');
                         setDropdownOpen(false);
                       }}
@@ -142,6 +166,18 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
 
                   <div className="px-2 py-1 space-y-0.5">
+                    {onExportLockerRoomsExcel && (
+                      <button
+                        onClick={() => {
+                          onExportLockerRoomsExcel();
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs font-medium text-amber-300 hover:bg-slate-800 rounded-xl flex items-center gap-2 transition"
+                      >
+                        <FileSpreadsheet className="w-4 h-4 text-amber-400" />
+                        Esporta Spogliatoi (Excel)
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         onImportPlayersExcel();
