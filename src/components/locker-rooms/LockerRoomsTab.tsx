@@ -26,6 +26,10 @@ export const LockerRoomsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [copiedWhatsApp, setCopiedWhatsApp] = useState(false);
+  const [confirmingAction, setConfirmingAction] = useState<'clear' | 'reset' | null>(null);
 
   // Form states matching user's HTML inputs
   const [giorno, setGiorno] = useState<string>('Lunedì');
@@ -53,13 +57,14 @@ export const LockerRoomsTab: React.FC = () => {
   // Save changes to DB
   const handleSave = async (updated: LockerSchedule) => {
     setSaving(true);
+    setSaveError(null);
     try {
       await saveLockerSchedule(updated);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Errore durante il salvataggio.');
+      setSaveError(err.message || 'Errore durante il salvataggio.');
     } finally {
       setSaving(false);
     }
@@ -68,9 +73,10 @@ export const LockerRoomsTab: React.FC = () => {
   // Add new entry (matching user's script addEntry)
   const handleAddEntry = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    setFormError(null);
 
     if (!orario || !spogliatoio.trim()) {
-      alert('Per favore inserisci orario e spogliatoio.');
+      setFormError('Per favore inserisci orario e spogliatoio.');
       return;
     }
 
@@ -120,26 +126,20 @@ export const LockerRoomsTab: React.FC = () => {
 
   // Clear all
   const handleClearAll = async () => {
-    if (confirm("Vuoi davvero cancellare l'intera programmazione sul foglio?")) {
-      const updatedSchedule: LockerSchedule = {
-        ...schedule,
-        assignments: []
-      };
-      setSchedule(updatedSchedule);
-      await handleSave(updatedSchedule);
-    }
+    const updatedSchedule: LockerSchedule = {
+      ...schedule,
+      assignments: []
+    };
+    setSchedule(updatedSchedule);
+    setConfirmingAction(null);
+    await handleSave(updatedSchedule);
   };
 
   // Reset to Spes standard default
   const handleResetToDefault = async () => {
-    if (
-      confirm(
-        'Vuoi ripristinare la programmazione standard Spes Montesacro (con 2019, 2020/21, 2016, 2014, 2015, ecc.)?'
-      )
-    ) {
-      setSchedule(INITIAL_SPES_LOCKER_SCHEDULE);
-      await handleSave(INITIAL_SPES_LOCKER_SCHEDULE);
-    }
+    setSchedule(INITIAL_SPES_LOCKER_SCHEDULE);
+    setConfirmingAction(null);
+    await handleSave(INITIAL_SPES_LOCKER_SCHEDULE);
   };
 
   // Export Excel
@@ -153,16 +153,21 @@ export const LockerRoomsTab: React.FC = () => {
   };
 
   // WhatsApp share
-  const handleWhatsApp = () => {
+  const handleWhatsApp = async () => {
     const text = formatLockerRoomsWhatsApp(
       schedule.assignments,
       schedule.weekTitle,
       Array.isArray(schedule.generalNotes) ? schedule.generalNotes.join('\n• ') : (schedule.generalNotes || '')
     );
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
-      alert('📋 Testo del piano spogliatoi copiato negli appunti! Puoi incollarlo su WhatsApp.');
-    } else {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        setCopiedWhatsApp(true);
+        setTimeout(() => setCopiedWhatsApp(false), 3000);
+      } else {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      }
+    } catch {
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     }
   };
@@ -342,6 +347,38 @@ export const LockerRoomsTab: React.FC = () => {
             </div>
           </div>
 
+          {/* Inline Form / Save Alerts */}
+          {formError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-bold flex items-center justify-between">
+              <span>⚠️ {formError}</span>
+              <button
+                type="button"
+                onClick={() => setFormError(null)}
+                className="text-red-500 hover:text-red-800 text-xs font-bold ml-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {saveError && (
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl font-semibold flex items-center justify-between">
+              <span>⚠️ {saveError} (i dati restano comunque salvati sul tuo dispositivo)</span>
+              <button
+                type="button"
+                onClick={() => setSaveError(null)}
+                className="text-amber-600 hover:text-amber-900 text-xs font-bold ml-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {copiedWhatsApp && (
+            <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>📋 Testo del piano spogliatoi copiato negli appunti! Pronto da incollare su WhatsApp.</span>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5 pt-3 border-t border-slate-100">
             <button
@@ -382,24 +419,66 @@ export const LockerRoomsTab: React.FC = () => {
               <span className="hidden sm:inline">WhatsApp</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleResetToDefault}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer ml-auto"
-              title="Ripristina valori standard Spes"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Ripristina Esempio Spes</span>
-            </button>
+            {/* Reset / Clear Confirmation UI */}
+            {confirmingAction === 'reset' ? (
+              <div className="flex items-center gap-2 ml-auto bg-amber-50 border border-amber-300 p-1.5 rounded-lg">
+                <span className="text-xs text-amber-900 font-bold">Ripristinare esempio Spes?</span>
+                <button
+                  type="button"
+                  onClick={handleResetToDefault}
+                  className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-2.5 py-1 rounded cursor-pointer"
+                >
+                  Sì, ripristina
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingAction(null)}
+                  className="text-slate-600 hover:text-slate-900 text-xs px-2 py-1 cursor-pointer"
+                >
+                  Annulla
+                </button>
+              </div>
+            ) : confirmingAction === 'clear' ? (
+              <div className="flex items-center gap-2 ml-auto bg-red-50 border border-red-300 p-1.5 rounded-lg">
+                <span className="text-xs text-red-900 font-bold">Cancellare tutto il foglio?</span>
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-2.5 py-1 rounded cursor-pointer"
+                >
+                  Sì, svuota
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingAction(null)}
+                  className="text-slate-600 hover:text-slate-900 text-xs px-2 py-1 cursor-pointer"
+                >
+                  Annulla
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingAction('reset')}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2.5 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer ml-auto"
+                  title="Ripristina valori standard Spes"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Ripristina Esempio Spes</span>
+                </button>
 
-            <button
-              type="button"
-              onClick={handleClearAll}
-              className="bg-[#E74C3C] hover:bg-[#c0392b] text-white px-3.5 py-2.5 rounded-lg font-bold text-xs transition shadow-sm flex items-center gap-1.5 cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Svuota Foglio</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingAction('clear')}
+                  className="bg-[#E74C3C] hover:bg-[#c0392b] text-white px-3.5 py-2.5 rounded-lg font-bold text-xs transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  title="Cancella tutte le righe del foglio"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Svuota Foglio</span>
+                </button>
+              </>
+            )}
           </div>
         </form>
       </div>

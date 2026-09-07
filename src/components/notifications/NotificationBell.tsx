@@ -146,7 +146,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
 
           {/* PWA Push Permission Banner */}
           <div className="p-3 bg-slate-50 border-b border-slate-200 text-xs">
-            {permission !== 'granted' ? (
+            {permission === 'unsupported' ? (
+              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-amber-800 text-[11px]">
+                <Smartphone className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  Notifiche di sistema non disponibili in questo browser o iframe. Apri l&apos;app in una nuova scheda o installala come PWA.
+                </span>
+              </div>
+            ) : permission !== 'granted' ? (
               <div className="flex flex-col gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
                 <div className="flex items-start gap-2 text-emerald-900">
                   <Smartphone className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />

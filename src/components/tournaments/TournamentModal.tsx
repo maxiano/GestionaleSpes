@@ -30,6 +30,8 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
   const [endDate, setEndDate] = useState('');
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Notifications
   const [notifyPush, setNotifyPush] = useState(true);
@@ -40,6 +42,8 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
   const [coachName, setCoachName] = useState<string>('');
 
   useEffect(() => {
+    setErrorMessage(null);
+    setConfirmDelete(false);
     if (tournamentToEdit) {
       setName(tournamentToEdit.name || '');
       setStartDate(tournamentToEdit.startDate || '');
@@ -100,7 +104,11 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return alert('Inserisci il nome del torneo!');
+    setErrorMessage(null);
+    if (!name.trim()) {
+      setErrorMessage('Inserisci il nome del torneo!');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -156,7 +164,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error(err);
-      alert('Errore salvataggio torneo: ' + err.message);
+      setErrorMessage('Errore salvataggio torneo: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -164,21 +172,14 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
   const handleDelete = async () => {
     if (!tournamentToEdit) return;
-    if (
-      !confirm(
-        `Sei sicuro di voler eliminare "${tournamentToEdit.name}"? Verranno eliminate anche tutte le partite collegate!`
-      )
-    ) {
-      return;
-    }
-
     setLoading(true);
+    setErrorMessage(null);
     try {
       await deleteTournament(tournamentToEdit.id);
       onSaved();
       onClose();
     } catch (err: any) {
-      alert('Errore eliminazione: ' + err.message);
+      setErrorMessage('Errore eliminazione: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -346,35 +347,73 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             </div>
           )}
 
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition"
-            >
-              Annulla
-            </button>
-
-            {tournamentToEdit && (
+          {errorMessage && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-bold flex items-center justify-between">
+              <span>⚠️ {errorMessage}</span>
               <button
                 type="button"
-                onClick={handleDelete}
-                className="py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-xs transition flex items-center gap-1"
+                onClick={() => setErrorMessage(null)}
+                className="text-red-500 hover:text-red-800 text-xs font-bold ml-2 cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Elimina</span>
+                ✕
               </button>
-            )}
+            </div>
+          )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2.5 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-1 disabled:opacity-50"
-            >
-              {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              <span>{tournamentToEdit ? 'Salva Modifiche' : 'Crea Torneo'}</span>
-            </button>
-          </div>
+          {confirmDelete ? (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl space-y-2">
+              <p className="text-xs text-rose-800 font-bold">
+                Confermi l&apos;eliminazione di questo torneo e di tutte le partite associate?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={loading}
+                  className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  {loading ? 'Eliminazione...' : 'Sì, elimina definitivamente'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Annulla
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition cursor-pointer"
+              >
+                Annulla
+              </button>
+
+              {tournamentToEdit && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  className="py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-xs transition flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Elimina</span>
+                </button>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 py-2.5 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
+              >
+                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{tournamentToEdit ? 'Salva Modifiche' : 'Crea Torneo'}</span>
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

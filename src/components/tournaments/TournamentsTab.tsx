@@ -55,8 +55,14 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
   const [matchModalOpen, setMatchModalOpen] = useState(false);
   const [activeTourForMatch, setActiveTourForMatch] = useState<Tournament | null>(null);
   const [editingMatch, setEditingMatch] = useState<TournamentMatch | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const csvFileRef = useRef<HTMLInputElement>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const fetchData = async () => {
     if (!activeTeamId) return;
@@ -234,9 +240,9 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
           teamId: activeTeamId
         }
       });
-      alert('🔔 Notifica Push PWA inviata allo smartphone del Mister!');
+      showToast('🔔 Notifica Push PWA inviata con successo allo smartphone del Mister!');
     } catch (err: any) {
-      alert('Errore invio notifica push: ' + err.message);
+      showToast('⚠️ Errore invio notifica push: ' + err.message);
     }
   };
 
@@ -248,6 +254,19 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
 
   return (
     <div id="tab-tournaments" className="tab-content bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
+      {/* Toast message banner */}
+      {toastMessage && (
+        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-bold rounded-2xl flex items-center justify-between shadow-xs animate-in fade-in">
+          <span>{toastMessage}</span>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-emerald-700 hover:text-emerald-900 font-bold ml-3 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Header bar */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-5 print:hidden">
         <div className="flex items-start gap-3.5">

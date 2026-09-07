@@ -63,7 +63,7 @@ export function getNotificationPermission(): NotificationPermission | 'unsupport
  */
 export async function requestPushPermission(): Promise<boolean> {
   if (typeof window === 'undefined' || !('Notification' in window)) {
-    alert('Il tuo browser non supporta le notifiche push native.');
+    console.warn('Le notifiche push native non sono supportate da questo browser/ambiente.');
     return false;
   }
 
