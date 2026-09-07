@@ -123,7 +123,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
         tournamentToEdit ? tournamentToEdit.id : null
       );
 
-      // 1. Invio Notifica Push PWA automatica al Mister (anche a schermo bloccato)
+      // 1. Invio Notifica Push PWA automatica al Mister e all'Admin (anche a schermo bloccato)
       if (notifyPush && !tournamentToEdit) {
         try {
           await createPushNotification({
@@ -131,7 +131,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             body: `È stato inserito il torneo per la Cat. ${activeTeamId} (${formatDateIT(startDate)} - ${formatDateIT(endDate)}) presso ${location.trim() || 'Spes Montesacro'}.`,
             type: 'tournament',
             targetTeamId: activeTeamId,
-            targetRole: 'coach',
+            targetRole: 'all',
             data: {
               tournamentName: name.trim(),
               teamId: activeTeamId,
@@ -265,7 +265,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                     />
                     <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                       <BellRing className="w-3.5 h-3.5 text-emerald-600" />
-                      Notifica Push PWA sul telefono del Mister
+                      Notifica Push PWA (Mister &amp; Admin)
                     </span>
                   </label>
                   <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
@@ -273,7 +273,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-emerald-800 mt-1 pl-6">
-                  Invia istantaneamente un avviso a comparsa sullo smartphone del mister (anche a schermo bloccato).
+                  Invia istantaneamente un avviso a comparsa sullo smartphone del mister e dell&apos;amministratore (anche a schermo bloccato).
                 </p>
               </div>
 

@@ -234,13 +234,13 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
         body: `Aggiornamento Cat. ${activeTeamId}: dal ${formatDateIT(tour.startDate)} al ${formatDateIT(tour.endDate)} presso ${tour.location || 'Spes Montesacro'}.`,
         type: 'tournament',
         targetTeamId: activeTeamId,
-        targetRole: 'coach',
+        targetRole: 'all',
         data: {
           tournamentId: tour.id,
           teamId: activeTeamId
         }
       });
-      showToast('🔔 Notifica Push PWA inviata con successo allo smartphone del Mister!');
+      showToast('🔔 Notifica Push PWA inviata con successo agli smartphone di Mister e Admin!');
     } catch (err: any) {
       showToast('⚠️ Errore invio notifica push: ' + err.message);
     }

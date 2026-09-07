@@ -212,7 +212,10 @@ export function subscribeToNotifications(
           userProfile.teams?.includes(notif.targetTeamId) ||
           userProfile.teamId === notif.targetTeamId;
 
-        const isForUser = !notif.targetUserId || notif.targetUserId === userProfile.uid;
+        const isForUser =
+          !notif.targetUserId ||
+          notif.targetUserId === userProfile.uid ||
+          userProfile.role === 'admin';
 
         if (isForRole && isForTeam && isForUser) {
           items.push(notif);
