@@ -22,14 +22,18 @@ export interface Player {
   jersey?: string;
   role?: string;
   medicalExp?: string | null;
-  parentPhone?: string;
+  parentPhone?: string; // Tel. Padre (o Genitore 1)
+  parentPhone2?: string; // Tel. Madre (o Genitore 2)
+  parentPhones?: string[]; // Array di telefoni genitori normalizzati
   parentId?: string | null;
+  parentIds?: string[]; // Array UID genitori collegati (padre e madre)
   teamId: string;
   categoria?: string;
   gruppoSquadra?: string;
   teamName?: string;
   team?: string;
   createdAt?: unknown;
+  updatedAt?: unknown;
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'justified' | 'injured' | 'late';
@@ -131,7 +135,30 @@ export type ActiveTab =
   | 'tab-staff'
   | 'tab-parents'
   | 'tab-staff-attendance'
-  | 'tab-locker-rooms';
+  | 'tab-locker-rooms'
+  | 'tab-field-diagram';
+
+export interface FieldTrainingZone {
+  team: string;
+  coach: string;
+  notes?: string;
+}
+
+export interface FieldTrainingPlan {
+  id: string; // e.g. "lunedi-1700"
+  day: string; // "Lunedì", "Martedì", etc.
+  time: string; // "17:00 - 18:30"
+  notes?: string;
+  zones: {
+    sideLeft: FieldTrainingZone;     // Rettangolo laterale SX (costruito sul lato minore SX del rettangolo centrale)
+    sideRight: FieldTrainingZone;    // Rettangolo laterale DX (costruito sul lato minore DX del rettangolo centrale)
+    topLeft: FieldTrainingZone;      // Rettangolo superiore SX (costruito sul lato superiore del rettangolo centrale)
+    topRight: FieldTrainingZone;     // Rettangolo superiore DX (costruito sul lato superiore del rettangolo centrale)
+    centerLeft: FieldTrainingZone;   // Rettangolo centrale grande - metà SX
+    centerRight: FieldTrainingZone;  // Rettangolo centrale grande - metà DX
+  };
+  updatedAt?: string;
+}
 
 export interface LockerAssignment {
   id: string;

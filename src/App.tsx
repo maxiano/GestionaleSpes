@@ -33,6 +33,7 @@ import { TournamentsTab } from './components/tournaments/TournamentsTab';
 import { StaffTab } from './components/staff/StaffTab';
 import { StaffAttendanceTab } from './components/staff/StaffAttendanceTab';
 import { LockerRoomsTab } from './components/locker-rooms/LockerRoomsTab';
+import { FieldDiagramTab } from './components/field-diagram/FieldDiagramTab';
 import { ParentsTab } from './components/parents/ParentsTab';
 import { ParentPortal } from './components/parent-portal/ParentPortal';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator';
@@ -174,7 +175,22 @@ export default function App() {
             role: row['Ruolo'] || 'Non specificato',
             jersey: String(row['Numero Maglia'] || ''),
             medicalExp: row['Scadenza Medica (YYYY-MM-DD)'] || row['Scadenza Medica'] || null,
-            parentPhone: String(row['Telefono Genitore'] || '').trim(),
+            parentPhone: String(
+              row['Telefono Padre / Genitore 1'] ||
+              row['Telefono Padre'] ||
+              row['Tel. Padre'] ||
+              row['Telefono Genitore'] ||
+              row['parentPhone'] ||
+              ''
+            ).trim(),
+            parentPhone2: String(
+              row['Telefono Madre / Genitore 2'] ||
+              row['Telefono Madre'] ||
+              row['Tel. Madre'] ||
+              row['Telefono Genitore 2'] ||
+              row['parentPhone2'] ||
+              ''
+            ).trim(),
             teamId: teamId || activeTeamId
           };
         })
@@ -405,6 +421,8 @@ export default function App() {
             ? 'Report Presenze & Sostituzioni Staff'
             : activeTab === 'tab-locker-rooms'
             ? 'Programmazione Spogliatoi e Campi'
+            : activeTab === 'tab-field-diagram'
+            ? 'Schema Campi Allenamento'
             : 'Documento Tecnico Ufficiale'
         }
       />
@@ -459,6 +477,8 @@ export default function App() {
           )}
 
           {activeTab === 'tab-locker-rooms' && isAdmin && <LockerRoomsTab />}
+
+          {activeTab === 'tab-field-diagram' && isAdmin && <FieldDiagramTab />}
 
           {activeTab === 'tab-staff' && isAdmin && (
             <StaffTab currentUserId={userProfile.uid} />

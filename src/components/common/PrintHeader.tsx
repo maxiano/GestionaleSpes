@@ -1,4 +1,5 @@
 import React from 'react';
+import { ClubLogo } from './ClubLogo';
 
 interface PrintHeaderProps {
   teamId?: string;
@@ -15,8 +16,8 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
     <div id="generic-print-header" className="hidden print:block p-4 border-b-4 border-slate-900 mb-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-3">
-          <div className="w-14 h-14 border-2 border-slate-900 rounded-2xl flex items-center justify-center p-2 bg-white text-2xl font-black">
-            ⚽
+          <div className="w-14 h-14 border-2 border-slate-900 rounded-2xl flex items-center justify-center p-1.5 bg-white shrink-0 overflow-hidden">
+            <ClubLogo className="w-full h-full object-contain text-slate-900" />
           </div>
           <div>
             <h1 className="text-xl font-black uppercase tracking-tight text-slate-900">

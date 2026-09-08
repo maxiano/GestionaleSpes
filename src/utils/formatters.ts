@@ -37,6 +37,17 @@ export function normalizePhoneNumber(phone?: string | null): string {
   return cleaned;
 }
 
+export function arePhonesMatching(phoneA?: string | null, phoneB?: string | null): boolean {
+  const normA = normalizePhoneNumber(phoneA);
+  const normB = normalizePhoneNumber(phoneB);
+  if (!normA || !normB) return false;
+  if (normA === normB) return true;
+  if (normA.length >= 7 && normB.length >= 7) {
+    return normA.endsWith(normB) || normB.endsWith(normA);
+  }
+  return false;
+}
+
 export function isValidString(value?: unknown, minLength = 1): boolean {
   return typeof value === 'string' && value.trim().length >= minLength;
 }

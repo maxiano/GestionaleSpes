@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Player } from '../types';
-import { normalizePhoneNumber } from '../utils/formatters';
+import { normalizePhoneNumber, arePhonesMatching } from '../utils/formatters';
 
 export async function getPlayersByTeam(teamId: string): Promise<Player[]> {
   if (!teamId || teamId === 'ALL' || teamId === 'SELECT_TEAM' || teamId === 'NONE') {
@@ -55,30 +55,102 @@ export async function getPlayerById(playerId: string): Promise<Player | null> {
   return { id: snap.id, teamId: snap.data().teamId || '', ...snap.data() };
 }
 
+/**
+ * Cerca tutti i giocatori associati a un numero di telefono (padre, madre o entrambi).
+ */
+export async function findPlayersByParentPhone(phone: string): Promise<Player[]> {
+  const clean = normalizePhoneNumber(phone);
+  if (!clean) return [];
+
+  const all = await getAllPlayers();
+  return all.filter((p) => {
+    if (arePhonesMatching(p.parentPhone, clean)) return true;
+    if (arePhonesMatching(p.parentPhone2, clean)) return true;
+    if (Array.isArray(p.parentPhones) && p.parentPhones.some((ph) => arePhonesMatching(ph, clean))) {
+      return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Collega un account genitore (UID e Telefono) a tutti i suoi figli nel database.
+ */
+export async function linkParentToPlayersByPhone(parentUid: string, phone: string): Promise<string[]> {
+  const matchedPlayers = await findPlayersByParentPhone(phone);
+  if (matchedPlayers.length === 0) return [];
+
+  const childIds = matchedPlayers.map((p) => p.id);
+
+  // 1. Aggiungi il genitore a ciascun giocatore
+  await Promise.all(
+    matchedPlayers.map((p) =>
+      updateDoc(doc(db, 'players', p.id), {
+        parentId: p.parentId || parentUid,
+        parentIds: arrayUnion(parentUid),
+        updatedAt: serverTimestamp()
+      }).catch((err) => console.warn(`Errore collegamento genitore a giocatore ${p.id}:`, err))
+    )
+  );
+
+  // 2. Aggiungi tutti i figli al profilo del genitore
+  try {
+    const parentRef = doc(db, 'users', parentUid);
+    await updateDoc(parentRef, {
+      childIds: arrayUnion(...childIds)
+    });
+  } catch (err) {
+    console.warn(`Errore aggiornamento childIds genitore ${parentUid}:`, err);
+  }
+
+  return childIds;
+}
+
 export async function savePlayer(
   playerData: Omit<Player, 'id'>,
   editingId?: string | null
 ): Promise<string> {
-  let parentId: string | null = null;
+  const phone1 = playerData.parentPhone ? playerData.parentPhone.trim() : '';
+  const phone2 = playerData.parentPhone2 ? playerData.parentPhone2.trim() : '';
 
-  // Search parent account by phone
-  if (playerData.parentPhone) {
-    const cleanPhone = normalizePhoneNumber(playerData.parentPhone);
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('role', '==', 'parent'));
-    const snap = await getDocs(q);
+  const clean1 = normalizePhoneNumber(phone1);
+  const clean2 = normalizePhoneNumber(phone2);
+  const parentPhones = Array.from(new Set([clean1, clean2].filter(Boolean)));
 
-    snap.forEach((docSnap) => {
-      const u = docSnap.data();
-      if (normalizePhoneNumber(u.phone) === cleanPhone) {
-        parentId = docSnap.id;
-      }
-    });
+  const matchedParentIds: string[] = [];
+
+  // Se è presente almeno un telefono genitore (padre o madre), cerca gli account utenti genitore registrati
+  if (clean1 || clean2) {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('role', '==', 'parent'));
+      const snap = await getDocs(q);
+
+      snap.forEach((docSnap) => {
+        const u = docSnap.data();
+        const uPhone = u.phone;
+        if (
+          (clean1 && arePhonesMatching(uPhone, clean1)) ||
+          (clean2 && arePhonesMatching(uPhone, clean2))
+        ) {
+          matchedParentIds.push(docSnap.id);
+        }
+      });
+    } catch (e) {
+      console.warn('Errore ricerca account genitori:', e);
+    }
   }
+
+  const existingParentIds = Array.isArray(playerData.parentIds) ? playerData.parentIds : [];
+  const allParentIds = Array.from(new Set([...existingParentIds, ...matchedParentIds]));
 
   const payload = {
     ...playerData,
-    parentId: parentId || playerData.parentId || null,
+    parentPhone: phone1,
+    parentPhone2: phone2,
+    parentPhones,
+    parentId: allParentIds[0] || playerData.parentId || null,
+    parentIds: allParentIds,
     updatedAt: serverTimestamp()
   };
 
@@ -94,16 +166,15 @@ export async function savePlayer(
     savedId = newDoc.id;
   }
 
-  // If parent account found, link child in parent document
-  if (parentId && savedId) {
-    try {
-      const parentRef = doc(db, 'users', parentId);
-      await updateDoc(parentRef, {
-        childIds: arrayUnion(savedId)
-      });
-    } catch (e) {
-      console.warn('Errore unione childIds genitore:', e);
-    }
+  // Sincronizza tutti gli account genitori trovati (padre e/o madre) aggiungendo il figlio a ciascuno
+  if (savedId && allParentIds.length > 0) {
+    await Promise.all(
+      allParentIds.map((pUid) =>
+        updateDoc(doc(db, 'users', pUid), {
+          childIds: arrayUnion(savedId)
+        }).catch((e) => console.warn(`Errore unione childIds genitore ${pUid}:`, e))
+      )
+    );
   }
 
   return savedId!;
@@ -117,11 +188,7 @@ export async function batchImportPlayers(players: Array<Omit<Player, 'id'>>): Pr
   let count = 0;
   for (const p of players) {
     if (p.firstName || p.lastName) {
-      await addDoc(collection(db, 'players'), {
-        ...p,
-        name: `${p.lastName || ''} ${p.firstName || ''}`.trim(),
-        createdAt: serverTimestamp()
-      });
+      await savePlayer(p, null);
       count++;
     }
   }

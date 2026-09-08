@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { loginUser } from '../../services/authService';
 import { Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { PWAInstallButton } from '../pwa/PWAInstallButton';
+import { ClubLogo } from '../common/ClubLogo';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -40,12 +41,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
 
       <div className="text-center mb-8">
         <div className="w-20 h-20 mx-auto mb-4 bg-white rounded-3xl flex items-center justify-center p-2 shadow-xl shadow-slate-900/10 border border-slate-100 overflow-hidden">
-          <img
-            src="./icon-192.png"
-            alt="Spes Montesacro"
-            className="w-full h-full object-contain"
-            referrerPolicy="no-referrer"
-          />
+          <ClubLogo className="w-full h-full object-contain text-slate-900" />
         </div>
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">Accesso Gestionale Pro</h2>
         <p className="text-xs text-slate-500 mt-1 font-medium">

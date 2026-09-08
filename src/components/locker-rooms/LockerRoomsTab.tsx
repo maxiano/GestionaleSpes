@@ -10,6 +10,7 @@ import {
   DEFAULT_NOTICES
 } from '../../services/lockerRoomsService';
 import { exportLockerRoomsToExcelFile, formatLockerRoomsWhatsApp } from '../../utils/exports';
+import { ClubLogo } from '../common/ClubLogo';
 import {
   FileSpreadsheet,
   Printer,
@@ -487,15 +488,7 @@ export const LockerRoomsTab: React.FC = () => {
       <div className="bg-white p-4 sm:p-10 rounded-2xl shadow-lg border border-slate-200 min-h-[700px] print:shadow-none print:border-0 print:p-0 print:m-0">
         {/* Poster Header */}
         <div className="flex items-center justify-center gap-3 sm:gap-6 border-b-[3px] border-[#102C57] pb-4 mb-6">
-          <img
-            src="./icon-192.png"
-            alt="Logo Spes Montesacro"
-            className="h-14 sm:h-20 w-auto object-contain shrink-0"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-            referrerPolicy="no-referrer"
-          />
+          <ClubLogo className="h-14 sm:h-20 w-14 sm:w-20 object-contain text-[#102C57] shrink-0" />
           <div className="text-center">
             <h1 className="text-xl sm:text-3xl font-black tracking-wider text-[#102C57] uppercase m-0">
               SPES MONTESACRO

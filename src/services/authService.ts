@@ -12,15 +12,19 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  updateDoc,
   deleteDoc,
   collection,
   query,
   where,
+  arrayUnion,
   serverTimestamp
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { firebaseConfig } from '../config/constants';
 import { UserProfile, UserRole } from '../types';
+import { linkParentToPlayersByPhone, getAllPlayers } from './playersService';
+import { normalizePhoneNumber, arePhonesMatching } from '../utils/formatters';
 
 export function normalizeUserProfile(rawData: Record<string, any> | undefined | null): UserProfile {
   if (!rawData) {
@@ -168,6 +172,8 @@ export async function createParentAccount(data: {
   }
 
   const newUid = resData.localId;
+
+  // Crea il documento utente genitore
   await setDoc(doc(db, 'users', newUid), {
     uid: newUid,
     name: data.name,
@@ -178,7 +184,61 @@ export async function createParentAccount(data: {
     createdAt: serverTimestamp()
   });
 
+  // Collega automaticamente tutti i figli che hanno questo numero di telefono (come Padre o come Madre)
+  if (data.phone) {
+    try {
+      await linkParentToPlayersByPhone(newUid, data.phone);
+    } catch (err) {
+      console.warn('Errore auto-collegamento figli a nuovo genitore:', err);
+    }
+  }
+
   return newUid;
+}
+
+/**
+ * Sincronizza tutti gli account genitori con l'intero roster dei giocatori
+ * basandosi sul numero di telefono (padre o madre).
+ */
+export async function syncAllParentsWithRoster(): Promise<{ parentsCount: number; totalLinks: number }> {
+  const parents = await fetchParentsUsers();
+  const allPlayers = await getAllPlayers();
+  let totalLinks = 0;
+
+  for (const parent of parents) {
+    if (!parent.phone) continue;
+    const cleanPhone = normalizePhoneNumber(parent.phone);
+    if (!cleanPhone) continue;
+
+    const matchedChildIds: string[] = [];
+    for (const player of allPlayers) {
+      if (
+        arePhonesMatching(player.parentPhone, cleanPhone) ||
+        arePhonesMatching(player.parentPhone2, cleanPhone) ||
+        (Array.isArray(player.parentPhones) && player.parentPhones.some((p) => arePhonesMatching(p, cleanPhone)))
+      ) {
+        matchedChildIds.push(player.id);
+        const existingPids = Array.isArray(player.parentIds) ? player.parentIds : [];
+        if (!existingPids.includes(parent.uid)) {
+          await updateDoc(doc(db, 'players', player.id), {
+            parentIds: arrayUnion(parent.uid),
+            parentId: player.parentId || parent.uid
+          }).catch(() => {});
+        }
+      }
+    }
+
+    const currentChildIds = Array.isArray(parent.childIds) ? parent.childIds : [];
+    const merged = Array.from(new Set([...currentChildIds, ...matchedChildIds]));
+    if (merged.length !== currentChildIds.length) {
+      await updateDoc(doc(db, 'users', parent.uid), {
+        childIds: merged
+      }).catch(() => {});
+      totalLinks += merged.length - currentChildIds.length;
+    }
+  }
+
+  return { parentsCount: parents.length, totalLinks };
 }
 
 export async function fetchStaffUsers(): Promise<UserProfile[]> {

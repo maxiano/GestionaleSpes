@@ -66,9 +66,9 @@ export function downloadCSV(filename: string, csvContent: string) {
 }
 
 export function exportRosterCSV(teamId: string, players: Player[]) {
-  let csv = `Cognome;Nome;Numero Maglia;Data Nascita;Ruolo;Scadenza Certificato;Tel. Genitore\n`;
+  let csv = `Cognome;Nome;Numero Maglia;Data Nascita;Ruolo;Scadenza Certificato;Tel. Padre;Tel. Madre\n`;
   players.forEach((p) => {
-    csv += `"${p.lastName || ''}";"${p.firstName || ''}";"${p.jersey || ''}";"${p.dob || ''}";"${p.role || ''}";"${p.medicalExp || ''}";"${p.parentPhone || ''}"\n`;
+    csv += `"${p.lastName || ''}";"${p.firstName || ''}";"${p.jersey || ''}";"${p.dob || ''}";"${p.role || ''}";"${p.medicalExp || ''}";"${p.parentPhone || ''}";"${p.parentPhone2 || ''}"\n`;
   });
   downloadCSV(`Rosa_${teamId || 'Squadra'}.csv`, csv);
 }
@@ -81,7 +81,8 @@ export function exportPlayersToExcelFile(players: Player[]) {
     "Ruolo": p.role || '',
     "Numero Maglia": p.jersey || '',
     "Scadenza Medica (YYYY-MM-DD)": p.medicalExp || '',
-    "Telefono Genitore": p.parentPhone || '',
+    "Telefono Padre / Genitore 1": p.parentPhone || '',
+    "Telefono Madre / Genitore 2": p.parentPhone2 || '',
     "Squadra / Gruppo": p.teamId || ''
   }));
 

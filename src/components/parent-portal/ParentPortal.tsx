@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, Player, Callup, AttendanceSession } from '../../types';
 import {
   getPlayerById,
-  getPlayersByTeam
+  getPlayersByTeam,
+  getAllPlayers
 } from '../../services/playersService';
 import {
   getAllActiveCallups,
@@ -14,13 +15,16 @@ import {
   submitParentCustomTraining
 } from '../../services/attendancesService';
 import { MONTH_NAMES_IT } from '../../config/constants';
-import { formatDateIT, parseDateObj } from '../../utils/formatters';
+import { formatDateIT, parseDateObj, arePhonesMatching } from '../../utils/formatters';
 import { exportParentsToExcelFile, downloadCSV } from '../../utils/exports';
 import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  updateDoc,
+  doc,
+  arrayUnion
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import {
@@ -59,44 +63,70 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ userProfile }) => {
   const [customDate, setCustomDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [submittingTraining, setSubmittingTraining] = useState(false);
 
-  // 1. Determine child IDs from userProfile or fallback queries
+  // 1. Determine child IDs from userProfile or fallback queries (supporting multiple children and both father & mother phone numbers)
   useEffect(() => {
     let isMounted = true;
     const resolveChildren = async () => {
       setLoading(true);
-      let ids: string[] = [];
+      const matchedIds = new Set<string>();
 
-      if (Array.isArray(userProfile.childIds) && userProfile.childIds.length > 0) {
-        ids = userProfile.childIds.map(String).filter(Boolean);
-      } else if (userProfile.childId) {
-        ids = [String(userProfile.childId).trim()];
+      // A. Aggiungi ID già registrati nel profilo
+      if (Array.isArray(userProfile.childIds)) {
+        userProfile.childIds.forEach((id) => {
+          if (id) matchedIds.add(String(id).trim());
+        });
+      }
+      if (userProfile.childId) {
+        matchedIds.add(String(userProfile.childId).trim());
       }
 
-      // Fallback: search players by parentId == userProfile.uid or parentPhone == userProfile.phone
-      if (ids.length === 0) {
-        try {
-          const playersRef = collection(db, 'players');
-          if (userProfile.uid) {
-            const qUid = query(playersRef, where('parentId', '==', userProfile.uid));
-            const snapUid = await getDocs(qUid);
-            snapUid.forEach((d) => ids.push(d.id));
-          }
+      // B. Cerca tutti i giocatori che corrispondono al genitore per UID o per Telefono (Padre, Madre o entrambi)
+      try {
+        const allPlayers = await getAllPlayers();
+        const parentPhone = userProfile.phone ? String(userProfile.phone).trim() : '';
 
-          if (ids.length === 0 && userProfile.phone) {
-            const cleanPhone = String(userProfile.phone).trim();
-            const qPhone = query(playersRef, where('parentPhone', '==', cleanPhone));
-            const snapPhone = await getDocs(qPhone);
-            snapPhone.forEach((d) => ids.push(d.id));
+        allPlayers.forEach((p) => {
+          const isUidMatch =
+            (p.parentId && p.parentId === userProfile.uid) ||
+            (Array.isArray(p.parentIds) && p.parentIds.includes(userProfile.uid));
+
+          const isPhoneMatch =
+            Boolean(parentPhone) &&
+            (arePhonesMatching(p.parentPhone, parentPhone) ||
+              arePhonesMatching(p.parentPhone2, parentPhone) ||
+              (Array.isArray(p.parentPhones) &&
+                p.parentPhones.some((ph) => arePhonesMatching(ph, parentPhone))));
+
+          if (isUidMatch || isPhoneMatch) {
+            matchedIds.add(p.id);
+
+            // Se il giocatore non aveva ancora l'UID del genitore tra i suoi parentIds, lo colleghiamo
+            if (userProfile.uid && (!p.parentIds || !p.parentIds.includes(userProfile.uid))) {
+              updateDoc(doc(db, 'players', p.id), {
+                parentId: p.parentId || userProfile.uid,
+                parentIds: arrayUnion(userProfile.uid)
+              }).catch(() => {});
+            }
           }
-        } catch (err) {
-          console.error('Errore fallback ricerca figli:', err);
+        });
+
+        // Se sono stati trovati nuovi figli tramite telefono, aggiorna childIds dell'utente genitore
+        const finalIds = Array.from(matchedIds);
+        const existingCount = Array.isArray(userProfile.childIds) ? userProfile.childIds.length : 0;
+        if (finalIds.length > existingCount && userProfile.uid) {
+          updateDoc(doc(db, 'users', userProfile.uid), {
+            childIds: finalIds
+          }).catch(() => {});
         }
+      } catch (err) {
+        console.error('Errore ricerca automatica figli per telefono/UID:', err);
       }
 
       if (!isMounted) return;
+      const ids = Array.from(matchedIds);
       setChildIds(ids);
       if (ids.length > 0) {
-        setActiveChildId(ids[0]);
+        setActiveChildId((prev) => (prev && ids.includes(prev) ? prev : ids[0]));
       }
       setLoading(false);
     };

@@ -10,7 +10,8 @@ import {
   UserCheck,
   ClipboardList,
   ChevronDown,
-  DoorClosed
+  DoorClosed,
+  LayoutGrid
 } from 'lucide-react';
 
 interface NavigationTabsProps {
@@ -41,6 +42,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
     { id: 'tab-callup', label: 'Convocazioni', icon: <Mail className="w-4 h-4 text-purple-400" /> },
     { id: 'tab-tournaments', label: 'Tornei', icon: <Trophy className="w-4 h-4 text-amber-400" /> },
     { id: 'tab-locker-rooms', label: 'Spogliatoi & Campi', icon: <DoorClosed className="w-4 h-4 text-amber-400" />, adminOnly: true },
+    { id: 'tab-field-diagram', label: 'Schema Campi', icon: <LayoutGrid className="w-4 h-4 text-emerald-400" />, adminOnly: true },
     { id: 'tab-staff', label: 'Staff / Coach', icon: <ShieldCheck className="w-4 h-4 text-rose-400" />, adminOnly: true },
     { id: 'tab-parents', label: 'Genitori', icon: <UserCheck className="w-4 h-4 text-indigo-400" />, adminOnly: true },
     { id: 'tab-staff-attendance', label: 'Presenze Staff', icon: <ClipboardList className="w-4 h-4 text-teal-400" />, adminOnly: true },

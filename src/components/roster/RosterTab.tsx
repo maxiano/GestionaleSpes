@@ -91,7 +91,8 @@ export const RosterTab: React.FC<RosterTabProps> = ({
             dob: (r['Data Nascita'] || r['dob'] || '').trim(),
             role: (r['Ruolo'] || r['role'] || '').trim(),
             medicalExp: (r['Scadenza Certificato'] || r['medicalExp'] || '').trim(),
-            parentPhone: (r['Tel. Genitore'] || r['parentPhone'] || '').toString().trim(),
+            parentPhone: (r['Tel. Padre'] || r['Tel. Genitore 1'] || r['Tel. Genitore'] || r['parentPhone'] || '').toString().trim(),
+            parentPhone2: (r['Tel. Madre'] || r['Tel. Genitore 2'] || r['parentPhone2'] || '').toString().trim(),
             teamId: activeTeamId
           };
         })
@@ -238,10 +239,17 @@ export const RosterTab: React.FC<RosterTabProps> = ({
                     </span>
                   </p>
 
-                  <p className="text-slate-600 flex items-center gap-1">
-                    <Phone className="w-3 h-3 text-slate-400" />
-                    <span className="font-semibold">Tel. Genitore:</span> {player.parentPhone || 'N/D'}
-                  </p>
+                  <div className="text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-3 h-3 text-slate-400" />
+                      <span className="font-semibold">Padre:</span> {player.parentPhone || 'N/D'}
+                    </span>
+                    {player.parentPhone2 && (
+                      <span className="flex items-center gap-1 border-l border-slate-300 pl-2">
+                        <span className="font-semibold">Madre:</span> {player.parentPhone2}
+                      </span>
+                    )}
+                  </div>
 
                   <div className="pt-1">{medBadge}</div>
                 </div>
@@ -314,7 +322,11 @@ export const RosterTab: React.FC<RosterTabProps> = ({
                   <td className="border border-slate-300 p-1.5 text-center">
                     {formatDateIT(p.medicalExp)}
                   </td>
-                  <td className="border border-slate-300 p-1.5">{p.parentPhone || '-'}</td>
+                  <td className="border border-slate-300 p-1.5 text-[11px] leading-tight">
+                    {p.parentPhone && <div><span className="font-semibold text-slate-500">P:</span> {p.parentPhone}</div>}
+                    {p.parentPhone2 && <div><span className="font-semibold text-slate-500">M:</span> {p.parentPhone2}</div>}
+                    {!p.parentPhone && !p.parentPhone2 && '-'}
+                  </td>
                 </tr>
               );
             })}

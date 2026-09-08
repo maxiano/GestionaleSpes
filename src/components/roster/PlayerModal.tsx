@@ -26,6 +26,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
   const [role, setRole] = useState('');
   const [medicalExp, setMedicalExp] = useState('');
   const [parentPhone, setParentPhone] = useState('');
+  const [parentPhone2, setParentPhone2] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +39,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
       setRole(playerToEdit.role || '');
       setMedicalExp(playerToEdit.medicalExp || '');
       setParentPhone(playerToEdit.parentPhone || '');
+      setParentPhone2(playerToEdit.parentPhone2 || '');
     } else {
       setFirstName('');
       setLastName('');
@@ -46,6 +48,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
       setRole('');
       setMedicalExp('');
       setParentPhone('');
+      setParentPhone2('');
     }
     setError(null);
   }, [playerToEdit, isOpen]);
@@ -88,6 +91,7 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
         role: role || 'Non specificato',
         medicalExp: medicalExp || null,
         parentPhone: parentPhone.trim() || '',
+        parentPhone2: parentPhone2.trim() || '',
         teamId: activeTeamId
       };
 
@@ -217,21 +221,38 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                 className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Telefono Genitore
-              </label>
-              <input
-                type="tel"
-                id="player-parent-phone"
-                value={parentPhone}
-                onChange={(e) => setParentPhone(e.target.value)}
-                placeholder="es. 3331234567"
-                className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
-              />
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                Collega automaticamente l'account genitore se registrato con questo numero.
-              </span>
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Tel. Padre / Genitore 1
+                </label>
+                <input
+                  type="tel"
+                  id="player-parent-phone"
+                  value={parentPhone}
+                  onChange={(e) => setParentPhone(e.target.value)}
+                  placeholder="es. 3331234567"
+                  className="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Tel. Madre / Genitore 2
+                </label>
+                <input
+                  type="tel"
+                  id="player-parent-phone-2"
+                  value={parentPhone2}
+                  onChange={(e) => setParentPhone2(e.target.value)}
+                  placeholder="es. 3389876543"
+                  className="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <span className="text-[10px] text-slate-500 block leading-tight">
+                  💡 Inserendo entrambi i numeri, sia l'account del padre che della madre riconosceranno automaticamente il ragazzo nel Portale Famiglia.
+                </span>
+              </div>
             </div>
           </div>
 

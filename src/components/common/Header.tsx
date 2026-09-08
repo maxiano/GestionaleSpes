@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile, AppNotification } from '../../types';
+import { ClubLogo } from './ClubLogo';
 import { PWAInstallButton } from '../pwa/PWAInstallButton';
 import { NotificationBell } from '../notifications/NotificationBell';
 import {
@@ -14,7 +15,8 @@ import {
   Database,
   Trash2,
   ChevronDown,
-  DoorClosed
+  DoorClosed,
+  LayoutGrid
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -56,12 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Brand & User info */}
       <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
         <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center p-1 shadow-md ring-1 ring-emerald-500/30 overflow-hidden shrink-0">
-          <img
-            src="./icon-192.png"
-            alt="Spes Montesacro"
-            className="w-full h-full object-contain"
-            referrerPolicy="no-referrer"
-          />
+          <ClubLogo className="w-full h-full object-contain text-slate-900" />
         </div>
         <div className="min-w-0 truncate">
           <h1 className="text-xs sm:text-base font-black tracking-wider uppercase bg-gradient-to-r from-white via-slate-100 to-emerald-300 bg-clip-text text-transparent truncate">
@@ -132,6 +129,16 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <DoorClosed className="w-4 h-4 text-amber-400" />
                       Piano Spogliatoi &amp; Campi
+                    </button>
+                    <button
+                      onClick={() => {
+                        onSelectAdminTab('tab-field-diagram');
+                        setDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs font-bold text-emerald-300 hover:bg-slate-800 hover:text-emerald-200 rounded-xl flex items-center gap-2 transition"
+                    >
+                      <LayoutGrid className="w-4 h-4 text-emerald-400" />
+                      Schema Campi Allenamento
                     </button>
                     <button
                       onClick={() => {
