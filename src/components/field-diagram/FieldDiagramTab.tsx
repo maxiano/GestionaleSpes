@@ -6,6 +6,7 @@ import {
   DEFAULT_ZONES
 } from '../../services/fieldPlannerService';
 import { CATEGORIES_LIST, DAYS_ORDER } from '../../services/lockerRoomsService';
+import { TEAM_GROUPS } from '../../config/constants';
 import { fetchStaffUsers } from '../../services/authService';
 import { ClubLogo } from '../common/ClubLogo';
 import {
@@ -32,6 +33,194 @@ const TIME_PRESETS = [
   '19:30 - 21:00'
 ];
 
+const DEFAULT_COACHES_LIST = [
+  'Mister Andrea Porzio',
+  'Mister Carlo Giampaolo',
+  'Mister Christian Fermani',
+  'Mister Daniele della Vecchia',
+  'Mister Daniele Zambito',
+  'Mister Davide Luminari',
+  'Mister Eugenio Fiori',
+  'Mister Federico Rodio',
+  'Mister Francesco Piras',
+  'Mister Marco Cormani',
+  'Mister Massimiliano Lato',
+  'Mister Matteo Sassi',
+  'Mister Mattia Feliciotti',
+  'Mister Pierluigi Cirasella',
+  'Mister Roberto Pieraccini',
+  'Mister Silvano Rubeo',
+  'Massimiliano',
+  'Massimo Cirinei'
+];
+
+interface ZoneControlsProps {
+  zoneKey: keyof FieldTrainingPlan['zones'];
+  zone: FieldTrainingZone;
+  updateZone: (zoneKey: keyof FieldTrainingPlan['zones'], field: keyof FieldTrainingZone, value: string) => void;
+  staffList: string[];
+  tabIndexBase: number;
+}
+
+const ZoneControls: React.FC<ZoneControlsProps> = ({
+  zoneKey,
+  zone,
+  updateZone,
+  staffList,
+  tabIndexBase
+}) => {
+  const [customTeam, setCustomTeam] = useState(false);
+  const [customCoach, setCustomCoach] = useState(false);
+
+  const isTeamInStandard = React.useMemo(() => {
+    if (!zone.team) return true;
+    if (CATEGORIES_LIST.includes(zone.team)) return true;
+    for (const g of TEAM_GROUPS) {
+      if (g.teams.includes(zone.team)) return true;
+    }
+    if (['Under 14', 'Under 15', 'Under 16', 'Under 17', 'Under 19', 'Prima Squadra'].includes(zone.team)) return true;
+    return false;
+  }, [zone.team]);
+
+  const isCoachInStandard = React.useMemo(() => {
+    if (!zone.coach) return true;
+    return staffList.includes(zone.coach);
+  }, [zone.coach, staffList]);
+
+  return (
+    <div className="relative z-20 space-y-1.5 my-auto bg-slate-900/90 backdrop-blur-md p-2 rounded-xl border border-white/20 shadow-lg w-full">
+      {/* Squadra / Categoria */}
+      <div>
+        <div className="flex items-center justify-between text-[9px] font-bold text-slate-300 uppercase mb-0.5">
+          <span className="flex items-center gap-1">
+            <Users className="w-2.5 h-2.5 text-emerald-400" />
+            <span>Squadra</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setCustomTeam(!customTeam)}
+            className="text-[9px] text-emerald-400 hover:text-emerald-300 transition underline underline-offset-2"
+            title="Alterna tra menu opzioni e scrittura manuale"
+          >
+            {customTeam ? '📋 Opzioni' : '✍️ Manuale'}
+          </button>
+        </div>
+
+        {customTeam ? (
+          <input
+            type="text"
+            list="category-suggestions"
+            tabIndex={tabIndexBase}
+            value={zone.team}
+            onChange={(e) => updateZone(zoneKey, 'team', e.target.value)}
+            placeholder="es. 2017 - Gruppo Nero"
+            className="w-full bg-white text-slate-900 font-black text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
+          />
+        ) : (
+          <select
+            tabIndex={tabIndexBase}
+            value={zone.team}
+            onChange={(e) => {
+              if (e.target.value === '__CUSTOM__') {
+                setCustomTeam(true);
+              } else {
+                updateZone(zoneKey, 'team', e.target.value);
+              }
+            }}
+            className="w-full bg-white text-slate-900 font-bold text-xs px-1.5 py-1 rounded-md border border-slate-300 shadow-sm outline-none focus:ring-2 focus:ring-emerald-400 cursor-pointer truncate"
+          >
+            <option value="">-- Seleziona Squadra --</option>
+            {zone.team && !isTeamInStandard && (
+              <option value={zone.team}>⭐ {zone.team} (Personalizzato)</option>
+            )}
+            <optgroup label="🏆 Categorie Generali">
+              {CATEGORIES_LIST.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </optgroup>
+            {TEAM_GROUPS.map((g) => (
+              <optgroup key={g.category} label={`⚽ ${g.category}`}>
+                {g.teams.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+            <optgroup label="🏅 Agonistica / Altro">
+              <option value="Under 14">Under 14</option>
+              <option value="Under 15">Under 15</option>
+              <option value="Under 16">Under 16</option>
+              <option value="Under 17">Under 17</option>
+              <option value="Under 19">Under 19</option>
+              <option value="Prima Squadra">Prima Squadra</option>
+            </optgroup>
+            <option value="__CUSTOM__">✍️ Inserisci a mano...</option>
+          </select>
+        )}
+      </div>
+
+      {/* Mister / Allenatore */}
+      <div>
+        <div className="flex items-center justify-between text-[9px] font-bold text-slate-300 uppercase mb-0.5">
+          <span className="flex items-center gap-1">
+            <User className="w-2.5 h-2.5 text-amber-400" />
+            <span>Mister</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setCustomCoach(!customCoach)}
+            className="text-[9px] text-amber-300 hover:text-amber-200 transition underline underline-offset-2"
+            title="Alterna tra menu opzioni e scrittura manuale"
+          >
+            {customCoach ? '📋 Opzioni' : '✍️ Manuale'}
+          </button>
+        </div>
+
+        {customCoach ? (
+          <input
+            type="text"
+            list="coach-suggestions"
+            tabIndex={tabIndexBase + 1}
+            value={zone.coach}
+            onChange={(e) => updateZone(zoneKey, 'coach', e.target.value)}
+            placeholder="es. Mister Rossi"
+            className="w-full bg-white text-slate-900 font-bold text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
+          />
+        ) : (
+          <select
+            tabIndex={tabIndexBase + 1}
+            value={zone.coach}
+            onChange={(e) => {
+              if (e.target.value === '__CUSTOM__') {
+                setCustomCoach(true);
+              } else {
+                updateZone(zoneKey, 'coach', e.target.value);
+              }
+            }}
+            className="w-full bg-white text-slate-900 font-bold text-xs px-1.5 py-1 rounded-md border border-slate-300 shadow-sm outline-none focus:ring-2 focus:ring-emerald-400 cursor-pointer truncate"
+          >
+            <option value="">-- Seleziona Mister --</option>
+            {zone.coach && !isCoachInStandard && (
+              <option value={zone.coach}>⭐ {zone.coach} (Personalizzato)</option>
+            )}
+            <optgroup label="📋 Mister Disponibili">
+              {staffList.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </optgroup>
+            <option value="__CUSTOM__">✍️ Inserisci a mano...</option>
+          </select>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const FieldDiagramTab: React.FC = () => {
   const [plans, setPlans] = useState<FieldTrainingPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>('');
@@ -40,7 +229,7 @@ export const FieldDiagramTab: React.FC = () => {
   const [notes, setNotes] = useState<string>('');
   const [zones, setZones] = useState<FieldTrainingPlan['zones']>(DEFAULT_ZONES);
 
-  const [staffList, setStaffList] = useState<string[]>([]);
+  const [staffList, setStaffList] = useState<string[]>(DEFAULT_COACHES_LIST);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -67,10 +256,20 @@ export const FieldDiagramTab: React.FC = () => {
 
       try {
         const staff = await fetchStaffUsers();
-        const names = staff.map((s) => s.name).filter(Boolean);
-        setStaffList(names);
+        const names = staff
+          .map((s) => {
+            const raw = (s.name || '').trim();
+            if (!raw) return '';
+            return raw.toLowerCase().startsWith('mister') ? raw : `Mister ${raw}`;
+          })
+          .filter(Boolean);
+        const combined = Array.from(new Set([...names, ...DEFAULT_COACHES_LIST])).sort((a, b) =>
+          a.localeCompare(b, 'it', { sensitivity: 'base' })
+        );
+        setStaffList(combined);
       } catch (err) {
         console.warn('Errore lettura lista staff:', err);
+        setStaffList(DEFAULT_COACHES_LIST);
       }
     }
     init();
@@ -378,6 +577,13 @@ export const FieldDiagramTab: React.FC = () => {
           {CATEGORIES_LIST.map((c) => (
             <option key={c} value={c} />
           ))}
+          {TEAM_GROUPS.map((g) => (
+            <React.Fragment key={g.category}>
+              {g.teams.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </React.Fragment>
+          ))}
           <option value="Primi Calci" />
           <option value="Piccoli Amici" />
           <option value="Esordienti" />
@@ -473,38 +679,13 @@ export const FieldDiagramTab: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="relative z-20 space-y-1.5 my-auto bg-slate-900/85 backdrop-blur-sm p-2 rounded-xl border border-white/20 shadow-lg">
-                      <div>
-                        <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300 uppercase">
-                          <Users className="w-2.5 h-2.5 text-emerald-400" />
-                          <span>Squadra / Categoria</span>
-                        </div>
-                        <input
-                          type="text"
-                          list="category-suggestions"
-                          tabIndex={1}
-                          value={zones.topLeft.team}
-                          onChange={(e) => updateZone('topLeft', 'team', e.target.value)}
-                          placeholder="es. 2017"
-                          className="w-full bg-white text-slate-900 font-black text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                        />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300 uppercase">
-                          <User className="w-2.5 h-2.5 text-amber-400" />
-                          <span>Mister</span>
-                        </div>
-                        <input
-                          type="text"
-                          list="coach-suggestions"
-                          tabIndex={2}
-                          value={zones.topLeft.coach}
-                          onChange={(e) => updateZone('topLeft', 'coach', e.target.value)}
-                          placeholder="es. Mister Rossi"
-                          className="w-full bg-white text-slate-900 font-bold text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                        />
-                      </div>
-                    </div>
+                    <ZoneControls
+                      zoneKey="topLeft"
+                      zone={zones.topLeft}
+                      updateZone={updateZone}
+                      staffList={staffList}
+                      tabIndexBase={1}
+                    />
                   </div>
 
                   {/* RETTANGOLO SUPERIORE DX */}
@@ -542,38 +723,13 @@ export const FieldDiagramTab: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="relative z-20 space-y-1.5 my-auto bg-slate-900/85 backdrop-blur-sm p-2 rounded-xl border border-white/20 shadow-lg">
-                      <div>
-                        <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300 uppercase">
-                          <Users className="w-2.5 h-2.5 text-emerald-400" />
-                          <span>Squadra / Categoria</span>
-                        </div>
-                        <input
-                          type="text"
-                          list="category-suggestions"
-                          tabIndex={3}
-                          value={zones.topRight.team}
-                          onChange={(e) => updateZone('topRight', 'team', e.target.value)}
-                          placeholder="es. 2018"
-                          className="w-full bg-white text-slate-900 font-black text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                        />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300 uppercase">
-                          <User className="w-2.5 h-2.5 text-amber-400" />
-                          <span>Mister</span>
-                        </div>
-                        <input
-                          type="text"
-                          list="coach-suggestions"
-                          tabIndex={4}
-                          value={zones.topRight.coach}
-                          onChange={(e) => updateZone('topRight', 'coach', e.target.value)}
-                          placeholder="es. Mister Ferrari"
-                          className="w-full bg-white text-slate-900 font-bold text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                        />
-                      </div>
-                    </div>
+                    <ZoneControls
+                      zoneKey="topRight"
+                      zone={zones.topRight}
+                      updateZone={updateZone}
+                      staffList={staffList}
+                      tabIndexBase={3}
+                    />
                   </div>
                 </div>
 
@@ -622,38 +778,13 @@ export const FieldDiagramTab: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="relative z-20 space-y-1.5 my-auto bg-slate-900/85 backdrop-blur-sm p-2 rounded-xl border border-white/20 shadow-lg">
-                    <div>
-                      <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300 uppercase">
-                        <Users className="w-2.5 h-2.5 text-emerald-400" />
-                        <span>Squadra</span>
-                      </div>
-                      <input
-                        type="text"
-                        list="category-suggestions"
-                        tabIndex={5}
-                        value={zones.sideLeft.team}
-                        onChange={(e) => updateZone('sideLeft', 'team', e.target.value)}
-                        placeholder="es. 2019"
-                        className="w-full bg-white text-slate-900 font-black text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300 uppercase">
-                        <User className="w-2.5 h-2.5 text-amber-400" />
-                        <span>Mister</span>
-                      </div>
-                      <input
-                        type="text"
-                        list="coach-suggestions"
-                        tabIndex={6}
-                        value={zones.sideLeft.coach}
-                        onChange={(e) => updateZone('sideLeft', 'coach', e.target.value)}
-                        placeholder="es. Mister De Luca"
-                        className="w-full bg-white text-slate-900 font-bold text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                      />
-                    </div>
-                  </div>
+                  <ZoneControls
+                    zoneKey="sideLeft"
+                    zone={zones.sideLeft}
+                    updateZone={updateZone}
+                    staffList={staffList}
+                    tabIndexBase={5}
+                  />
                 </div>
 
                 {/* 2. RETTANGOLO PIÙ GRANDE CENTRALE */}
@@ -698,37 +829,14 @@ export const FieldDiagramTab: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="space-y-2 my-auto bg-slate-900/85 backdrop-blur-sm p-3 rounded-2xl border border-white/20 shadow-xl max-w-[240px] mx-auto w-full">
-                      <div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-300 uppercase">
-                          <Users className="w-3 h-3 text-emerald-400" />
-                          <span>Squadra / Categoria</span>
-                        </div>
-                        <input
-                          type="text"
-                          list="category-suggestions"
-                          tabIndex={7}
-                          value={zones.centerLeft.team}
-                          onChange={(e) => updateZone('centerLeft', 'team', e.target.value)}
-                          placeholder="es. 2016"
-                          className="w-full bg-white text-slate-900 font-black text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                        />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-300 uppercase">
-                          <User className="w-3 h-3 text-amber-400" />
-                          <span>Mister</span>
-                        </div>
-                        <input
-                          type="text"
-                          list="coach-suggestions"
-                          tabIndex={8}
-                          value={zones.centerLeft.coach}
-                          onChange={(e) => updateZone('centerLeft', 'coach', e.target.value)}
-                          placeholder="es. Mister Romano"
-                          className="w-full bg-white text-slate-900 font-bold text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                        />
-                      </div>
+                    <div className="max-w-[240px] mx-auto w-full my-auto">
+                      <ZoneControls
+                        zoneKey="centerLeft"
+                        zone={zones.centerLeft}
+                        updateZone={updateZone}
+                        staffList={staffList}
+                        tabIndexBase={7}
+                      />
                     </div>
                   </div>
 
@@ -740,37 +848,14 @@ export const FieldDiagramTab: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="space-y-2 my-auto bg-slate-900/85 backdrop-blur-sm p-3 rounded-2xl border border-white/20 shadow-xl max-w-[240px] mx-auto w-full">
-                      <div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-300 uppercase">
-                          <Users className="w-3 h-3 text-emerald-400" />
-                          <span>Squadra / Categoria</span>
-                        </div>
-                        <input
-                          type="text"
-                          list="category-suggestions"
-                          tabIndex={9}
-                          value={zones.centerRight.team}
-                          onChange={(e) => updateZone('centerRight', 'team', e.target.value)}
-                          placeholder="es. 2014"
-                          className="w-full bg-white text-slate-900 font-black text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                        />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-300 uppercase">
-                          <User className="w-3 h-3 text-amber-400" />
-                          <span>Mister</span>
-                        </div>
-                        <input
-                          type="text"
-                          list="coach-suggestions"
-                          tabIndex={10}
-                          value={zones.centerRight.coach}
-                          onChange={(e) => updateZone('centerRight', 'coach', e.target.value)}
-                          placeholder="es. Mister Conti"
-                          className="w-full bg-white text-slate-900 font-bold text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                        />
-                      </div>
+                    <div className="max-w-[240px] mx-auto w-full my-auto">
+                      <ZoneControls
+                        zoneKey="centerRight"
+                        zone={zones.centerRight}
+                        updateZone={updateZone}
+                        staffList={staffList}
+                        tabIndexBase={9}
+                      />
                     </div>
                   </div>
                 </div>
@@ -812,38 +897,13 @@ export const FieldDiagramTab: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="relative z-20 space-y-1.5 my-auto bg-slate-900/85 backdrop-blur-sm p-2 rounded-xl border border-white/20 shadow-lg">
-                    <div>
-                      <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300 uppercase">
-                        <Users className="w-2.5 h-2.5 text-emerald-400" />
-                        <span>Squadra</span>
-                      </div>
-                      <input
-                        type="text"
-                        list="category-suggestions"
-                        tabIndex={11}
-                        value={zones.sideRight.team}
-                        onChange={(e) => updateZone('sideRight', 'team', e.target.value)}
-                        placeholder="es. 2020/21"
-                        className="w-full bg-white text-slate-900 font-black text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300 uppercase">
-                        <User className="w-2.5 h-2.5 text-amber-400" />
-                        <span>Mister</span>
-                      </div>
-                      <input
-                        type="text"
-                        list="coach-suggestions"
-                        tabIndex={12}
-                        value={zones.sideRight.coach}
-                        onChange={(e) => updateZone('sideRight', 'coach', e.target.value)}
-                        placeholder="es. Mister Bianchi"
-                        className="w-full bg-white text-slate-900 font-bold text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
-                      />
-                    </div>
-                  </div>
+                  <ZoneControls
+                    zoneKey="sideRight"
+                    zone={zones.sideRight}
+                    updateZone={updateZone}
+                    staffList={staffList}
+                    tabIndexBase={11}
+                  />
                 </div>
               </div>
             </div>
