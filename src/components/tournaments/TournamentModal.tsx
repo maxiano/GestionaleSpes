@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Tournament, UserProfile } from '../../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Tournament, TournamentAttachment, UserProfile } from '../../types';
 import { saveTournament, deleteTournament } from '../../services/tournamentsService';
 import { fetchStaffUsers } from '../../services/authService';
 import { createPushNotification } from '../../services/notificationService';
@@ -8,7 +8,21 @@ import {
   sendWhatsAppToPhoneOrShare
 } from '../../utils/exports';
 import { formatDateIT } from '../../utils/formatters';
-import { X, Loader2, Trash2, MessageCircle, Smartphone, BellRing } from 'lucide-react';
+import {
+  X,
+  Loader2,
+  Trash2,
+  MessageCircle,
+  Smartphone,
+  BellRing,
+  Paperclip,
+  Eye,
+  Upload,
+  Calendar,
+  FileText
+} from 'lucide-react';
+import { formatPdfFileSize, readFileAsPdfAttachment } from '../../utils/pdfHelpers';
+import { PdfViewerModal } from '../common/PdfViewerModal';
 
 interface TournamentModalProps {
   isOpen: boolean;
@@ -29,9 +43,28 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [location, setLocation] = useState('');
+  const [calendarPdf, setCalendarPdf] = useState<TournamentAttachment | null>(null);
+  const [regulationPdf, setRegulationPdf] = useState<TournamentAttachment | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const calendarFileRef = useRef<HTMLInputElement>(null);
+  const regulationFileRef = useRef<HTMLInputElement>(null);
+
+  // PDF Preview modal state
+  const [previewPdfModal, setPreviewPdfModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    fileName: string;
+    dataUrl: string;
+    fileSize?: number;
+  }>({
+    isOpen: false,
+    title: '',
+    fileName: '',
+    dataUrl: ''
+  });
 
   // Notifications
   const [notifyPush, setNotifyPush] = useState(true);
@@ -49,6 +82,8 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setStartDate(tournamentToEdit.startDate || '');
       setEndDate(tournamentToEdit.endDate || '');
       setLocation(tournamentToEdit.location || '');
+      setCalendarPdf(tournamentToEdit.calendarPdf || null);
+      setRegulationPdf(tournamentToEdit.regulationPdf || null);
       setNotifyPush(false);
       setNotifyCoach(false);
     } else {
@@ -56,6 +91,8 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setStartDate('');
       setEndDate('');
       setLocation('');
+      setCalendarPdf(null);
+      setRegulationPdf(null);
       setNotifyPush(true);
       setNotifyCoach(false);
     }
@@ -102,6 +139,26 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
   if (!isOpen) return null;
 
+  const handleUploadCalendar = async (file: File) => {
+    try {
+      setErrorMessage(null);
+      const att = await readFileAsPdfAttachment(file);
+      setCalendarPdf(att);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Errore durante il caricamento del PDF');
+    }
+  };
+
+  const handleUploadRegulation = async (file: File) => {
+    try {
+      setErrorMessage(null);
+      const att = await readFileAsPdfAttachment(file);
+      setRegulationPdf(att);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Errore durante il caricamento del PDF');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -118,17 +175,24 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
           name: name.trim(),
           startDate,
           endDate,
-          location: location.trim()
+          location: location.trim(),
+          calendarPdf,
+          regulationPdf
         },
         tournamentToEdit ? tournamentToEdit.id : null
       );
 
-      // 1. Invio Notifica Push PWA automatica al Mister e all'Admin (anche a schermo bloccato)
+      // 1. Invio Notifica Push PWA automatica all'Allenatore e all'Admin (anche a schermo bloccato)
       if (notifyPush && !tournamentToEdit) {
         try {
+          const pdfNotes: string[] = [];
+          if (calendarPdf) pdfNotes.push('Calendario PDF');
+          if (regulationPdf) pdfNotes.push('Regolamento PDF');
+          const pdfSuffix = pdfNotes.length > 0 ? ` [Allegati: ${pdfNotes.join(', ')}]` : '';
+
           await createPushNotification({
             title: `🏆 Nuovo Torneo: ${name.trim()}`,
-            body: `È stato inserito il torneo per la Cat. ${activeTeamId} (${formatDateIT(startDate)} - ${formatDateIT(endDate)}) presso ${location.trim() || 'Spes Montesacro'}.`,
+            body: `È stato inserito il torneo per la Cat. ${activeTeamId} (${formatDateIT(startDate)} - ${formatDateIT(endDate)}) presso ${location.trim() || 'Spes Montesacro'}.${pdfSuffix}`,
             type: 'tournament',
             targetTeamId: activeTeamId,
             targetRole: 'all',
@@ -137,7 +201,9 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
               teamId: activeTeamId,
               startDate,
               endDate,
-              location: location.trim()
+              location: location.trim(),
+              hasCalendarPdf: !!calendarPdf,
+              hasRegulationPdf: !!regulationPdf
             }
           });
         } catch (pushErr) {
@@ -152,7 +218,9 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             name: name.trim(),
             startDate,
             endDate,
-            location: location.trim()
+            location: location.trim(),
+            hasCalendarPdf: !!calendarPdf,
+            hasRegulationPdf: !!regulationPdf
           },
           activeTeamId,
           coachName
@@ -187,17 +255,23 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 print:hidden">
-      <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-slate-100">
+      <div className="bg-white p-6 rounded-3xl max-w-xl w-full max-h-[92vh] overflow-y-auto space-y-4 shadow-2xl border border-slate-100">
         <div className="flex justify-between items-center border-b border-slate-100 pb-3">
           <h3 className="font-black text-slate-900 text-lg">
             🏆 {tournamentToEdit ? 'Modifica Torneo' : 'Nuovo Torneo'}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
+        {errorMessage && (
+          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-2xl">
+            {errorMessage}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">Nome Torneo *</label>
             <input
@@ -248,6 +322,211 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
               placeholder="es. Centro Sportivo Spes Montesacro"
               className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
             />
+          </div>
+
+          {/* Allegati Documenti Ufficiali in PDF (Calendario e Regolamento) */}
+          <div className="pt-2 border-t border-slate-100 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Paperclip className="w-3.5 h-3.5 text-slate-500" />
+                <span>Documenti Ufficiali Torneo (PDF)</span>
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium">
+                Max 1.8 MB cad.
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* 1. Calendario Gare PDF */}
+              <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3 flex flex-col justify-between space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Calendario Gare</span>
+                  </span>
+                  {calendarPdf && (
+                    <span className="text-[9px] font-black uppercase tracking-wider text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                      Caricato
+                    </span>
+                  )}
+                </div>
+
+                {calendarPdf ? (
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-start justify-between gap-1.5">
+                      <div className="min-w-0 flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-rose-500 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate" title={calendarPdf.name}>
+                            {calendarPdf.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {formatPdfFileSize(calendarPdf.size)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCalendarPdf(null)}
+                        className="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition cursor-pointer"
+                        title="Rimuovi Calendario PDF"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewPdfModal({
+                            isOpen: true,
+                            title: `Calendario - ${name || 'Torneo'}`,
+                            fileName: calendarPdf.name,
+                            dataUrl: calendarPdf.dataUrl,
+                            fileSize: calendarPdf.size
+                          })
+                        }
+                        className="flex-1 py-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3 text-slate-600" />
+                        <span>Visualizza</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => calendarFileRef.current?.click()}
+                        className="flex-1 py-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Upload className="w-3 h-3 text-slate-600" />
+                        <span>Sostituisci</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => calendarFileRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const f = e.dataTransfer.files?.[0];
+                      if (f) handleUploadCalendar(f);
+                    }}
+                    className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-white hover:bg-blue-50/40 rounded-xl p-3 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1"
+                  >
+                    <Upload className="w-4 h-4 text-slate-400" />
+                    <span className="text-[11px] font-bold text-slate-700">Carica Calendario</span>
+                    <span className="text-[9px] text-slate-400">Trascina o clicca (.pdf)</span>
+                  </div>
+                )}
+
+                <input
+                  ref={calendarFileRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUploadCalendar(f);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+
+              {/* 2. Regolamento PDF */}
+              <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3 flex flex-col justify-between space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Regolamento</span>
+                  </span>
+                  {regulationPdf && (
+                    <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                      Caricato
+                    </span>
+                  )}
+                </div>
+
+                {regulationPdf ? (
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-start justify-between gap-1.5">
+                      <div className="min-w-0 flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-rose-500 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate" title={regulationPdf.name}>
+                            {regulationPdf.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {formatPdfFileSize(regulationPdf.size)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setRegulationPdf(null)}
+                        className="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition cursor-pointer"
+                        title="Rimuovi Regolamento PDF"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewPdfModal({
+                            isOpen: true,
+                            title: `Regolamento - ${name || 'Torneo'}`,
+                            fileName: regulationPdf.name,
+                            dataUrl: regulationPdf.dataUrl,
+                            fileSize: regulationPdf.size
+                          })
+                        }
+                        className="flex-1 py-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3 text-slate-600" />
+                        <span>Visualizza</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => regulationFileRef.current?.click()}
+                        className="flex-1 py-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Upload className="w-3 h-3 text-slate-600" />
+                        <span>Sostituisci</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => regulationFileRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const f = e.dataTransfer.files?.[0];
+                      if (f) handleUploadRegulation(f);
+                    }}
+                    className="border-2 border-dashed border-slate-200 hover:border-amber-400 bg-white hover:bg-amber-50/40 rounded-xl p-3 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1"
+                  >
+                    <Upload className="w-4 h-4 text-slate-400" />
+                    <span className="text-[11px] font-bold text-slate-700">Carica Regolamento</span>
+                    <span className="text-[9px] text-slate-400">Trascina o clicca (.pdf)</span>
+                  </div>
+                )}
+
+                <input
+                  ref={regulationFileRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUploadRegulation(f);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Opzioni Notifiche per il Mister */}
@@ -416,6 +695,20 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
           )}
         </form>
       </div>
+
+      {/* Modale Anteprima PDF Documento */}
+      {previewPdfModal.isOpen && (
+        <PdfViewerModal
+          isOpen={previewPdfModal.isOpen}
+          onClose={() =>
+            setPreviewPdfModal({ isOpen: false, title: '', fileName: '', dataUrl: '' })
+          }
+          title={previewPdfModal.title}
+          fileName={previewPdfModal.fileName}
+          dataUrl={previewPdfModal.dataUrl}
+          fileSize={previewPdfModal.fileSize}
+        />
+      )}
     </div>
   );
 };

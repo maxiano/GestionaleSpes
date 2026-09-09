@@ -25,7 +25,9 @@ export async function getTournaments(teamId?: string): Promise<Tournament[]> {
       name: data.name || '',
       startDate: data.startDate || '',
       endDate: data.endDate || '',
-      location: data.location || ''
+      location: data.location || '',
+      calendarPdf: data.calendarPdf || null,
+      regulationPdf: data.regulationPdf || null
     };
   });
 }
@@ -34,11 +36,21 @@ export async function saveTournament(
   data: Omit<Tournament, 'id'>,
   editingId?: string | null
 ): Promise<string> {
+  const cleanData: any = {
+    teamId: data.teamId || '',
+    name: data.name || '',
+    startDate: data.startDate || '',
+    endDate: data.endDate || '',
+    location: data.location || '',
+    calendarPdf: data.calendarPdf ?? null,
+    regulationPdf: data.regulationPdf ?? null
+  };
+
   if (editingId) {
-    await updateDoc(doc(db, 'tournaments', editingId), data);
+    await updateDoc(doc(db, 'tournaments', editingId), cleanData);
     return editingId;
   }
-  const ref = await addDoc(collection(db, 'tournaments'), data);
+  const ref = await addDoc(collection(db, 'tournaments'), cleanData);
   return ref.id;
 }
 

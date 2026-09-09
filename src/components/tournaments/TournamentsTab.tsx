@@ -33,9 +33,15 @@ import {
   CheckCircle2,
   Clock3,
   MessageCircle,
-  BellRing
+  BellRing,
+  Paperclip,
+  FileText,
+  Eye,
+  Download
 } from 'lucide-react';
 import { createPushNotification } from '../../services/notificationService';
+import { PdfViewerModal } from '../common/PdfViewerModal';
+import { openOrDownloadPdf, formatPdfFileSize } from '../../utils/pdfHelpers';
 
 interface TournamentsTabProps {
   activeTeamId: string;
@@ -56,6 +62,20 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
   const [activeTourForMatch, setActiveTourForMatch] = useState<Tournament | null>(null);
   const [editingMatch, setEditingMatch] = useState<TournamentMatch | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // PDF Preview modal
+  const [previewPdfModal, setPreviewPdfModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    fileName: string;
+    dataUrl: string;
+    fileSize?: number;
+  }>({
+    isOpen: false,
+    title: '',
+    fileName: '',
+    dataUrl: ''
+  });
 
   const csvFileRef = useRef<HTMLInputElement>(null);
 
@@ -181,6 +201,8 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
 
     tournaments.forEach((tour) => {
       text += `🏆 *${tour.name}*\n📍 ${tour.location || 'Campo Spes'} | 📅 ${formatDateIT(tour.startDate)} - ${formatDateIT(tour.endDate)}\n`;
+      if (tour.calendarPdf) text += `  📎 Calendario PDF allegato\n`;
+      if (tour.regulationPdf) text += `  📋 Regolamento PDF allegato\n`;
       const tMatches = matches.filter((m) => m.tournamentId === tour.id);
       if (tMatches.length === 0) {
         text += '  (Nessuna gara registrata)\n';
@@ -197,11 +219,11 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
     sendToWhatsApp(text, `Tornei ${activeTeamId}`);
   };
 
-  // Notifica specifica del singolo torneo al Mister via WhatsApp
+  // Notifica specifica del singolo torneo all'Allenatore via WhatsApp
   const handleNotifyCoach = async (tour: Tournament) => {
     try {
       const staff = await fetchStaffUsers();
-      // Trova il mister della categoria attiva
+      // Trova l'allenatore della categoria attiva
       const coach = staff.find(
         (u) =>
           u.role === 'coach' &&
@@ -215,7 +237,9 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
           name: tour.name,
           startDate: tour.startDate,
           endDate: tour.endDate,
-          location: tour.location
+          location: tour.location,
+          hasCalendarPdf: !!tour.calendarPdf,
+          hasRegulationPdf: !!tour.regulationPdf
         },
         activeTeamId,
         coach?.name
@@ -229,18 +253,25 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
 
   const handlePushNotifyTournament = async (tour: Tournament) => {
     try {
+      const pdfNotes: string[] = [];
+      if (tour.calendarPdf) pdfNotes.push('Calendario PDF');
+      if (tour.regulationPdf) pdfNotes.push('Regolamento PDF');
+      const pdfSuffix = pdfNotes.length > 0 ? ` [Allegati: ${pdfNotes.join(', ')}]` : '';
+
       await createPushNotification({
         title: `🏆 Promemoria Torneo: ${tour.name}`,
-        body: `Aggiornamento Cat. ${activeTeamId}: dal ${formatDateIT(tour.startDate)} al ${formatDateIT(tour.endDate)} presso ${tour.location || 'Spes Montesacro'}.`,
+        body: `Aggiornamento Cat. ${activeTeamId}: dal ${formatDateIT(tour.startDate)} al ${formatDateIT(tour.endDate)} presso ${tour.location || 'Spes Montesacro'}.${pdfSuffix}`,
         type: 'tournament',
         targetTeamId: activeTeamId,
         targetRole: 'all',
         data: {
           tournamentId: tour.id,
-          teamId: activeTeamId
+          teamId: activeTeamId,
+          hasCalendarPdf: !!tour.calendarPdf,
+          hasRegulationPdf: !!tour.regulationPdf
         }
       });
-      showToast('🔔 Notifica Push PWA inviata con successo agli smartphone di Mister e Admin!');
+      showToast('🔔 Notifica Push PWA inviata con successo agli smartphone di Allenatore e Admin!');
     } catch (err: any) {
       showToast('⚠️ Errore invio notifica push: ' + err.message);
     }
@@ -418,7 +449,7 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                     <button
                       onClick={() => handlePushNotifyTournament(tour)}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold transition shadow-sm flex items-center gap-1.5"
-                      title="Invia Notifica Push PWA allo smartphone del Mister"
+                      title="Invia Notifica Push PWA allo smartphone dell'Allenatore"
                     >
                       <BellRing className="w-3.5 h-3.5" />
                       <span>Push PWA</span>
@@ -426,7 +457,7 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                     <button
                       onClick={() => handleNotifyCoach(tour)}
                       className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs px-3 py-1.5 rounded-xl font-bold border border-emerald-200 transition shadow-sm flex items-center gap-1.5"
-                      title="Notifica o ricondividi il torneo con il Mister su WhatsApp"
+                      title="Notifica o ricondividi il torneo con l'Allenatore su WhatsApp"
                     >
                       <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
                       <span>WhatsApp</span>
@@ -453,6 +484,115 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                       <span>Aggiungi Partita</span>
                     </button>
                   </div>
+                </div>
+
+                {/* Allegati Ufficiali (Calendario e Regolamento PDF) */}
+                <div className="flex flex-wrap items-center gap-2 py-2 px-3 bg-white/90 rounded-2xl border border-slate-200/80 shadow-2xs">
+                  <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 mr-1">
+                    <Paperclip className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Documenti Ufficiali:</span>
+                  </span>
+
+                  {tour.calendarPdf ? (
+                    <div className="inline-flex items-center gap-1.5 bg-blue-50/90 border border-blue-200/90 rounded-xl px-2.5 py-1 text-xs font-semibold text-blue-900 shadow-2xs">
+                      <FileText className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span className="font-bold">Calendario</span>
+                      <span className="text-[10px] text-blue-600 font-medium">
+                        {formatPdfFileSize(tour.calendarPdf.size)}
+                      </span>
+                      <div className="flex items-center gap-0.5 ml-1 border-l border-blue-200 pl-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewPdfModal({
+                              isOpen: true,
+                              title: `Calendario Gare - ${tour.name}`,
+                              fileName: tour.calendarPdf!.name,
+                              dataUrl: tour.calendarPdf!.dataUrl,
+                              fileSize: tour.calendarPdf!.size
+                            })
+                          }
+                          className="p-1 hover:bg-blue-100 rounded-md text-blue-700 hover:text-blue-900 transition cursor-pointer"
+                          title="Visualizza anteprima Calendario PDF"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openOrDownloadPdf(
+                              tour.calendarPdf!.dataUrl,
+                              tour.calendarPdf!.name,
+                              'download'
+                            )
+                          }
+                          className="p-1 hover:bg-blue-100 rounded-md text-blue-700 hover:text-blue-900 transition cursor-pointer"
+                          title="Scarica Calendario PDF"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {tour.regulationPdf ? (
+                    <div className="inline-flex items-center gap-1.5 bg-amber-50/90 border border-amber-200/90 rounded-xl px-2.5 py-1 text-xs font-semibold text-amber-900 shadow-2xs">
+                      <FileText className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span className="font-bold">Regolamento</span>
+                      <span className="text-[10px] text-amber-700 font-medium">
+                        {formatPdfFileSize(tour.regulationPdf.size)}
+                      </span>
+                      <div className="flex items-center gap-0.5 ml-1 border-l border-amber-200 pl-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewPdfModal({
+                              isOpen: true,
+                              title: `Regolamento - ${tour.name}`,
+                              fileName: tour.regulationPdf!.name,
+                              dataUrl: tour.regulationPdf!.dataUrl,
+                              fileSize: tour.regulationPdf!.size
+                            })
+                          }
+                          className="p-1 hover:bg-amber-100 rounded-md text-amber-700 hover:text-amber-900 transition cursor-pointer"
+                          title="Visualizza anteprima Regolamento PDF"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openOrDownloadPdf(
+                              tour.regulationPdf!.dataUrl,
+                              tour.regulationPdf!.name,
+                              'download'
+                            )
+                          }
+                          className="p-1 hover:bg-amber-100 rounded-md text-amber-700 hover:text-amber-900 transition cursor-pointer"
+                          title="Scarica Regolamento PDF"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {(!tour.calendarPdf || !tour.regulationPdf) && (
+                    <button
+                      type="button"
+                      onClick={() => handleEditTournament(tour)}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50/60 border border-dashed border-slate-300 hover:border-emerald-300 rounded-xl px-2.5 py-1 transition cursor-pointer ml-auto sm:ml-0"
+                    >
+                      <Plus className="w-3 h-3 text-slate-400" />
+                      <span>
+                        {!tour.calendarPdf && !tour.regulationPdf
+                          ? 'Allega Calendario o Regolamento PDF'
+                          : !tour.calendarPdf
+                          ? 'Allega Calendario PDF'
+                          : 'Allega Regolamento PDF'}
+                      </span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Matches Grid */}
@@ -565,6 +705,20 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
         activeTeamId={activeTeamId}
         onSaved={fetchData}
       />
+
+      {/* PDF Document Viewer Modal */}
+      {previewPdfModal.isOpen && (
+        <PdfViewerModal
+          isOpen={previewPdfModal.isOpen}
+          onClose={() =>
+            setPreviewPdfModal({ isOpen: false, title: '', fileName: '', dataUrl: '' })
+          }
+          title={previewPdfModal.title}
+          fileName={previewPdfModal.fileName}
+          dataUrl={previewPdfModal.dataUrl}
+          fileSize={previewPdfModal.fileSize}
+        />
+      )}
     </div>
   );
 };

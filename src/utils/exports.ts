@@ -32,11 +32,18 @@ export function sendWhatsAppToPhoneOrShare(text: string, phone?: string, title =
 }
 
 export function formatNewTournamentCoachWhatsApp(
-  tournament: { name: string; startDate: string; endDate: string; location?: string },
+  tournament: {
+    name: string;
+    startDate: string;
+    endDate: string;
+    location?: string;
+    hasCalendarPdf?: boolean;
+    hasRegulationPdf?: boolean;
+  },
   teamId: string,
   coachName?: string
 ): string {
-  const greeting = coachName ? `Ciao Mister ${coachName}!` : `Ciao Mister!`;
+  const greeting = coachName ? `Ciao Allenatore ${coachName}!` : `Ciao Allenatore!`;
   let msg = `🏆 *NUOVO TORNEO PROGRAMMATO - SPES MONTESACRO*\n\n`;
   msg += `${greeting}\nÈ stato inserito un nuovo torneo per la tua categoria *${teamId}*:\n\n`;
   msg += `⚽ *Torneo:* ${tournament.name}\n`;
@@ -46,8 +53,14 @@ export function formatNewTournamentCoachWhatsApp(
   if (tournament.location) {
     msg += `📍 *Campo / Sede:* ${tournament.location}\n`;
   }
+  if (tournament.hasCalendarPdf) {
+    msg += `📎 *Calendario PDF:* Disponibile e scaricabile dal gestionale\n`;
+  }
+  if (tournament.hasRegulationPdf) {
+    msg += `📋 *Regolamento PDF:* Disponibile e scaricabile dal gestionale\n`;
+  }
   msg += `👥 *Categoria:* ${teamId}\n\n`;
-  msg += `👉 Accedi al portale Spes Montesacro per visualizzare i dettagli, inserire il calendario partite e le convocazioni!`;
+  msg += `👉 Accedi al portale Spes Montesacro per visualizzare i dettagli, scaricare i PDF, inserire il calendario partite e le convocazioni!`;
   return msg;
 }
 

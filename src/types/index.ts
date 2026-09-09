@@ -85,6 +85,13 @@ export interface MatchHistoryRecord {
   updatedAt?: string;
 }
 
+export interface TournamentAttachment {
+  name: string;
+  dataUrl: string;
+  size?: number;
+  uploadedAt?: string;
+}
+
 export interface Tournament {
   id: string;
   teamId: string;
@@ -93,6 +100,8 @@ export interface Tournament {
   endDate: string;
   location: string;
   createdAt?: unknown;
+  calendarPdf?: TournamentAttachment | null;
+  regulationPdf?: TournamentAttachment | null;
 }
 
 export interface TournamentMatch {
