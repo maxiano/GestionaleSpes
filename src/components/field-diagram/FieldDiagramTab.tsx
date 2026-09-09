@@ -695,14 +695,26 @@ export const FieldDiagramTab: React.FC = () => {
     async function init() {
       try {
         const loadedPlans = await getFieldTrainingPlans();
-        const cleanZoneCoaches = (z: FieldTrainingZone): FieldTrainingZone => ({
-          ...z,
-          coach: cleanCoachName(z.coach),
-          coach2: z.coach2 ? cleanCoachName(z.coach2) : undefined,
-          coach3: z.coach3 ? cleanCoachName(z.coach3) : undefined,
-          coaches: z.coaches ? z.coaches.map(cleanCoachName) : (z.coach ? [cleanCoachName(z.coach)] : undefined),
-          slots: z.slots ? z.slots.map((s) => ({ ...s, coach: cleanCoachName(s.coach) })) : undefined
-        });
+        const cleanZoneCoaches = (z: FieldTrainingZone): FieldTrainingZone => {
+          const res: FieldTrainingZone = {
+            team: z.team || '',
+            coach: cleanCoachName(z.coach),
+            notes: z.notes || ''
+          };
+          if (z.team2) res.team2 = z.team2;
+          if (z.coach2) res.coach2 = cleanCoachName(z.coach2);
+          if (z.team3) res.team3 = z.team3;
+          if (z.coach3) res.coach3 = cleanCoachName(z.coach3);
+          if (z.coaches && Array.isArray(z.coaches)) {
+            res.coaches = z.coaches.map(cleanCoachName).filter((c) => Boolean(c && c.trim()));
+          } else if (z.coach) {
+            res.coaches = [cleanCoachName(z.coach)];
+          }
+          if (z.slots && Array.isArray(z.slots)) {
+            res.slots = z.slots.map((s) => ({ team: s.team || '', coach: cleanCoachName(s.coach) }));
+          }
+          return res;
+        };
 
         const sanitizedPlans = loadedPlans.map((p) => ({
           ...p,
@@ -858,9 +870,9 @@ export const FieldDiagramTab: React.FC = () => {
 
     const currentPlan: FieldTrainingPlan = {
       id: planId,
-      day,
-      time,
-      notes,
+      day: day || 'Lunedì',
+      time: time || '17:00 - 18:30',
+      notes: notes || '',
       zones,
       updatedAt: new Date().toISOString()
     };

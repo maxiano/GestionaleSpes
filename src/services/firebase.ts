@@ -1,11 +1,21 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, enableMultiTabIndexedDbPersistence, Firestore } from 'firebase/firestore';
 import { firebaseConfig } from '../config/constants';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+let firestoreInstance: Firestore;
+try {
+  firestoreInstance = initializeFirestore(app, {
+    ignoreUndefinedProperties: true
+  });
+} catch {
+  firestoreInstance = getFirestore(app);
+}
+
+export const db = firestoreInstance;
 
 // Enable multi-tab offline persistence safely in browser
 if (typeof window !== 'undefined') {

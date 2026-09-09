@@ -232,19 +232,91 @@ export async function getFieldTrainingPlans(): Promise<FieldTrainingPlan[]> {
   return INITIAL_FIELD_PLANS;
 }
 
+/**
+ * Pulisce in modo ricorsivo qualsiasi valore `undefined` prima del salvataggio in Firestore
+ */
+function cleanUndefinedDeep<T>(val: T): T {
+  if (val === undefined) {
+    return null as any;
+  }
+  if (val === null || typeof val !== 'object') {
+    return val;
+  }
+  if (Array.isArray(val)) {
+    return val
+      .filter((item) => item !== undefined)
+      .map((item) => cleanUndefinedDeep(item)) as any;
+  }
+  const result: Record<string, any> = {};
+  for (const [key, propVal] of Object.entries(val)) {
+    if (propVal !== undefined) {
+      result[key] = cleanUndefinedDeep(propVal);
+    }
+  }
+  return result as T;
+}
+
+export function sanitizePlanForStorage(p: FieldTrainingPlan): FieldTrainingPlan {
+  const sanitizeZone = (zone?: FieldTrainingZone): FieldTrainingZone => {
+    if (!zone) {
+      return { team: '', coach: '', notes: '' };
+    }
+    const clean: FieldTrainingZone = {
+      team: zone.team || '',
+      coach: zone.coach || '',
+      notes: zone.notes || ''
+    };
+    if (zone.team2) clean.team2 = zone.team2;
+    if (zone.coach2) clean.coach2 = zone.coach2;
+    if (zone.team3) clean.team3 = zone.team3;
+    if (zone.coach3) clean.coach3 = zone.coach3;
+    if (zone.coaches && Array.isArray(zone.coaches)) {
+      clean.coaches = zone.coaches.filter((c) => typeof c === 'string' && c.trim() !== '');
+    }
+    if (zone.slots && Array.isArray(zone.slots)) {
+      clean.slots = zone.slots
+        .filter(Boolean)
+        .map((s) => ({
+          team: s.team || '',
+          coach: s.coach || ''
+        }));
+    }
+    return clean;
+  };
+
+  return {
+    id: p.id || `plan-${Date.now()}`,
+    day: p.day || 'Lunedì',
+    time: p.time || '17:00 - 18:30',
+    notes: p.notes || '',
+    zones: {
+      sideLeft: sanitizeZone(p.zones?.sideLeft),
+      sideRight: sanitizeZone(p.zones?.sideRight),
+      topLeft: sanitizeZone(p.zones?.topLeft),
+      topRight: sanitizeZone(p.zones?.topRight),
+      centerLeft: sanitizeZone(p.zones?.centerLeft),
+      centerRight: sanitizeZone(p.zones?.centerRight)
+    },
+    updatedAt: p.updatedAt || new Date().toISOString()
+  };
+}
+
 export async function saveFieldTrainingPlans(plans: FieldTrainingPlan[]): Promise<void> {
+  const sanitizedPlans = plans.map(sanitizePlanForStorage);
+
   // 1. Save to local storage
   if (typeof window !== 'undefined') {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(plans));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitizedPlans));
   }
 
-  // 2. Save to Firestore
+  // 2. Save to Firestore with clean payload
   try {
     const docRef = doc(db, 'club_settings', 'field_training_plans');
-    await setDoc(docRef, {
-      plans,
+    const cleanPayload = cleanUndefinedDeep({
+      plans: sanitizedPlans,
       updatedAt: new Date().toISOString()
     });
+    await setDoc(docRef, cleanPayload);
   } catch (err) {
     console.error('Errore salvataggio Firestore schemi campi:', err);
     throw err;
