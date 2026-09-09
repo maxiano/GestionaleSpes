@@ -138,10 +138,23 @@ export type ActiveTab =
   | 'tab-locker-rooms'
   | 'tab-field-diagram';
 
+export interface FieldTrainingZoneSlot {
+  team: string;
+  coach: string;
+}
+
 export interface FieldTrainingZone {
   team: string;
   coach: string;
   notes?: string;
+  // Supporto fino a 3 squadre e 3 mister per zona (in particolare metà campo centrale)
+  team2?: string;
+  coach2?: string;
+  team3?: string;
+  coach3?: string;
+  slots?: FieldTrainingZoneSlot[];
+  // Supporto lista di più mister (es. per campi laterali)
+  coaches?: string[];
 }
 
 export interface FieldTrainingPlan {

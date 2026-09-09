@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FieldTrainingPlan, FieldTrainingZone } from '../../types';
+import { FieldTrainingPlan, FieldTrainingZone, FieldTrainingZoneSlot } from '../../types';
 import {
   getFieldTrainingPlans,
   saveFieldTrainingPlans,
-  DEFAULT_ZONES
+  DEFAULT_ZONES,
+  getZoneSlots,
+  getZoneCoaches,
+  DEFAULT_COACHES_BY_SURNAME,
+  formatCoachBySurname,
+  sortCoachesBySurname,
+  cleanCoachName
 } from '../../services/fieldPlannerService';
 import { CATEGORIES_LIST, DAYS_ORDER } from '../../services/lockerRoomsService';
 import { TEAM_GROUPS } from '../../config/constants';
@@ -21,7 +27,8 @@ import {
   LayoutGrid,
   ChevronDown,
   Trash2,
-  Plus
+  Plus,
+  X
 } from 'lucide-react';
 
 const TIME_PRESETS = [
@@ -31,27 +38,6 @@ const TIME_PRESETS = [
   '18:00 - 19:30',
   '18:30 - 20:00',
   '19:30 - 21:00'
-];
-
-const DEFAULT_COACHES_LIST = [
-  'Mister Andrea Porzio',
-  'Mister Carlo Giampaolo',
-  'Mister Christian Fermani',
-  'Mister Daniele della Vecchia',
-  'Mister Daniele Zambito',
-  'Mister Davide Luminari',
-  'Mister Eugenio Fiori',
-  'Mister Federico Rodio',
-  'Mister Francesco Piras',
-  'Mister Marco Cormani',
-  'Mister Massimiliano Lato',
-  'Mister Matteo Sassi',
-  'Mister Mattia Feliciotti',
-  'Mister Pierluigi Cirasella',
-  'Mister Roberto Pieraccini',
-  'Mister Silvano Rubeo',
-  'Massimiliano',
-  'Massimo Cirinei'
 ];
 
 interface ZoneControlsProps {
@@ -162,12 +148,12 @@ const ZoneControls: React.FC<ZoneControlsProps> = ({
         )}
       </div>
 
-      {/* Mister / Allenatore */}
+      {/* Allenatore */}
       <div>
         <div className="flex items-center justify-between text-[9px] font-bold text-slate-300 uppercase mb-0.5">
           <span className="flex items-center gap-1">
             <User className="w-2.5 h-2.5 text-amber-400" />
-            <span>Mister</span>
+            <span>Allenatore</span>
           </span>
           <button
             type="button"
@@ -184,29 +170,29 @@ const ZoneControls: React.FC<ZoneControlsProps> = ({
             type="text"
             list="coach-suggestions"
             tabIndex={tabIndexBase + 1}
-            value={zone.coach}
-            onChange={(e) => updateZone(zoneKey, 'coach', e.target.value)}
-            placeholder="es. Mister Rossi"
+            value={cleanCoachName(zone.coach)}
+            onChange={(e) => updateZone(zoneKey, 'coach', cleanCoachName(e.target.value))}
+            placeholder="es. Rossi Mario"
             className="w-full bg-white text-slate-900 font-bold text-xs px-2 py-1 rounded-md border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-400"
           />
         ) : (
           <select
             tabIndex={tabIndexBase + 1}
-            value={zone.coach}
+            value={cleanCoachName(zone.coach)}
             onChange={(e) => {
               if (e.target.value === '__CUSTOM__') {
                 setCustomCoach(true);
               } else {
-                updateZone(zoneKey, 'coach', e.target.value);
+                updateZone(zoneKey, 'coach', cleanCoachName(e.target.value));
               }
             }}
             className="w-full bg-white text-slate-900 font-bold text-xs px-1.5 py-1 rounded-md border border-slate-300 shadow-sm outline-none focus:ring-2 focus:ring-emerald-400 cursor-pointer truncate"
           >
-            <option value="">-- Seleziona Mister --</option>
+            <option value="">-- Seleziona Allenatore --</option>
             {zone.coach && !isCoachInStandard && (
-              <option value={zone.coach}>⭐ {zone.coach} (Personalizzato)</option>
+              <option value={cleanCoachName(zone.coach)}>⭐ {cleanCoachName(zone.coach)} (Personalizzato)</option>
             )}
-            <optgroup label="📋 Mister Disponibili">
+            <optgroup label="📋 Allenatori (per Cognome)">
               {staffList.map((m) => (
                 <option key={m} value={m}>
                   {m}
@@ -221,6 +207,474 @@ const ZoneControls: React.FC<ZoneControlsProps> = ({
   );
 };
 
+interface SideFieldControlsProps {
+  zoneKey: 'sideLeft' | 'sideRight';
+  zone: FieldTrainingZone;
+  updateZoneTeam: (zoneKey: 'sideLeft' | 'sideRight', team: string) => void;
+  updateZoneCoaches: (zoneKey: 'sideLeft' | 'sideRight', coaches: string[]) => void;
+  staffList: string[];
+  tabIndexBase: number;
+}
+
+/**
+ * Controlli specifici per i campi laterali con supporto per aggiungere un altro mister
+ * Flusso: Squadra, Mister, Aggiungi Mister
+ */
+const SideFieldControls: React.FC<SideFieldControlsProps> = ({
+  zoneKey,
+  zone,
+  updateZoneTeam,
+  updateZoneCoaches,
+  staffList,
+  tabIndexBase
+}) => {
+  const coaches = React.useMemo(() => getZoneCoaches(zone).map(cleanCoachName), [zone]);
+  const [customTeam, setCustomTeam] = useState(false);
+  const [customCoaches, setCustomCoaches] = useState<Record<number, boolean>>({});
+
+  const handleUpdateCoach = (idx: number, val: string) => {
+    const next = [...coaches];
+    next[idx] = cleanCoachName(val);
+    updateZoneCoaches(zoneKey, next);
+  };
+
+  const handleAddCoach = () => {
+    if (coaches.length >= 3) return;
+    const next = [...coaches, ''];
+    updateZoneCoaches(zoneKey, next);
+  };
+
+  const handleRemoveCoach = (idx: number) => {
+    if (coaches.length <= 1) {
+      updateZoneCoaches(zoneKey, ['']);
+      return;
+    }
+    const next = coaches.filter((_, i) => i !== idx);
+    updateZoneCoaches(zoneKey, next);
+  };
+
+  const isTeamInStandard = React.useMemo(() => {
+    if (!zone.team) return true;
+    if (CATEGORIES_LIST.includes(zone.team)) return true;
+    for (const g of TEAM_GROUPS) {
+      if (g.teams.includes(zone.team)) return true;
+    }
+    if (['Under 14', 'Under 15', 'Under 16', 'Under 17', 'Under 19', 'Prima Squadra'].includes(zone.team)) return true;
+    return false;
+  }, [zone.team]);
+
+  const isCoachInStandard = (coachVal: string) => {
+    if (!coachVal) return true;
+    return staffList.includes(coachVal);
+  };
+
+  return (
+    <div className="relative z-20 space-y-1.5 my-auto bg-slate-900/90 backdrop-blur-md p-2 rounded-xl border border-white/20 shadow-lg w-full">
+      {/* 1. SQUADRA */}
+      <div>
+        <div className="flex items-center justify-between text-[9px] font-bold text-slate-300 uppercase mb-0.5">
+          <span className="flex items-center gap-1">
+            <Users className="w-2.5 h-2.5 text-emerald-400" />
+            <span>Squadra</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setCustomTeam(!customTeam)}
+            className="text-[8px] text-emerald-400 hover:text-emerald-300 transition underline underline-offset-2 cursor-pointer"
+            title="Alterna tra menu opzioni e scrittura manuale"
+          >
+            {customTeam ? '📋 Opz.' : '✍️ Man.'}
+          </button>
+        </div>
+
+        {customTeam ? (
+          <input
+            type="text"
+            list="category-suggestions"
+            tabIndex={tabIndexBase}
+            value={zone.team}
+            onChange={(e) => updateZoneTeam(zoneKey, e.target.value)}
+            placeholder="es. 2017"
+            className="w-full bg-white text-slate-900 font-black text-[11px] px-1.5 py-0.5 rounded border border-slate-300 outline-none focus:ring-1 focus:ring-emerald-400"
+          />
+        ) : (
+          <select
+            tabIndex={tabIndexBase}
+            value={zone.team}
+            onChange={(e) => {
+              if (e.target.value === '__CUSTOM__') {
+                setCustomTeam(true);
+              } else {
+                updateZoneTeam(zoneKey, e.target.value);
+              }
+            }}
+            className="w-full bg-white text-slate-900 font-bold text-[11px] px-1 py-0.5 rounded border border-slate-300 shadow-sm outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer truncate"
+          >
+            <option value="">-- Seleziona --</option>
+            {zone.team && !isTeamInStandard && (
+              <option value={zone.team}>⭐ {zone.team}</option>
+            )}
+            <optgroup label="🏆 Categorie">
+              {CATEGORIES_LIST.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </optgroup>
+            {TEAM_GROUPS.map((g) => (
+              <optgroup key={g.category} label={`⚽ ${g.category}`}>
+                {g.teams.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+            <optgroup label="🏅 Agonistica / Altro">
+              <option value="Under 14">Under 14</option>
+              <option value="Under 15">Under 15</option>
+              <option value="Under 16">Under 16</option>
+              <option value="Under 17">Under 17</option>
+              <option value="Under 19">Under 19</option>
+              <option value="Prima Squadra">Prima Squadra</option>
+            </optgroup>
+            <option value="__CUSTOM__">✍️ A mano...</option>
+          </select>
+        )}
+      </div>
+
+      {/* 2. ALLENATORE (Supporto multi-allenatore per cognome) */}
+      <div className="space-y-1.5 max-h-[145px] overflow-y-auto pr-0.5">
+        {coaches.map((coachVal, idx) => {
+          const isCustom = customCoaches[idx] || (coachVal && !isCoachInStandard(coachVal));
+          return (
+            <div key={idx} className="bg-slate-800/80 p-1.5 rounded-lg border border-white/10 space-y-0.5 shadow-sm">
+              <div className="flex items-center justify-between text-[9px] font-bold text-slate-300">
+                <span className="flex items-center gap-1 text-amber-300">
+                  <User className="w-2.5 h-2.5 text-amber-400" />
+                  <span>{coaches.length > 1 ? `${idx + 1}° Allenatore` : 'Allenatore'}</span>
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCustomCoaches((prev) => ({ ...prev, [idx]: !isCustom }))}
+                    className="text-[8px] text-amber-300 hover:text-amber-200 underline cursor-pointer"
+                  >
+                    {isCustom ? 'Opz.' : 'Man.'}
+                  </button>
+                  {idx > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCoach(idx)}
+                      className="text-rose-400 hover:text-rose-300 p-0.5 rounded transition flex items-center gap-0.5 text-[8px] hover:underline cursor-pointer"
+                      title="Rimuovi questo allenatore"
+                    >
+                      <Trash2 className="w-2.5 h-2.5" />
+                      <span>Elimina</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {isCustom ? (
+                <input
+                  type="text"
+                  list="coach-suggestions"
+                  tabIndex={tabIndexBase + idx + 1}
+                  value={coachVal}
+                  onChange={(e) => handleUpdateCoach(idx, e.target.value)}
+                  placeholder="es. Rossi Mario"
+                  className="w-full bg-white text-slate-900 font-bold text-[11px] px-1.5 py-0.5 rounded border border-slate-300 outline-none focus:ring-1 focus:ring-emerald-400"
+                />
+              ) : (
+                <select
+                  tabIndex={tabIndexBase + idx + 1}
+                  value={coachVal}
+                  onChange={(e) => {
+                    if (e.target.value === '__CUSTOM__') {
+                      setCustomCoaches((prev) => ({ ...prev, [idx]: true }));
+                    } else {
+                      handleUpdateCoach(idx, e.target.value);
+                    }
+                  }}
+                  className="w-full bg-white text-slate-900 font-bold text-[11px] px-1 py-0.5 rounded border border-slate-300 shadow-sm outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer truncate"
+                >
+                  <option value="">-- Seleziona Allenatore --</option>
+                  {coachVal && !isCoachInStandard(coachVal) && (
+                    <option value={coachVal}>⭐ {coachVal}</option>
+                  )}
+                  <optgroup label="📋 Allenatori (per Cognome)">
+                    {staffList.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <option value="__CUSTOM__">✍️ A mano...</option>
+                </select>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 3. AGGIUNGI ALLENATORE */}
+      {coaches.length < 3 && (
+        <button
+          type="button"
+          onClick={handleAddCoach}
+          className="w-full flex items-center justify-center gap-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 hover:text-amber-100 border border-amber-400/30 text-[10px] font-bold py-1 px-2 rounded-md transition shadow-sm active:scale-95 cursor-pointer mt-1"
+          title="Aggiungi un altro allenatore a questo campo laterale"
+        >
+          <Plus className="w-3 h-3 text-amber-400" />
+          <span>Aggiungi Allenatore</span>
+        </button>
+      )}
+    </div>
+  );
+};
+
+interface CenterHalfFieldControlsProps {
+  zoneKey: 'centerLeft' | 'centerRight';
+  zone: FieldTrainingZone;
+  updateZoneSlots: (zoneKey: 'centerLeft' | 'centerRight', newSlots: FieldTrainingZoneSlot[]) => void;
+  staffList: string[];
+  tabIndexBase: number;
+}
+
+const CenterHalfFieldControls: React.FC<CenterHalfFieldControlsProps> = ({
+  zoneKey,
+  zone,
+  updateZoneSlots,
+  staffList,
+  tabIndexBase
+}) => {
+  const slots = React.useMemo(() => getZoneSlots(zone), [zone]);
+  const [customTeams, setCustomTeams] = useState<Record<number, boolean>>({});
+  const [customCoaches, setCustomCoaches] = useState<Record<number, boolean>>({});
+
+  const handleUpdateSlot = (idx: number, field: 'team' | 'coach', value: string) => {
+    const nextSlots = slots.map((s, i) => (i === idx ? { ...s, [field]: value } : s));
+    updateZoneSlots(zoneKey, nextSlots);
+  };
+
+  const handleAddSlot = () => {
+    if (slots.length >= 3) return;
+    const nextSlots = [...slots, { team: '', coach: '' }];
+    updateZoneSlots(zoneKey, nextSlots);
+  };
+
+  const handleRemoveSlot = (idx: number) => {
+    if (slots.length <= 1) {
+      updateZoneSlots(zoneKey, [{ team: '', coach: '' }]);
+      return;
+    }
+    const nextSlots = slots.filter((_, i) => i !== idx);
+    updateZoneSlots(zoneKey, nextSlots);
+  };
+
+  const isTeamInStandard = (teamVal: string) => {
+    if (!teamVal) return true;
+    if (CATEGORIES_LIST.includes(teamVal)) return true;
+    for (const g of TEAM_GROUPS) {
+      if (g.teams.includes(teamVal)) return true;
+    }
+    if (['Under 14', 'Under 15', 'Under 16', 'Under 17', 'Under 19', 'Prima Squadra'].includes(teamVal)) return true;
+    return false;
+  };
+
+  const isCoachInStandard = (coachVal: string) => {
+    if (!coachVal) return true;
+    return staffList.includes(coachVal);
+  };
+
+  return (
+    <div className="relative z-20 space-y-1.5 my-auto bg-slate-900/90 backdrop-blur-md p-2 rounded-xl border border-white/20 shadow-lg w-full">
+      {/* Intestazione con contatore squadre e tasto aggiungi */}
+      <div className="flex items-center justify-between pb-1 border-b border-white/10 text-[10px]">
+        <span className="flex items-center gap-1 font-bold text-slate-200 uppercase tracking-wide">
+          <Users className="w-3 h-3 text-emerald-400" />
+          <span>Squadre ({slots.length}/3)</span>
+        </span>
+        {slots.length < 3 && (
+          <button
+            type="button"
+            onClick={handleAddSlot}
+            className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm transition active:scale-95 cursor-pointer"
+            title="Aggiungi un'altra squadra a questa metà campo (max 3)"
+          >
+            <Plus className="w-2.5 h-2.5" />
+            <span>Aggiungi</span>
+          </button>
+        )}
+      </div>
+
+      {/* Lista slot (fino a 3) */}
+      <div className="space-y-1.5 max-h-[225px] overflow-y-auto pr-0.5">
+        {slots.map((slot, idx) => {
+          const isCustomT = customTeams[idx] || (slot.team && !isTeamInStandard(slot.team));
+          const isCustomC = customCoaches[idx] || (slot.coach && !isCoachInStandard(slot.coach));
+
+          return (
+            <div
+              key={idx}
+              className="bg-slate-800/85 p-1.5 rounded-lg border border-white/15 space-y-1 shadow-sm"
+            >
+              <div className="flex items-center justify-between text-[9px] font-bold text-slate-300">
+                <span className="flex items-center gap-1 text-emerald-300">
+                  <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center text-[8px] font-black">
+                    {idx + 1}
+                  </span>
+                  <span>{idx === 0 ? '1ª Squadra' : idx === 1 ? '2ª Squadra' : '3ª Squadra'}</span>
+                </span>
+
+                {idx > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSlot(idx)}
+                    className="text-rose-400 hover:text-rose-300 p-0.5 rounded transition flex items-center gap-0.5 text-[8px] hover:underline cursor-pointer"
+                    title="Rimuovi questa squadra"
+                  >
+                    <Trash2 className="w-2.5 h-2.5" />
+                    <span>Elimina</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5">
+                {/* Squadra */}
+                <div>
+                  <div className="flex items-center justify-between text-[8px] font-bold text-slate-300 mb-0.5">
+                    <span className="truncate">Squadra</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCustomTeams((prev) => ({ ...prev, [idx]: !isCustomT }))
+                      }
+                      className="text-[8px] text-emerald-400 hover:text-emerald-300 underline cursor-pointer shrink-0 ml-1"
+                    >
+                      {isCustomT ? 'Opz.' : 'Man.'}
+                    </button>
+                  </div>
+
+                  {isCustomT ? (
+                    <input
+                      type="text"
+                      list="category-suggestions"
+                      tabIndex={tabIndexBase + idx * 2}
+                      value={slot.team}
+                      onChange={(e) => handleUpdateSlot(idx, 'team', e.target.value)}
+                      placeholder="es. 2016"
+                      className="w-full bg-white text-slate-900 font-black text-[11px] px-1.5 py-0.5 rounded border border-slate-300 outline-none focus:ring-1 focus:ring-emerald-400"
+                    />
+                  ) : (
+                    <select
+                      tabIndex={tabIndexBase + idx * 2}
+                      value={slot.team}
+                      onChange={(e) => {
+                        if (e.target.value === '__CUSTOM__') {
+                          setCustomTeams((prev) => ({ ...prev, [idx]: true }));
+                        } else {
+                          handleUpdateSlot(idx, 'team', e.target.value);
+                        }
+                      }}
+                      className="w-full bg-white text-slate-900 font-bold text-[11px] px-1 py-0.5 rounded border border-slate-300 shadow-sm outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer truncate"
+                    >
+                      <option value="">-- Seleziona --</option>
+                      {slot.team && !isTeamInStandard(slot.team) && (
+                        <option value={slot.team}>⭐ {slot.team}</option>
+                      )}
+                      <optgroup label="🏆 Categorie">
+                        {CATEGORIES_LIST.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </optgroup>
+                      {TEAM_GROUPS.map((g) => (
+                        <optgroup key={g.category} label={`⚽ ${g.category}`}>
+                          {g.teams.map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                      <optgroup label="🏅 Agonistica / Altro">
+                        <option value="Under 14">Under 14</option>
+                        <option value="Under 15">Under 15</option>
+                        <option value="Under 16">Under 16</option>
+                        <option value="Under 17">Under 17</option>
+                        <option value="Under 19">Under 19</option>
+                        <option value="Prima Squadra">Prima Squadra</option>
+                      </optgroup>
+                      <option value="__CUSTOM__">✍️ A mano...</option>
+                    </select>
+                  )}
+                </div>
+
+                {/* Allenatore */}
+                <div>
+                  <div className="flex items-center justify-between text-[8px] font-bold text-slate-300 mb-0.5">
+                    <span className="truncate">Allenatore</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCustomCoaches((prev) => ({ ...prev, [idx]: !isCustomC }))
+                      }
+                      className="text-[8px] text-amber-300 hover:text-amber-200 underline cursor-pointer shrink-0 ml-1"
+                    >
+                      {isCustomC ? 'Opz.' : 'Man.'}
+                    </button>
+                  </div>
+
+                  {isCustomC ? (
+                    <input
+                      type="text"
+                      list="coach-suggestions"
+                      tabIndex={tabIndexBase + idx * 2 + 1}
+                      value={cleanCoachName(slot.coach)}
+                      onChange={(e) => handleUpdateSlot(idx, 'coach', cleanCoachName(e.target.value))}
+                      placeholder="es. Rossi Mario"
+                      className="w-full bg-white text-slate-900 font-bold text-[11px] px-1.5 py-0.5 rounded border border-slate-300 outline-none focus:ring-1 focus:ring-emerald-400"
+                    />
+                  ) : (
+                    <select
+                      tabIndex={tabIndexBase + idx * 2 + 1}
+                      value={cleanCoachName(slot.coach)}
+                      onChange={(e) => {
+                        if (e.target.value === '__CUSTOM__') {
+                          setCustomCoaches((prev) => ({ ...prev, [idx]: true }));
+                        } else {
+                          handleUpdateSlot(idx, 'coach', cleanCoachName(e.target.value));
+                        }
+                      }}
+                      className="w-full bg-white text-slate-900 font-bold text-[11px] px-1 py-0.5 rounded border border-slate-300 shadow-sm outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer truncate"
+                    >
+                      <option value="">-- Seleziona --</option>
+                      {slot.coach && !staffList.includes(cleanCoachName(slot.coach)) && (
+                        <option value={cleanCoachName(slot.coach)}>⭐ {cleanCoachName(slot.coach)}</option>
+                      )}
+                      <optgroup label="📋 Allenatori (per Cognome)">
+                        {staffList.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <option value="__CUSTOM__">✍️ A mano...</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export const FieldDiagramTab: React.FC = () => {
   const [plans, setPlans] = useState<FieldTrainingPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>('');
@@ -229,21 +683,42 @@ export const FieldDiagramTab: React.FC = () => {
   const [notes, setNotes] = useState<string>('');
   const [zones, setZones] = useState<FieldTrainingPlan['zones']>(DEFAULT_ZONES);
 
-  const [staffList, setStaffList] = useState<string[]>(DEFAULT_COACHES_LIST);
+  const [staffList, setStaffList] = useState<string[]>(DEFAULT_COACHES_BY_SURNAME);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const diagramRef = useRef<HTMLDivElement>(null);
 
-  // Load existing plans and staff coaches
+  // Load existing plans and staff coaches (ordinati per cognome)
   useEffect(() => {
     async function init() {
       try {
         const loadedPlans = await getFieldTrainingPlans();
-        setPlans(loadedPlans);
-        if (loadedPlans.length > 0) {
-          const first = loadedPlans[0];
+        const cleanZoneCoaches = (z: FieldTrainingZone): FieldTrainingZone => ({
+          ...z,
+          coach: cleanCoachName(z.coach),
+          coach2: z.coach2 ? cleanCoachName(z.coach2) : undefined,
+          coach3: z.coach3 ? cleanCoachName(z.coach3) : undefined,
+          coaches: z.coaches ? z.coaches.map(cleanCoachName) : (z.coach ? [cleanCoachName(z.coach)] : undefined),
+          slots: z.slots ? z.slots.map((s) => ({ ...s, coach: cleanCoachName(s.coach) })) : undefined
+        });
+
+        const sanitizedPlans = loadedPlans.map((p) => ({
+          ...p,
+          zones: {
+            sideLeft: cleanZoneCoaches(p.zones.sideLeft),
+            sideRight: cleanZoneCoaches(p.zones.sideRight),
+            topLeft: cleanZoneCoaches(p.zones.topLeft),
+            topRight: cleanZoneCoaches(p.zones.topRight),
+            centerLeft: cleanZoneCoaches(p.zones.centerLeft),
+            centerRight: cleanZoneCoaches(p.zones.centerRight)
+          }
+        }));
+
+        setPlans(sanitizedPlans);
+        if (sanitizedPlans.length > 0) {
+          const first = sanitizedPlans[0];
           setSelectedPlanId(first.id);
           setDay(first.day);
           setTime(first.time);
@@ -260,16 +735,15 @@ export const FieldDiagramTab: React.FC = () => {
           .map((s) => {
             const raw = (s.name || '').trim();
             if (!raw) return '';
-            return raw.toLowerCase().startsWith('mister') ? raw : `Mister ${raw}`;
+            return formatCoachBySurname(raw);
           })
           .filter(Boolean);
-        const combined = Array.from(new Set([...names, ...DEFAULT_COACHES_LIST])).sort((a, b) =>
-          a.localeCompare(b, 'it', { sensitivity: 'base' })
-        );
-        setStaffList(combined);
+        const combined = Array.from(new Set([...names, ...DEFAULT_COACHES_BY_SURNAME]));
+        const sorted = sortCoachesBySurname(combined);
+        setStaffList(sorted);
       } catch (err) {
         console.warn('Errore lettura lista staff:', err);
-        setStaffList(DEFAULT_COACHES_LIST);
+        setStaffList(DEFAULT_COACHES_BY_SURNAME);
       }
     }
     init();
@@ -298,17 +772,78 @@ export const FieldDiagramTab: React.FC = () => {
     }));
   };
 
+  // Update team for lateral field zones
+  const updateSideZoneTeam = (zoneKey: 'sideLeft' | 'sideRight', team: string) => {
+    setZones((prev) => {
+      const current = prev[zoneKey] || { team: '', coach: '' };
+      return {
+        ...prev,
+        [zoneKey]: {
+          ...current,
+          team
+        }
+      };
+    });
+  };
+
+  // Update coaches for lateral field zones (supporta aggiunta di un altro mister)
+  const updateSideZoneCoaches = (zoneKey: 'sideLeft' | 'sideRight', newCoaches: string[]) => {
+    setZones((prev) => {
+      const current = prev[zoneKey] || { team: '', coach: '' };
+      return {
+        ...prev,
+        [zoneKey]: {
+          ...current,
+          coach: newCoaches[0] || '',
+          coach2: newCoaches[1] || '',
+          coach3: newCoaches[2] || '',
+          coaches: newCoaches
+        }
+      };
+    });
+  };
+
+  // Update slots for central half pitches (up to 3 teams and coaches)
+  const updateZoneSlots = (zoneKey: 'centerLeft' | 'centerRight', newSlots: FieldTrainingZoneSlot[]) => {
+    setZones((prev) => {
+      const current = prev[zoneKey] || { team: '', coach: '' };
+      return {
+        ...prev,
+        [zoneKey]: {
+          ...current,
+          team: newSlots[0]?.team || '',
+          coach: newSlots[0]?.coach || '',
+          team2: newSlots[1]?.team || '',
+          coach2: newSlots[1]?.coach || '',
+          team3: newSlots[2]?.team || '',
+          coach3: newSlots[2]?.coach || '',
+          slots: newSlots
+        }
+      };
+    });
+  };
+
   // Create new blank plan
   const handleNewPlan = () => {
     const newId = `plan-${Date.now()}`;
     setSelectedPlanId(newId);
     setZones({
-      sideLeft: { team: '', coach: '', notes: '' },
-      sideRight: { team: '', coach: '', notes: '' },
+      sideLeft: { team: '', coach: '', notes: '', coaches: [''] },
+      sideRight: { team: '', coach: '', notes: '', coaches: [''] },
       topLeft: { team: '', coach: '', notes: '' },
       topRight: { team: '', coach: '', notes: '' },
-      centerLeft: { team: '', coach: '', notes: '' },
-      centerRight: { team: '', coach: '', notes: '' }
+      centerLeft: {
+        team: '',
+        coach: '',
+        notes: '',
+        slots: [{ team: '', coach: '' }]
+      },
+      centerRight: {
+        team: '',
+        coach: '',
+        notes: '',
+        slots: [{ team: '', coach: '' }]
+      }
     });
     setNotes('');
   };
@@ -392,7 +927,7 @@ export const FieldDiagramTab: React.FC = () => {
               </h2>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Disposizione geometrica delle zone di allenamento con porte sui lati minori, squadre e mister assegnati.
+              Disposizione geometrica delle zone di allenamento con porte sui lati minori, squadre e allenatori assegnati.
             </p>
           </div>
 
@@ -741,8 +1276,8 @@ export const FieldDiagramTab: React.FC = () => {
               <div className="flex items-start justify-center w-full">
                 {/* 1. RETTANGOLO LATERALE SINISTRO */}
                 {/* "costruito sul lato minore del rettangolo più grande, di lato maggiore uguale al lato minore del rettangolo più grande" */}
-                {/* Il lato minore del rettangolo centrale è la sua altezza H = 280px. Quindi questo rettangolo ha altezza 280px e larghezza 180px (lato minore)! */}
-                <div className="w-[180px] h-[280px] relative bg-emerald-800 border-2 border-white/90 shadow-inner flex flex-col justify-between p-2.5 group overflow-hidden">
+                {/* Il lato minore del rettangolo centrale è la sua altezza H = 310px. Quindi questo rettangolo ha altezza 310px e larghezza 180px (lato minore)! */}
+                <div className="w-[180px] h-[310px] relative bg-emerald-800 border-2 border-white/90 shadow-inner flex flex-col justify-between p-2.5 group overflow-hidden">
                   {/* Erba a strisce orizzontali */}
                   <div className="absolute inset-0 opacity-20 pointer-events-none bg-[repeating-linear-gradient(0deg,#000_0,#000_20px,transparent_20px,transparent_40px)]"></div>
 
@@ -750,7 +1285,7 @@ export const FieldDiagramTab: React.FC = () => {
                   <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-white/60 pointer-events-none"></div>
                   <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border border-white/60 pointer-events-none"></div>
 
-                  {/* PORTE DI CALCIO SUI LATI MINORI: Essendo un rettangolo verticale (lato maggiore = altezza 280px), i suoi lati minori sono LATO SUPERIORE e LATO INFERIORE! */}
+                  {/* PORTE DI CALCIO SUI LATI MINORI: Essendo un rettangolo verticale (lato maggiore = altezza 310px), i suoi lati minori sono LATO SUPERIORE e LATO INFERIORE! */}
                   {/* Porta Lato Superiore (Minor Side Top) */}
                   <div
                     className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[11px] w-[50px] h-[12px] bg-white border border-slate-400 rounded-t shadow z-10 flex items-center justify-center"
@@ -778,18 +1313,19 @@ export const FieldDiagramTab: React.FC = () => {
                     </span>
                   </div>
 
-                  <ZoneControls
+                  <SideFieldControls
                     zoneKey="sideLeft"
                     zone={zones.sideLeft}
-                    updateZone={updateZone}
+                    updateZoneTeam={updateSideZoneTeam}
+                    updateZoneCoaches={updateSideZoneCoaches}
                     staffList={staffList}
                     tabIndexBase={5}
                   />
                 </div>
 
                 {/* 2. RETTANGOLO PIÙ GRANDE CENTRALE */}
-                {/* Dimensioni: 560px x 280px. Diviso a metà da una linea sottile verticale */}
-                <div className="w-[560px] h-[280px] relative bg-emerald-600 border-2 border-l-0 border-r-0 border-white/95 shadow-2xl flex overflow-hidden">
+                {/* Dimensioni: 560px x 310px. Diviso a metà da una linea sottile verticale */}
+                <div className="w-[560px] h-[310px] min-h-[310px] relative bg-emerald-600 border-2 border-l-0 border-r-0 border-white/95 shadow-2xl flex overflow-hidden">
                   {/* Erba a strisce alternate realistiche */}
                   <div className="absolute inset-0 opacity-20 pointer-events-none bg-[repeating-linear-gradient(90deg,#000_0,#000_35px,transparent_35px,transparent_70px)]"></div>
 
@@ -821,40 +1357,40 @@ export const FieldDiagramTab: React.FC = () => {
                   {/* Area di rigore DX */}
                   <div className="absolute right-0 top-1/2 -translate-y-1/2 w-16 h-36 border-l-2 border-t-2 border-b-2 border-white/70 pointer-events-none"></div>
 
-                  {/* METÀ SINISTRA DEL CAMPO CENTRALE */}
-                  <div className="w-[280px] h-full relative z-20 flex flex-col justify-between p-3.5 pr-4 border-r border-dashed border-white/40">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black tracking-wider text-white bg-slate-900/80 px-2.5 py-0.5 rounded-md shadow border border-emerald-400/40">
+                  {/* METÀ SINISTRA DEL CAMPO CENTRALE (FINO A 3 SQUADRE E 3 MISTER) */}
+                  <div className="w-[280px] h-full relative z-20 flex flex-col justify-between p-2.5 pr-3 border-r border-dashed border-white/40">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-black tracking-wider text-white bg-slate-900/80 px-2 py-0.5 rounded-md shadow border border-emerald-400/40">
                         CAMPO CENTRALE - METÀ SX
                       </span>
                     </div>
 
-                    <div className="max-w-[240px] mx-auto w-full my-auto">
-                      <ZoneControls
+                    <div className="max-w-[260px] mx-auto w-full my-auto">
+                      <CenterHalfFieldControls
                         zoneKey="centerLeft"
                         zone={zones.centerLeft}
-                        updateZone={updateZone}
+                        updateZoneSlots={updateZoneSlots}
                         staffList={staffList}
                         tabIndexBase={7}
                       />
                     </div>
                   </div>
 
-                  {/* METÀ DESTRA DEL CAMPO CENTRALE */}
-                  <div className="w-[280px] h-full relative z-20 flex flex-col justify-between p-3.5 pl-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black tracking-wider text-white bg-slate-900/80 px-2.5 py-0.5 rounded-md shadow border border-emerald-400/40">
+                  {/* METÀ DESTRA DEL CAMPO CENTRALE (FINO A 3 SQUADRE E 3 MISTER) */}
+                  <div className="w-[280px] h-full relative z-20 flex flex-col justify-between p-2.5 pl-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-black tracking-wider text-white bg-slate-900/80 px-2 py-0.5 rounded-md shadow border border-emerald-400/40">
                         CAMPO CENTRALE - METÀ DX
                       </span>
                     </div>
 
-                    <div className="max-w-[240px] mx-auto w-full my-auto">
-                      <ZoneControls
+                    <div className="max-w-[260px] mx-auto w-full my-auto">
+                      <CenterHalfFieldControls
                         zoneKey="centerRight"
                         zone={zones.centerRight}
-                        updateZone={updateZone}
+                        updateZoneSlots={updateZoneSlots}
                         staffList={staffList}
-                        tabIndexBase={9}
+                        tabIndexBase={13}
                       />
                     </div>
                   </div>
@@ -862,8 +1398,8 @@ export const FieldDiagramTab: React.FC = () => {
 
                 {/* 3. RETTANGOLO LATERALE DESTRO */}
                 {/* "costruito sul lato minore del rettangolo più grande, di lato maggiore uguale al lato minore del rettangolo più grande" */}
-                {/* Lato maggiore = 280px (uguale al lato minore del rettangolo centrale), lato minore = 180px */}
-                <div className="w-[180px] h-[280px] relative bg-emerald-800 border-2 border-white/90 shadow-inner flex flex-col justify-between p-2.5 group overflow-hidden">
+                {/* Lato maggiore = 310px (uguale al lato minore del rettangolo centrale), lato minore = 180px */}
+                <div className="w-[180px] h-[310px] relative bg-emerald-800 border-2 border-white/90 shadow-inner flex flex-col justify-between p-2.5 group overflow-hidden">
                   {/* Erba a strisce orizzontali */}
                   <div className="absolute inset-0 opacity-20 pointer-events-none bg-[repeating-linear-gradient(0deg,#000_0,#000_20px,transparent_20px,transparent_40px)]"></div>
 
@@ -897,12 +1433,13 @@ export const FieldDiagramTab: React.FC = () => {
                     </span>
                   </div>
 
-                  <ZoneControls
+                  <SideFieldControls
                     zoneKey="sideRight"
                     zone={zones.sideRight}
-                    updateZone={updateZone}
+                    updateZoneTeam={updateSideZoneTeam}
+                    updateZoneCoaches={updateSideZoneCoaches}
                     staffList={staffList}
-                    tabIndexBase={11}
+                    tabIndexBase={19}
                   />
                 </div>
               </div>
@@ -921,7 +1458,7 @@ export const FieldDiagramTab: React.FC = () => {
                 </span>
               </div>
               <div className="italic text-slate-500 text-[10px]">
-                💡 Premi [Tab] per passare rapidamente tra tutti i campi squadra e mister.
+                💡 Premi [Tab] per passare rapidamente tra tutti i campi squadra e allenatore.
               </div>
             </div>
           </div>
@@ -942,7 +1479,7 @@ export const FieldDiagramTab: React.FC = () => {
                   <th className="p-2 border border-slate-700">Posizione Geometrica</th>
                   <th className="p-2 border border-slate-700">Porte Presenti</th>
                   <th className="p-2 border border-slate-700">Squadra Assegnata</th>
-                  <th className="p-2 border border-slate-700">Mister / Allenatore</th>
+                  <th className="p-2 border border-slate-700">Allenatore</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -951,42 +1488,146 @@ export const FieldDiagramTab: React.FC = () => {
                   <td className="p-2 text-slate-600 border border-slate-200">Lato minore sinistro del campo centrale</td>
                   <td className="p-2 text-slate-600 border border-slate-200">2 porte (lato superiore &amp; inferiore)</td>
                   <td className="p-2 font-black text-slate-900 border border-slate-200">{zones.sideLeft.team || '-'}</td>
-                  <td className="p-2 font-semibold text-slate-800 border border-slate-200">{zones.sideLeft.coach || '-'}</td>
+                  <td className="p-2 border border-slate-200">
+                    {(() => {
+                      const coaches = getZoneCoaches(zones.sideLeft).map(cleanCoachName).filter(Boolean);
+                      if (coaches.length === 0) return <span className="text-slate-400 italic">-</span>;
+                      if (coaches.length === 1) return <span className="font-semibold text-slate-800">{coaches[0]}</span>;
+                      return (
+                        <div className="space-y-1">
+                          {coaches.map((c, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <span className="w-3.5 h-3.5 rounded-full bg-amber-600 text-white font-black text-[8px] flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <span className="font-semibold text-slate-800">{c}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </td>
                 </tr>
                 <tr className="hover:bg-slate-100">
                   <td className="p-2 font-bold text-emerald-900 border border-slate-200">Campo Superiore SX</td>
                   <td className="p-2 text-slate-600 border border-slate-200">Lato superiore del campo centrale (metà SX)</td>
                   <td className="p-2 text-slate-600 border border-slate-200">2 porte (lato sinistro &amp; destro)</td>
                   <td className="p-2 font-black text-slate-900 border border-slate-200">{zones.topLeft.team || '-'}</td>
-                  <td className="p-2 font-semibold text-slate-800 border border-slate-200">{zones.topLeft.coach || '-'}</td>
+                  <td className="p-2 font-semibold text-slate-800 border border-slate-200">{cleanCoachName(zones.topLeft.coach) || '-'}</td>
                 </tr>
                 <tr className="hover:bg-slate-100">
                   <td className="p-2 font-bold text-emerald-900 border border-slate-200">Campo Superiore DX</td>
                   <td className="p-2 text-slate-600 border border-slate-200">Lato superiore del campo centrale (metà DX)</td>
                   <td className="p-2 text-slate-600 border border-slate-200">2 porte (lato sinistro &amp; destro)</td>
                   <td className="p-2 font-black text-slate-900 border border-slate-200">{zones.topRight.team || '-'}</td>
-                  <td className="p-2 font-semibold text-slate-800 border border-slate-200">{zones.topRight.coach || '-'}</td>
+                  <td className="p-2 font-semibold text-slate-800 border border-slate-200">{cleanCoachName(zones.topRight.coach) || '-'}</td>
                 </tr>
                 <tr className="hover:bg-slate-100 bg-emerald-50/50">
                   <td className="p-2 font-bold text-emerald-900 border border-slate-200">Campo Centrale - Metà SX</td>
-                  <td className="p-2 text-slate-600 border border-slate-200">Rettangolo grande centrale (sinistra)</td>
+                  <td className="p-2 text-slate-600 border border-slate-200">Rettangolo grande centrale (sinistra) - fino a 3 squadre</td>
                   <td className="p-2 text-slate-600 border border-slate-200">1 porta regolamentare SX</td>
-                  <td className="p-2 font-black text-slate-900 border border-slate-200">{zones.centerLeft.team || '-'}</td>
-                  <td className="p-2 font-semibold text-slate-800 border border-slate-200">{zones.centerLeft.coach || '-'}</td>
+                  <td className="p-2 border border-slate-200">
+                    {(() => {
+                      const activeSlots = getZoneSlots(zones.centerLeft).filter((s) => s.team || s.coach);
+                      if (activeSlots.length === 0) return <span className="text-slate-400 italic">-</span>;
+                      return (
+                        <div className="space-y-1">
+                          {activeSlots.map((s, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <span className="w-3.5 h-3.5 rounded-full bg-emerald-700 text-white font-black text-[8px] flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <span className="font-black text-slate-900">{s.team || '-'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  <td className="p-2 border border-slate-200">
+                    {(() => {
+                      const activeSlots = getZoneSlots(zones.centerLeft).filter((s) => s.team || s.coach);
+                      if (activeSlots.length === 0) return <span className="text-slate-400 italic">-</span>;
+                      return (
+                        <div className="space-y-1">
+                          {activeSlots.map((s, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <span className="w-3.5 h-3.5 rounded-full bg-amber-600 text-white font-black text-[8px] flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <span className="font-semibold text-slate-800">{cleanCoachName(s.coach) || '-'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </td>
                 </tr>
                 <tr className="hover:bg-slate-100 bg-emerald-50/50">
                   <td className="p-2 font-bold text-emerald-900 border border-slate-200">Campo Centrale - Metà DX</td>
-                  <td className="p-2 text-slate-600 border border-slate-200">Rettangolo grande centrale (destra)</td>
+                  <td className="p-2 text-slate-600 border border-slate-200">Rettangolo grande centrale (destra) - fino a 3 squadre</td>
                   <td className="p-2 text-slate-600 border border-slate-200">1 porta regolamentare DX</td>
-                  <td className="p-2 font-black text-slate-900 border border-slate-200">{zones.centerRight.team || '-'}</td>
-                  <td className="p-2 font-semibold text-slate-800 border border-slate-200">{zones.centerRight.coach || '-'}</td>
+                  <td className="p-2 border border-slate-200">
+                    {(() => {
+                      const activeSlots = getZoneSlots(zones.centerRight).filter((s) => s.team || s.coach);
+                      if (activeSlots.length === 0) return <span className="text-slate-400 italic">-</span>;
+                      return (
+                        <div className="space-y-1">
+                          {activeSlots.map((s, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <span className="w-3.5 h-3.5 rounded-full bg-emerald-700 text-white font-black text-[8px] flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <span className="font-black text-slate-900">{s.team || '-'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  <td className="p-2 border border-slate-200">
+                    {(() => {
+                      const activeSlots = getZoneSlots(zones.centerRight).filter((s) => s.team || s.coach);
+                      if (activeSlots.length === 0) return <span className="text-slate-400 italic">-</span>;
+                      return (
+                        <div className="space-y-1">
+                          {activeSlots.map((s, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <span className="w-3.5 h-3.5 rounded-full bg-amber-600 text-white font-black text-[8px] flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <span className="font-semibold text-slate-800">{cleanCoachName(s.coach) || '-'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </td>
                 </tr>
                 <tr className="hover:bg-slate-100">
                   <td className="p-2 font-bold text-emerald-900 border border-slate-200">Campo Laterale DX</td>
                   <td className="p-2 text-slate-600 border border-slate-200">Lato minore destro del campo centrale</td>
                   <td className="p-2 text-slate-600 border border-slate-200">2 porte (lato superiore &amp; inferiore)</td>
                   <td className="p-2 font-black text-slate-900 border border-slate-200">{zones.sideRight.team || '-'}</td>
-                  <td className="p-2 font-semibold text-slate-800 border border-slate-200">{zones.sideRight.coach || '-'}</td>
+                  <td className="p-2 border border-slate-200">
+                    {(() => {
+                      const coaches = getZoneCoaches(zones.sideRight).map(cleanCoachName).filter(Boolean);
+                      if (coaches.length === 0) return <span className="text-slate-400 italic">-</span>;
+                      if (coaches.length === 1) return <span className="font-semibold text-slate-800">{coaches[0]}</span>;
+                      return (
+                        <div className="space-y-1">
+                          {coaches.map((c, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <span className="w-3.5 h-3.5 rounded-full bg-amber-600 text-white font-black text-[8px] flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <span className="font-semibold text-slate-800">{c}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </td>
                 </tr>
               </tbody>
             </table>
