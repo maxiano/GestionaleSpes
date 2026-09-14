@@ -1457,9 +1457,9 @@ export const FieldDiagramTab: React.FC = () => {
               </div>
             </div>
 
-            {/* Legenda Porte di Calcio */}
+            {/* Legenda Porte di Calcio & Sponsor Spes */}
             <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400 px-2">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <span className="flex items-center gap-1.5">
                   <span className="w-4 h-2 bg-white border border-slate-400 rounded-sm inline-block shadow-sm"></span>
                   <span className="font-semibold text-slate-300">Porte di calcio sui lati minori</span>
@@ -1467,6 +1467,9 @@ export const FieldDiagramTab: React.FC = () => {
                 <span className="flex items-center gap-1.5">
                   <span className="w-3 h-0.5 bg-white inline-block"></span>
                   <span>Linea divisoria campo centrale</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-bold text-[10px]">
+                  <span>SPES MONTESACRO • DAL 1908</span>
                 </span>
               </div>
               <div className="italic text-slate-500 text-[10px]">

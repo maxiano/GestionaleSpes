@@ -61,9 +61,14 @@ export const Header: React.FC<HeaderProps> = ({
           <ClubLogo className="w-full h-full object-contain text-slate-900" />
         </div>
         <div className="min-w-0 truncate">
-          <h1 className="text-xs sm:text-base font-black tracking-wider uppercase bg-gradient-to-r from-white via-slate-100 to-emerald-300 bg-clip-text text-transparent truncate">
-            Spes Montesacro
-          </h1>
+          <div className="flex items-center gap-1.5 truncate">
+            <h1 className="text-xs sm:text-base font-black tracking-wider uppercase bg-gradient-to-r from-white via-slate-100 to-emerald-300 bg-clip-text text-transparent truncate">
+              Spes Montesacro
+            </h1>
+            <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-bold tracking-tight">
+              v2.5
+            </span>
+          </div>
           <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium flex items-center gap-1.5 truncate">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
             {userProfile ? (
