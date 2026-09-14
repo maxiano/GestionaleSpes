@@ -14,8 +14,11 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: [
           'logo.svg',
+          'favicon.ico',
           'icon-192.png',
           'icon-512.png',
+          'icon-maskable-192.png',
+          'icon-maskable-512.png',
           'screenshot-wide.png',
           'screenshot-mobile.png',
           'sw-push.js'
@@ -32,13 +35,25 @@ export default defineConfig(() => {
               src: './icon-192.png',
               sizes: '192x192',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
             },
             {
               src: './icon-512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
+            },
+            {
+              src: './icon-maskable-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'maskable'
+            },
+            {
+              src: './icon-maskable-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
             }
           ],
           screenshots: [

@@ -73,8 +73,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       </div>
 
       <div className="text-center mb-8">
-        <div className="w-20 h-20 mx-auto mb-4 bg-black rounded-3xl flex items-center justify-center p-2 shadow-xl shadow-slate-900/10 border border-slate-900 overflow-hidden">
-          <ClubLogo className="w-full h-full object-contain text-white" />
+        <div className="w-24 h-24 mx-auto mb-4 bg-white rounded-3xl flex items-center justify-center p-3 shadow-xl shadow-slate-900/10 border border-slate-200 overflow-hidden">
+          <ClubLogo className="w-full h-full object-contain text-black" />
         </div>
         <div className="flex items-center justify-center gap-2 mb-1">
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Spes Montesacro</h2>
