@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { loginUser } from '../../services/authService';
-import { Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
 import { PWAInstallButton } from '../pwa/PWAInstallButton';
 import { ClubLogo } from '../common/ClubLogo';
 
@@ -13,6 +13,29 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleForceUpdate = async () => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        for (const name of cacheNames) {
+          await caches.delete(name);
+        }
+      }
+    } catch (e) {
+      console.error('Errore svuotamento cache:', e);
+    }
+    window.location.reload();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,17 +58,32 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       id="section-login"
       className="bg-white p-8 rounded-3xl shadow-2xl border border-slate-100 max-w-md mx-auto mt-12 print:hidden"
     >
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-between items-center mb-2">
+        <button
+          type="button"
+          onClick={handleForceUpdate}
+          disabled={isUpdating}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition cursor-pointer"
+          title="Aggiorna alla versione più recente"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isUpdating ? 'animate-spin' : ''}`} />
+          <span>Aggiorna App</span>
+        </button>
         <PWAInstallButton />
       </div>
 
       <div className="text-center mb-8">
-        <div className="w-20 h-20 mx-auto mb-4 bg-white rounded-3xl flex items-center justify-center p-2 shadow-xl shadow-slate-900/10 border border-slate-100 overflow-hidden">
-          <ClubLogo className="w-full h-full object-contain text-slate-900" />
+        <div className="w-20 h-20 mx-auto mb-4 bg-black rounded-3xl flex items-center justify-center p-2 shadow-xl shadow-slate-900/10 border border-slate-900 overflow-hidden">
+          <ClubLogo className="w-full h-full object-contain text-white" />
         </div>
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Accesso Gestionale Pro</h2>
-        <p className="text-xs text-slate-500 mt-1 font-medium">
-          Spes Montesacro - Gestionale Tecnico & Portale Famiglie
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Spes Montesacro</h2>
+          <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-700 border border-emerald-500/40 text-[9px] font-bold tracking-tight">
+            v2.5
+          </span>
+        </div>
+        <p className="text-xs text-slate-500 font-semibold tracking-wide">
+          Fondata nel 1928 • Gestionale Pro
         </p>
       </div>
 

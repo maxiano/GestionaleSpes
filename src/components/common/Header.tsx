@@ -16,7 +16,8 @@ import {
   Trash2,
   ChevronDown,
   DoorClosed,
-  LayoutGrid
+  LayoutGrid,
+  RefreshCw
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -51,14 +52,38 @@ export const Header: React.FC<HeaderProps> = ({
   onWipeDatabase
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const isAdmin = userProfile?.role === 'admin';
+
+  const handleForceUpdate = async () => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        for (const name of cacheNames) {
+          await caches.delete(name);
+        }
+      }
+    } catch (e) {
+      console.error('Errore aggiornamento cache:', e);
+    }
+    // Ricarica forzata ignorando la cache del browser
+    window.location.reload();
+  };
 
   return (
     <nav className="bg-slate-950/90 backdrop-blur-xl text-white px-3 sm:px-6 py-2.5 sm:py-3 flex justify-between items-center shadow-xl shadow-black/30 border-b border-slate-800 sticky top-0 z-50 print:hidden">
       {/* Brand & User info */}
       <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
-        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-xl flex items-center justify-center p-1 shadow-md ring-1 ring-emerald-500/30 overflow-hidden shrink-0">
-          <ClubLogo className="w-full h-full object-contain text-slate-900" />
+        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-black rounded-xl flex items-center justify-center p-1 shadow-md ring-1 ring-slate-700 overflow-hidden shrink-0">
+          <ClubLogo className="w-full h-full object-contain text-white" />
         </div>
         <div className="min-w-0 truncate">
           <div className="flex items-center gap-1.5 truncate">
@@ -91,6 +116,17 @@ export const Header: React.FC<HeaderProps> = ({
         />
 
         <PWAInstallButton />
+
+        <button
+          id="btn-force-update-app"
+          onClick={handleForceUpdate}
+          disabled={isUpdating}
+          className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white text-xs p-2 sm:px-2.5 sm:py-2 rounded-xl font-bold transition border border-emerald-500/30 shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          title="Aggiorna l'app e pulisci la cache"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isUpdating ? 'animate-spin' : ''}`} />
+          <span className="hidden md:inline">Aggiorna</span>
+        </button>
 
         {userProfile && (
           <button

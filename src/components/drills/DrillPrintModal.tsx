@@ -87,8 +87,8 @@ export const DrillPrintModal: React.FC<DrillPrintModalProps> = ({
           {/* Intestazione Ufficiale Club */}
           <div className="flex items-center justify-between border-b-2 border-slate-900 pb-4 mb-4">
             <div className="flex items-center space-x-3">
-              <div className="w-14 h-14 border-2 border-slate-900 rounded-2xl flex items-center justify-center p-1.5 bg-white shrink-0 overflow-hidden shadow-2xs">
-                <ClubLogo className="w-full h-full object-contain text-slate-900" />
+              <div className="w-14 h-14 border-2 border-slate-900 rounded-2xl flex items-center justify-center p-1.5 bg-black shrink-0 overflow-hidden shadow-2xs">
+                <ClubLogo className="w-full h-full object-contain text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-black uppercase tracking-tight text-slate-900">

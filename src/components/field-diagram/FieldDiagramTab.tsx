@@ -1469,7 +1469,7 @@ export const FieldDiagramTab: React.FC = () => {
                   <span>Linea divisoria campo centrale</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-bold text-[10px]">
-                  <span>SPES MONTESACRO • DAL 1908</span>
+                  <span>SPES MONTESACRO • DAL 1928</span>
                 </span>
               </div>
               <div className="italic text-slate-500 text-[10px]">
