@@ -38,10 +38,13 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isImage =
+    dataUrl.startsWith('data:image/') || /\.(png|jpe?g|webp|gif)$/i.test(fileName);
+
   const handleDownload = () => {
     const a = document.createElement('a');
     a.href = blobUrl || dataUrl;
-    a.download = fileName.toLowerCase().endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -50,6 +53,11 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
   const handleOpenNewTab = () => {
     if (blobUrl) {
       window.open(blobUrl, '_blank');
+    } else if (dataUrl) {
+      const win = window.open();
+      if (win) {
+        win.document.write(`<iframe src="${dataUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+      }
     }
   };
 
@@ -115,9 +123,17 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Body / PDF embed */}
-        <div className="flex-1 bg-slate-100 p-2 sm:p-4 overflow-hidden relative flex flex-col items-center justify-center">
-          {blobUrl ? (
+        {/* Modal Body / PDF or Image embed */}
+        <div className="flex-1 bg-slate-100 p-2 sm:p-4 overflow-auto relative flex flex-col items-center justify-center">
+          {isImage ? (
+            <div className="w-full h-full flex items-center justify-center p-2 overflow-auto">
+              <img
+                src={dataUrl}
+                alt={fileName}
+                className="max-h-full max-w-full object-contain rounded-2xl shadow-lg border border-slate-200 bg-white"
+              />
+            </div>
+          ) : blobUrl ? (
             <iframe
               src={blobUrl}
               title={fileName}
@@ -132,9 +148,9 @@ export const PdfViewerModal: React.FC<PdfViewerModalProps> = ({
               <button
                 type="button"
                 onClick={handleDownload}
-                className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-emerald-600 transition"
+                className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-emerald-600 transition cursor-pointer"
               >
-                Scarica il documento PDF
+                Scarica il documento
               </button>
             </div>
           )}

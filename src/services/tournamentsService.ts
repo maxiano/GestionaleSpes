@@ -27,7 +27,13 @@ export async function getTournaments(teamId?: string): Promise<Tournament[]> {
       endDate: data.endDate || '',
       location: data.location || '',
       calendarPdf: data.calendarPdf || null,
-      regulationPdf: data.regulationPdf || null
+      regulationPdf: data.regulationPdf || null,
+      matchListPdf: data.matchListPdf || null,
+      playerListPdf: data.playerListPdf || null,
+      participatingPlayerIds: Array.isArray(data.participatingPlayerIds)
+        ? data.participatingPlayerIds
+        : [],
+      participatingPlayerNotes: data.participatingPlayerNotes || ''
     };
   });
 }
@@ -43,7 +49,13 @@ export async function saveTournament(
     endDate: data.endDate || '',
     location: data.location || '',
     calendarPdf: data.calendarPdf ?? null,
-    regulationPdf: data.regulationPdf ?? null
+    regulationPdf: data.regulationPdf ?? null,
+    matchListPdf: data.matchListPdf ?? null,
+    playerListPdf: data.playerListPdf ?? null,
+    participatingPlayerIds: Array.isArray(data.participatingPlayerIds)
+      ? data.participatingPlayerIds
+      : [],
+    participatingPlayerNotes: data.participatingPlayerNotes || ''
   };
 
   if (editingId) {

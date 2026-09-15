@@ -39,6 +39,9 @@ export function formatNewTournamentCoachWhatsApp(
     location?: string;
     hasCalendarPdf?: boolean;
     hasRegulationPdf?: boolean;
+    hasMatchListPdf?: boolean;
+    hasPlayerListPdf?: boolean;
+    participatingPlayersCount?: number;
   },
   teamId: string,
   coachName?: string
@@ -57,10 +60,19 @@ export function formatNewTournamentCoachWhatsApp(
     msg += `📎 *Calendario PDF:* Disponibile e scaricabile dal gestionale\n`;
   }
   if (tournament.hasRegulationPdf) {
-    msg += `📋 *Regolamento PDF:* Disponibile e scaricabile dal gestionale\n`;
+    msg += `📋 *Regolamento Torneo PDF:* Disponibile e scaricabile dal gestionale\n`;
+  }
+  if (tournament.hasMatchListPdf) {
+    msg += `📝 *Lista Gara / Distinta:* Allegata nel gestionale\n`;
+  }
+  if (tournament.hasPlayerListPdf) {
+    msg += `👥 *Lista Calciatori Partecipanti:* Allegata nel gestionale\n`;
+  }
+  if (tournament.participatingPlayersCount && tournament.participatingPlayersCount > 0) {
+    msg += `⭐ *Calciatori Convocati:* ${tournament.participatingPlayersCount} ragazzi inseriti\n`;
   }
   msg += `👥 *Categoria:* ${teamId}\n\n`;
-  msg += `👉 Accedi al portale Spes Montesacro per visualizzare i dettagli, scaricare i PDF, inserire il calendario partite e le convocazioni!`;
+  msg += `👉 Accedi al portale Spes Montesacro per visualizzare i dettagli, consultare i documenti allegati e gestire il torneo!`;
   return msg;
 }
 

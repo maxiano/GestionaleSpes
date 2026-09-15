@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Tournament, TournamentMatch } from '../../types';
+import { Tournament, TournamentMatch, Player } from '../../types';
 import {
   getTournaments,
   getTournamentMatches,
@@ -7,8 +7,10 @@ import {
   deleteTournamentMatch,
   updateMatchResult
 } from '../../services/tournamentsService';
+import { getPlayersByTeam } from '../../services/playersService';
 import { TournamentModal } from './TournamentModal';
 import { MatchModal } from './MatchModal';
+import { TournamentParticipantsModal } from './TournamentParticipantsModal';
 import { formatDateIT } from '../../utils/formatters';
 import {
   downloadCSV,
@@ -37,7 +39,10 @@ import {
   Paperclip,
   FileText,
   Eye,
-  Download
+  Download,
+  ClipboardList,
+  Users,
+  Image as ImageIcon
 } from 'lucide-react';
 import { createPushNotification } from '../../services/notificationService';
 import { PdfViewerModal } from '../common/PdfViewerModal';
@@ -50,6 +55,7 @@ interface TournamentsTabProps {
 export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<TournamentMatch[]>([]);
+  const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
   const [selectedTourFilter, setSelectedTourFilter] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
   const [loading, setLoading] = useState(false);
@@ -62,6 +68,9 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
   const [activeTourForMatch, setActiveTourForMatch] = useState<Tournament | null>(null);
   const [editingMatch, setEditingMatch] = useState<TournamentMatch | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Participants roster sheet modal
+  const [participantsModalTour, setParticipantsModalTour] = useState<Tournament | null>(null);
 
   // PDF Preview modal
   const [previewPdfModal, setPreviewPdfModal] = useState<{
@@ -88,12 +97,14 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
     if (!activeTeamId) return;
     setLoading(true);
     try {
-      const [tList, mList] = await Promise.all([
+      const [tList, mList, pList] = await Promise.all([
         getTournaments(activeTeamId),
-        getTournamentMatches(activeTeamId)
+        getTournamentMatches(activeTeamId),
+        getPlayersByTeam(activeTeamId)
       ]);
       setTournaments(tList);
       setMatches(mList);
+      setRosterPlayers(pList);
     } catch (err) {
       console.error('Errore caricamento tornei:', err);
     } finally {
@@ -201,9 +212,20 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
 
     tournaments.forEach((tour) => {
       text += `🏆 *${tour.name}*\n📍 ${tour.location || 'Campo Spes'} | 📅 ${formatDateIT(tour.startDate)} - ${formatDateIT(tour.endDate)}\n`;
-      if (tour.calendarPdf) text += `  📎 Calendario PDF allegato\n`;
-      if (tour.regulationPdf) text += `  📋 Regolamento PDF allegato\n`;
+      if (tour.calendarPdf) text += `  📎 Calendario allegato\n`;
+      if (tour.regulationPdf) text += `  📋 Regolamento allegato\n`;
+      if (tour.matchListPdf) text += `  📝 Lista Gara allegata\n`;
+      if (tour.playerListPdf) text += `  👥 Doc. Calciatori allegato\n`;
+      if (tour.participatingPlayerIds && tour.participatingPlayerIds.length > 0) {
+        text += `  ⭐ Convocati: ${tour.participatingPlayerIds.length} ragazzi\n`;
+      }
       const tMatches = matches.filter((m) => m.tournamentId === tour.id);
+      tMatches.sort((a, b) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+        return (a.time || '').localeCompare(b.time || '');
+      });
       if (tMatches.length === 0) {
         text += '  (Nessuna gara registrata)\n';
       } else {
@@ -239,7 +261,10 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
           endDate: tour.endDate,
           location: tour.location,
           hasCalendarPdf: !!tour.calendarPdf,
-          hasRegulationPdf: !!tour.regulationPdf
+          hasRegulationPdf: !!tour.regulationPdf,
+          hasMatchListPdf: !!tour.matchListPdf,
+          hasPlayerListPdf: !!tour.playerListPdf,
+          participatingPlayersCount: tour.participatingPlayerIds?.length || 0
         },
         activeTeamId,
         coach?.name
@@ -253,14 +278,19 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
 
   const handlePushNotifyTournament = async (tour: Tournament) => {
     try {
-      const pdfNotes: string[] = [];
-      if (tour.calendarPdf) pdfNotes.push('Calendario PDF');
-      if (tour.regulationPdf) pdfNotes.push('Regolamento PDF');
-      const pdfSuffix = pdfNotes.length > 0 ? ` [Allegati: ${pdfNotes.join(', ')}]` : '';
+      const docNotes: string[] = [];
+      if (tour.calendarPdf) docNotes.push('Calendario');
+      if (tour.regulationPdf) docNotes.push('Regolamento');
+      if (tour.matchListPdf) docNotes.push('Lista Gara');
+      if (tour.playerListPdf) docNotes.push('Lista Calciatori');
+      if (tour.participatingPlayerIds && tour.participatingPlayerIds.length > 0) {
+        docNotes.push(`${tour.participatingPlayerIds.length} Convocati`);
+      }
+      const docSuffix = docNotes.length > 0 ? ` [Allegati/Info: ${docNotes.join(', ')}]` : '';
 
       await createPushNotification({
         title: `🏆 Promemoria Torneo: ${tour.name}`,
-        body: `Aggiornamento Cat. ${activeTeamId}: dal ${formatDateIT(tour.startDate)} al ${formatDateIT(tour.endDate)} presso ${tour.location || 'Spes Montesacro'}.${pdfSuffix}`,
+        body: `Aggiornamento Cat. ${activeTeamId}: dal ${formatDateIT(tour.startDate)} al ${formatDateIT(tour.endDate)} presso ${tour.location || 'Spes Montesacro'}.${docSuffix}`,
         type: 'tournament',
         targetTeamId: activeTeamId,
         targetRole: 'all',
@@ -268,7 +298,10 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
           tournamentId: tour.id,
           teamId: activeTeamId,
           hasCalendarPdf: !!tour.calendarPdf,
-          hasRegulationPdf: !!tour.regulationPdf
+          hasRegulationPdf: !!tour.regulationPdf,
+          hasMatchListPdf: !!tour.matchListPdf,
+          hasPlayerListPdf: !!tour.playerListPdf,
+          participatingPlayersCount: tour.participatingPlayerIds?.length || 0
         }
       });
       showToast('🔔 Notifica Push PWA inviata con successo agli smartphone di Allenatore e Admin!');
@@ -420,6 +453,20 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
               tourMatches = tourMatches.filter((m) => m.played);
             }
 
+            // Ordine di data e ora ascendente
+            tourMatches.sort((a, b) => {
+              const dateA = a.date || '';
+              const dateB = b.date || '';
+              if (dateA !== dateB) {
+                if (!dateA) return 1;
+                if (!dateB) return -1;
+                return dateA.localeCompare(dateB);
+              }
+              const timeA = a.time || '';
+              const timeB = b.time || '';
+              return timeA.localeCompare(timeB);
+            });
+
             return (
               <div
                 key={tour.id}
@@ -448,7 +495,7 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                   <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
                     <button
                       onClick={() => handlePushNotifyTournament(tour)}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold transition shadow-sm flex items-center gap-1.5"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
                       title="Invia Notifica Push PWA allo smartphone dell'Allenatore"
                     >
                       <BellRing className="w-3.5 h-3.5" />
@@ -456,7 +503,7 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                     </button>
                     <button
                       onClick={() => handleNotifyCoach(tour)}
-                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs px-3 py-1.5 rounded-xl font-bold border border-emerald-200 transition shadow-sm flex items-center gap-1.5"
+                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs px-3 py-1.5 rounded-xl font-bold border border-emerald-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
                       title="Notifica o ricondividi il torneo con l'Allenatore su WhatsApp"
                     >
                       <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
@@ -464,21 +511,21 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                     </button>
                     <button
                       onClick={() => handleEditTournament(tour)}
-                      className="bg-white hover:bg-slate-100 text-slate-700 text-xs px-3 py-1.5 rounded-xl font-bold border border-slate-200 transition shadow-sm flex items-center gap-1"
+                      className="bg-white hover:bg-slate-100 text-slate-700 text-xs px-3 py-1.5 rounded-xl font-bold border border-slate-200 transition shadow-sm flex items-center gap-1 cursor-pointer"
                     >
                       <Pencil className="w-3 h-3 text-slate-500" />
                       <span>Modifica</span>
                     </button>
                     <button
                       onClick={() => handleDeleteTournament(tour)}
-                      className="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs px-3 py-1.5 rounded-xl font-bold transition shadow-sm flex items-center gap-1"
+                      className="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs px-3 py-1.5 rounded-xl font-bold transition shadow-sm flex items-center gap-1 cursor-pointer"
                     >
                       <Trash2 className="w-3 h-3 text-rose-500" />
                       <span>Elimina</span>
                     </button>
                     <button
                       onClick={() => handleOpenAddMatch(tour)}
-                      className="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1 shadow-sm"
+                      className="bg-slate-900 hover:bg-emerald-600 text-white text-xs px-3.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Aggiungi Partita</span>
@@ -486,14 +533,15 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                   </div>
                 </div>
 
-                {/* Allegati Ufficiali (Calendario e Regolamento PDF) */}
+                {/* Allegati Ufficiali (Calendario, Regolamento, Lista Gara, Lista Calciatori) */}
                 <div className="flex flex-wrap items-center gap-2 py-2 px-3 bg-white/90 rounded-2xl border border-slate-200/80 shadow-2xs">
                   <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 mr-1">
                     <Paperclip className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Documenti Ufficiali:</span>
+                    <span>Documenti e Convocati:</span>
                   </span>
 
-                  {tour.calendarPdf ? (
+                  {/* 1. Calendario Gare */}
+                  {tour.calendarPdf && (
                     <div className="inline-flex items-center gap-1.5 bg-blue-50/90 border border-blue-200/90 rounded-xl px-2.5 py-1 text-xs font-semibold text-blue-900 shadow-2xs">
                       <FileText className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                       <span className="font-bold">Calendario</span>
@@ -513,7 +561,7 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                             })
                           }
                           className="p-1 hover:bg-blue-100 rounded-md text-blue-700 hover:text-blue-900 transition cursor-pointer"
-                          title="Visualizza anteprima Calendario PDF"
+                          title="Visualizza anteprima Calendario"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
@@ -527,15 +575,16 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                             )
                           }
                           className="p-1 hover:bg-blue-100 rounded-md text-blue-700 hover:text-blue-900 transition cursor-pointer"
-                          title="Scarica Calendario PDF"
+                          title="Scarica Calendario"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
-                  ) : null}
+                  )}
 
-                  {tour.regulationPdf ? (
+                  {/* 2. Regolamento */}
+                  {tour.regulationPdf && (
                     <div className="inline-flex items-center gap-1.5 bg-amber-50/90 border border-amber-200/90 rounded-xl px-2.5 py-1 text-xs font-semibold text-amber-900 shadow-2xs">
                       <FileText className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span className="font-bold">Regolamento</span>
@@ -555,7 +604,7 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                             })
                           }
                           className="p-1 hover:bg-amber-100 rounded-md text-amber-700 hover:text-amber-900 transition cursor-pointer"
-                          title="Visualizza anteprima Regolamento PDF"
+                          title="Visualizza anteprima Regolamento"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
@@ -569,30 +618,133 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
                             )
                           }
                           className="p-1 hover:bg-amber-100 rounded-md text-amber-700 hover:text-amber-900 transition cursor-pointer"
-                          title="Scarica Regolamento PDF"
+                          title="Scarica Regolamento"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
-                  ) : null}
+                  )}
 
-                  {(!tour.calendarPdf || !tour.regulationPdf) && (
+                  {/* 3. Lista Gara / Distinta */}
+                  {tour.matchListPdf && (
+                    <div className="inline-flex items-center gap-1.5 bg-indigo-50/90 border border-indigo-200/90 rounded-xl px-2.5 py-1 text-xs font-semibold text-indigo-900 shadow-2xs">
+                      <ClipboardList className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span className="font-bold">Lista Gara</span>
+                      <span className="text-[10px] text-indigo-600 font-medium">
+                        {formatPdfFileSize(tour.matchListPdf.size)}
+                      </span>
+                      <div className="flex items-center gap-0.5 ml-1 border-l border-indigo-200 pl-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewPdfModal({
+                              isOpen: true,
+                              title: `Lista Gara - ${tour.name}`,
+                              fileName: tour.matchListPdf!.name,
+                              dataUrl: tour.matchListPdf!.dataUrl,
+                              fileSize: tour.matchListPdf!.size
+                            })
+                          }
+                          className="p-1 hover:bg-indigo-100 rounded-md text-indigo-700 hover:text-indigo-900 transition cursor-pointer"
+                          title="Visualizza anteprima Lista Gara"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openOrDownloadPdf(
+                              tour.matchListPdf!.dataUrl,
+                              tour.matchListPdf!.name,
+                              'download'
+                            )
+                          }
+                          className="p-1 hover:bg-indigo-100 rounded-md text-indigo-700 hover:text-indigo-900 transition cursor-pointer"
+                          title="Scarica Lista Gara"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 4. Documento Lista Calciatori */}
+                  {tour.playerListPdf && (
+                    <div className="inline-flex items-center gap-1.5 bg-purple-50/90 border border-purple-200/90 rounded-xl px-2.5 py-1 text-xs font-semibold text-purple-900 shadow-2xs">
+                      <FileText className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                      <span className="font-bold">Doc. Calciatori</span>
+                      <span className="text-[10px] text-purple-600 font-medium">
+                        {formatPdfFileSize(tour.playerListPdf.size)}
+                      </span>
+                      <div className="flex items-center gap-0.5 ml-1 border-l border-purple-200 pl-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewPdfModal({
+                              isOpen: true,
+                              title: `Lista Calciatori - ${tour.name}`,
+                              fileName: tour.playerListPdf!.name,
+                              dataUrl: tour.playerListPdf!.dataUrl,
+                              fileSize: tour.playerListPdf!.size
+                            })
+                          }
+                          className="p-1 hover:bg-purple-100 rounded-md text-purple-700 hover:text-purple-900 transition cursor-pointer"
+                          title="Visualizza anteprima Lista Calciatori"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openOrDownloadPdf(
+                              tour.playerListPdf!.dataUrl,
+                              tour.playerListPdf!.name,
+                              'download'
+                            )
+                          }
+                          className="p-1 hover:bg-purple-100 rounded-md text-purple-700 hover:text-purple-900 transition cursor-pointer"
+                          title="Scarica Lista Calciatori"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 5. Convocati Rosa Spes (Pulsante Foglio Ufficiale & Stampa) */}
+                  {tour.participatingPlayerIds && tour.participatingPlayerIds.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setParticipantsModalTour(tour)}
+                      className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl px-2.5 py-1 text-xs font-bold transition shadow-2xs cursor-pointer"
+                      title="Visualizza distinta convocati, stampa o condividi"
+                    >
+                      <Users className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Convocati Rosa ({tour.participatingPlayerIds.length})</span>
+                    </button>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => handleEditTournament(tour)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50/60 border border-dashed border-slate-300 hover:border-emerald-300 rounded-xl px-2.5 py-1 transition cursor-pointer ml-auto sm:ml-0"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50/60 border border-dashed border-slate-300 rounded-xl px-2.5 py-1 transition cursor-pointer"
+                      title="Seleziona calciatori convocati dalla rosa"
                     >
-                      <Plus className="w-3 h-3 text-slate-400" />
-                      <span>
-                        {!tour.calendarPdf && !tour.regulationPdf
-                          ? 'Allega Calendario o Regolamento PDF'
-                          : !tour.calendarPdf
-                          ? 'Allega Calendario PDF'
-                          : 'Allega Regolamento PDF'}
-                      </span>
+                      <Users className="w-3 h-3 text-slate-400" />
+                      <span>Definisci Convocati Rosa</span>
                     </button>
                   )}
+
+                  {/* Bottone Gestione Documenti / Allegati */}
+                  <button
+                    type="button"
+                    onClick={() => handleEditTournament(tour)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50/60 border border-dashed border-slate-300 hover:border-emerald-300 rounded-xl px-2.5 py-1 transition cursor-pointer ml-auto sm:ml-0"
+                    title="Aggiungi o modifica documenti del torneo"
+                  >
+                    <Plus className="w-3 h-3 text-slate-400" />
+                    <span>Gestisci Allegati</span>
+                  </button>
                 </div>
 
                 {/* Matches Grid */}
@@ -705,6 +857,21 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
         activeTeamId={activeTeamId}
         onSaved={fetchData}
       />
+
+      {/* Tournament Participants & Convocati Sheet Modal */}
+      {participantsModalTour && (
+        <TournamentParticipantsModal
+          isOpen={!!participantsModalTour}
+          onClose={() => setParticipantsModalTour(null)}
+          tournament={participantsModalTour}
+          rosterPlayers={rosterPlayers}
+          activeTeamId={activeTeamId}
+          onEditTournament={(tour) => {
+            setParticipantsModalTour(null);
+            handleEditTournament(tour);
+          }}
+        />
+      )}
 
       {/* PDF Document Viewer Modal */}
       {previewPdfModal.isOpen && (

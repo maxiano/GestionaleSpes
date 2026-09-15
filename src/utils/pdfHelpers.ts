@@ -73,15 +73,18 @@ export function readFileAsPdfAttachment(file: File): Promise<TournamentAttachmen
   return new Promise((resolve, reject) => {
     const isPdf =
       file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    if (!isPdf) {
-      reject(new Error('Il file selezionato non è un documento PDF valido.'));
+    const isImage =
+      file.type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(file.name);
+
+    if (!isPdf && !isImage) {
+      reject(new Error('Il file selezionato deve essere un documento PDF o un\'immagine valida (PNG, JPG, WEBP).'));
       return;
     }
 
     if (file.size > MAX_PDF_SIZE_BYTES) {
       reject(
         new Error(
-          `Il file PDF (${formatPdfFileSize(file.size)}) supera il limite consentito di 1.8 MB. Riduci le dimensioni del documento prima di caricarlo.`
+          `Il file (${formatPdfFileSize(file.size)}) supera il limite consentito di 1.8 MB. Riduci le dimensioni del documento o dell'immagine prima di caricarlo.`
         )
       );
       return;
@@ -98,7 +101,7 @@ export function readFileAsPdfAttachment(file: File): Promise<TournamentAttachmen
       });
     };
     reader.onerror = () => {
-      reject(new Error('Impossibile leggere il file PDF. Riprova.'));
+      reject(new Error('Impossibile leggere il file. Riprova.'));
     };
     reader.readAsDataURL(file);
   });

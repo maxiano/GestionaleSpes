@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Tournament, TournamentAttachment, UserProfile } from '../../types';
+import { Tournament, TournamentAttachment, UserProfile, Player } from '../../types';
 import { saveTournament, deleteTournament } from '../../services/tournamentsService';
 import { fetchStaffUsers } from '../../services/authService';
+import { getPlayersByTeam } from '../../services/playersService';
 import { createPushNotification } from '../../services/notificationService';
 import {
   formatNewTournamentCoachWhatsApp,
@@ -19,7 +20,13 @@ import {
   Eye,
   Upload,
   Calendar,
-  FileText
+  FileText,
+  ClipboardList,
+  Users,
+  CheckSquare,
+  Square,
+  Search,
+  Check
 } from 'lucide-react';
 import { formatPdfFileSize, readFileAsPdfAttachment } from '../../utils/pdfHelpers';
 import { PdfViewerModal } from '../common/PdfViewerModal';
@@ -45,12 +52,21 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
   const [location, setLocation] = useState('');
   const [calendarPdf, setCalendarPdf] = useState<TournamentAttachment | null>(null);
   const [regulationPdf, setRegulationPdf] = useState<TournamentAttachment | null>(null);
+  const [matchListPdf, setMatchListPdf] = useState<TournamentAttachment | null>(null);
+  const [playerListPdf, setPlayerListPdf] = useState<TournamentAttachment | null>(null);
+  const [participatingPlayerIds, setParticipatingPlayerIds] = useState<string[]>([]);
+  const [participatingPlayerNotes, setParticipatingPlayerNotes] = useState<string>('');
+  const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
+  const [loadingRoster, setLoadingRoster] = useState(false);
+  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const calendarFileRef = useRef<HTMLInputElement>(null);
   const regulationFileRef = useRef<HTMLInputElement>(null);
+  const matchListFileRef = useRef<HTMLInputElement>(null);
+  const playerListFileRef = useRef<HTMLInputElement>(null);
 
   // PDF Preview modal state
   const [previewPdfModal, setPreviewPdfModal] = useState<{
@@ -84,6 +100,14 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setLocation(tournamentToEdit.location || '');
       setCalendarPdf(tournamentToEdit.calendarPdf || null);
       setRegulationPdf(tournamentToEdit.regulationPdf || null);
+      setMatchListPdf(tournamentToEdit.matchListPdf || null);
+      setPlayerListPdf(tournamentToEdit.playerListPdf || null);
+      setParticipatingPlayerIds(
+        Array.isArray(tournamentToEdit.participatingPlayerIds)
+          ? tournamentToEdit.participatingPlayerIds
+          : []
+      );
+      setParticipatingPlayerNotes(tournamentToEdit.participatingPlayerNotes || '');
       setNotifyPush(false);
       setNotifyCoach(false);
     } else {
@@ -93,10 +117,33 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       setLocation('');
       setCalendarPdf(null);
       setRegulationPdf(null);
+      setMatchListPdf(null);
+      setPlayerListPdf(null);
+      setParticipatingPlayerIds([]);
+      setParticipatingPlayerNotes('');
       setNotifyPush(true);
       setNotifyCoach(false);
     }
   }, [tournamentToEdit, isOpen]);
+
+  // Load team roster players
+  useEffect(() => {
+    if (!isOpen || !activeTeamId) return;
+
+    async function loadRoster() {
+      try {
+        setLoadingRoster(true);
+        const players = await getPlayersByTeam(activeTeamId);
+        setRosterPlayers(players);
+      } catch (err) {
+        console.warn('Impossibile caricare la rosa dei giocatori:', err);
+      } finally {
+        setLoadingRoster(false);
+      }
+    }
+
+    loadRoster();
+  }, [isOpen, activeTeamId]);
 
   // Load coaches for this category
   useEffect(() => {
@@ -145,7 +192,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       const att = await readFileAsPdfAttachment(file);
       setCalendarPdf(att);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Errore durante il caricamento del PDF');
+      setErrorMessage(err.message || 'Errore durante il caricamento del Calendario');
     }
   };
 
@@ -155,9 +202,52 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       const att = await readFileAsPdfAttachment(file);
       setRegulationPdf(att);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Errore durante il caricamento del PDF');
+      setErrorMessage(err.message || 'Errore durante il caricamento del Regolamento');
     }
   };
+
+  const handleUploadMatchList = async (file: File) => {
+    try {
+      setErrorMessage(null);
+      const att = await readFileAsPdfAttachment(file);
+      setMatchListPdf(att);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Errore durante il caricamento della Lista Gara');
+    }
+  };
+
+  const handleUploadPlayerList = async (file: File) => {
+    try {
+      setErrorMessage(null);
+      const att = await readFileAsPdfAttachment(file);
+      setPlayerListPdf(att);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Errore durante il caricamento della Lista Calciatori');
+    }
+  };
+
+  const handleTogglePlayer = (id: string) => {
+    setParticipatingPlayerIds((prev) =>
+      prev.includes(id) ? prev.filter((pId) => pId !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllPlayers = () => {
+    setParticipatingPlayerIds(rosterPlayers.map((p) => p.id));
+  };
+
+  const handleDeselectAllPlayers = () => {
+    setParticipatingPlayerIds([]);
+  };
+
+  const filteredRoster = rosterPlayers.filter((p) => {
+    if (!playerSearchQuery.trim()) return true;
+    const q = playerSearchQuery.toLowerCase();
+    const fullName = `${p.lastName || ''} ${p.firstName || ''} ${p.name || ''}`.toLowerCase();
+    const jersey = p.jersey ? String(p.jersey) : '';
+    const role = (p.role || '').toLowerCase();
+    return fullName.includes(q) || jersey.includes(q) || role.includes(q);
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,7 +267,11 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
           endDate,
           location: location.trim(),
           calendarPdf,
-          regulationPdf
+          regulationPdf,
+          matchListPdf,
+          playerListPdf,
+          participatingPlayerIds,
+          participatingPlayerNotes: participatingPlayerNotes.trim()
         },
         tournamentToEdit ? tournamentToEdit.id : null
       );
@@ -185,14 +279,19 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       // 1. Invio Notifica Push PWA automatica all'Allenatore e all'Admin (anche a schermo bloccato)
       if (notifyPush && !tournamentToEdit) {
         try {
-          const pdfNotes: string[] = [];
-          if (calendarPdf) pdfNotes.push('Calendario PDF');
-          if (regulationPdf) pdfNotes.push('Regolamento PDF');
-          const pdfSuffix = pdfNotes.length > 0 ? ` [Allegati: ${pdfNotes.join(', ')}]` : '';
+          const docNotes: string[] = [];
+          if (calendarPdf) docNotes.push('Calendario');
+          if (regulationPdf) docNotes.push('Regolamento');
+          if (matchListPdf) docNotes.push('Lista Gara');
+          if (playerListPdf) docNotes.push('Lista Calciatori');
+          if (participatingPlayerIds.length > 0) {
+            docNotes.push(`${participatingPlayerIds.length} Convocati`);
+          }
+          const docSuffix = docNotes.length > 0 ? ` [Allegati/Info: ${docNotes.join(', ')}]` : '';
 
           await createPushNotification({
             title: `🏆 Nuovo Torneo: ${name.trim()}`,
-            body: `È stato inserito il torneo per la Cat. ${activeTeamId} (${formatDateIT(startDate)} - ${formatDateIT(endDate)}) presso ${location.trim() || 'Spes Montesacro'}.${pdfSuffix}`,
+            body: `È stato inserito il torneo per la Cat. ${activeTeamId} (${formatDateIT(startDate)} - ${formatDateIT(endDate)}) presso ${location.trim() || 'Spes Montesacro'}.${docSuffix}`,
             type: 'tournament',
             targetTeamId: activeTeamId,
             targetRole: 'all',
@@ -203,7 +302,10 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
               endDate,
               location: location.trim(),
               hasCalendarPdf: !!calendarPdf,
-              hasRegulationPdf: !!regulationPdf
+              hasRegulationPdf: !!regulationPdf,
+              hasMatchListPdf: !!matchListPdf,
+              hasPlayerListPdf: !!playerListPdf,
+              participatingPlayersCount: participatingPlayerIds.length
             }
           });
         } catch (pushErr) {
@@ -220,7 +322,10 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             endDate,
             location: location.trim(),
             hasCalendarPdf: !!calendarPdf,
-            hasRegulationPdf: !!regulationPdf
+            hasRegulationPdf: !!regulationPdf,
+            hasMatchListPdf: !!matchListPdf,
+            hasPlayerListPdf: !!playerListPdf,
+            participatingPlayersCount: participatingPlayerIds.length
           },
           activeTeamId,
           coachName
@@ -324,20 +429,20 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
             />
           </div>
 
-          {/* Allegati Documenti Ufficiali in PDF (Calendario e Regolamento) */}
+          {/* Allegati Documenti Ufficiali in PDF/Immagine (Calendario, Regolamento, Lista Gara, Lista Calciatori) */}
           <div className="pt-2 border-t border-slate-100 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                 <Paperclip className="w-3.5 h-3.5 text-slate-500" />
-                <span>Documenti Ufficiali Torneo (PDF)</span>
+                <span>Documenti Ufficiali Torneo (PDF / Foto)</span>
               </span>
               <span className="text-[10px] text-slate-400 font-medium">
-                Max 1.8 MB cad.
+                Max 1.8 MB cad. • PDF o Immagini
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {/* 1. Calendario Gare PDF */}
+              {/* 1. Calendario Gare */}
               <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3 flex flex-col justify-between space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -369,7 +474,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                         type="button"
                         onClick={() => setCalendarPdf(null)}
                         className="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition cursor-pointer"
-                        title="Rimuovi Calendario PDF"
+                        title="Rimuovi Calendario"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -415,14 +520,14 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   >
                     <Upload className="w-4 h-4 text-slate-400" />
                     <span className="text-[11px] font-bold text-slate-700">Carica Calendario</span>
-                    <span className="text-[9px] text-slate-400">Trascina o clicca (.pdf)</span>
+                    <span className="text-[9px] text-slate-400">PDF o Immagine</span>
                   </div>
                 )}
 
                 <input
                   ref={calendarFileRef}
                   type="file"
-                  accept=".pdf,application/pdf"
+                  accept=".pdf,application/pdf,image/*"
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
@@ -432,7 +537,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                 />
               </div>
 
-              {/* 2. Regolamento PDF */}
+              {/* 2. Regolamento Torneo */}
               <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3 flex flex-col justify-between space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -464,7 +569,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                         type="button"
                         onClick={() => setRegulationPdf(null)}
                         className="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition cursor-pointer"
-                        title="Rimuovi Regolamento PDF"
+                        title="Rimuovi Regolamento"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -510,14 +615,14 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   >
                     <Upload className="w-4 h-4 text-slate-400" />
                     <span className="text-[11px] font-bold text-slate-700">Carica Regolamento</span>
-                    <span className="text-[9px] text-slate-400">Trascina o clicca (.pdf)</span>
+                    <span className="text-[9px] text-slate-400">PDF o Immagine</span>
                   </div>
                 )}
 
                 <input
                   ref={regulationFileRef}
                   type="file"
-                  accept=".pdf,application/pdf"
+                  accept=".pdf,application/pdf,image/*"
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
@@ -526,7 +631,323 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
                   }}
                 />
               </div>
+
+              {/* 3. Lista Gara / Distinta PDF o Immagine */}
+              <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3 flex flex-col justify-between space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <ClipboardList className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Lista Gara / Distinta</span>
+                  </span>
+                  {matchListPdf && (
+                    <span className="text-[9px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                      Caricato
+                    </span>
+                  )}
+                </div>
+
+                {matchListPdf ? (
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-start justify-between gap-1.5">
+                      <div className="min-w-0 flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate" title={matchListPdf.name}>
+                            {matchListPdf.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {formatPdfFileSize(matchListPdf.size)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMatchListPdf(null)}
+                        className="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition cursor-pointer"
+                        title="Rimuovi Lista Gara"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewPdfModal({
+                            isOpen: true,
+                            title: `Lista Gara - ${name || 'Torneo'}`,
+                            fileName: matchListPdf.name,
+                            dataUrl: matchListPdf.dataUrl,
+                            fileSize: matchListPdf.size
+                          })
+                        }
+                        className="flex-1 py-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3 text-slate-600" />
+                        <span>Visualizza</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => matchListFileRef.current?.click()}
+                        className="flex-1 py-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Upload className="w-3 h-3 text-slate-600" />
+                        <span>Sostituisci</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => matchListFileRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const f = e.dataTransfer.files?.[0];
+                      if (f) handleUploadMatchList(f);
+                    }}
+                    className="border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-white hover:bg-indigo-50/40 rounded-xl p-3 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1"
+                  >
+                    <Upload className="w-4 h-4 text-slate-400" />
+                    <span className="text-[11px] font-bold text-slate-700">Carica Lista Gara</span>
+                    <span className="text-[9px] text-slate-400">PDF o foto distinta</span>
+                  </div>
+                )}
+
+                <input
+                  ref={matchListFileRef}
+                  type="file"
+                  accept=".pdf,application/pdf,image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUploadMatchList(f);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+
+              {/* 4. Lista Calciatori Partecipanti (Allegato Documento / PDF) */}
+              <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3 flex flex-col justify-between space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Doc. Lista Calciatori</span>
+                  </span>
+                  {playerListPdf && (
+                    <span className="text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                      Caricato
+                    </span>
+                  )}
+                </div>
+
+                {playerListPdf ? (
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-start justify-between gap-1.5">
+                      <div className="min-w-0 flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate" title={playerListPdf.name}>
+                            {playerListPdf.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {formatPdfFileSize(playerListPdf.size)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPlayerListPdf(null)}
+                        className="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition cursor-pointer"
+                        title="Rimuovi Lista Calciatori"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewPdfModal({
+                            isOpen: true,
+                            title: `Lista Calciatori - ${name || 'Torneo'}`,
+                            fileName: playerListPdf.name,
+                            dataUrl: playerListPdf.dataUrl,
+                            fileSize: playerListPdf.size
+                          })
+                        }
+                        className="flex-1 py-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3 text-slate-600" />
+                        <span>Visualizza</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => playerListFileRef.current?.click()}
+                        className="flex-1 py-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Upload className="w-3 h-3 text-slate-600" />
+                        <span>Sostituisci</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => playerListFileRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const f = e.dataTransfer.files?.[0];
+                      if (f) handleUploadPlayerList(f);
+                    }}
+                    className="border-2 border-dashed border-slate-200 hover:border-emerald-400 bg-white hover:bg-emerald-50/40 rounded-xl p-3 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1"
+                  >
+                    <Upload className="w-4 h-4 text-slate-400" />
+                    <span className="text-[11px] font-bold text-slate-700">Carica Lista Calciatori</span>
+                    <span className="text-[9px] text-slate-400">PDF o foto elenco</span>
+                  </div>
+                )}
+
+                <input
+                  ref={playerListFileRef}
+                  type="file"
+                  accept=".pdf,application/pdf,image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUploadPlayerList(f);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
             </div>
+          </div>
+
+          {/* Selezione Calciatori Partecipanti dalla Rosa della Squadra */}
+          <div className="pt-2 border-t border-slate-100 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">
+                    Convocati Torneo dalla Rosa ({participatingPlayerIds.length} selezionati)
+                  </h4>
+                  <p className="text-[10px] text-slate-500">
+                    Spunta i ragazzi che prenderanno parte a questo torneo
+                  </p>
+                </div>
+              </div>
+
+              {rosterPlayers.length > 0 && (
+                <div className="flex items-center gap-1.5 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={handleSelectAllPlayers}
+                    className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg transition cursor-pointer"
+                  >
+                    Seleziona Tutti ({rosterPlayers.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeselectAllPlayers}
+                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-lg transition cursor-pointer"
+                  >
+                    Deseleziona
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {loadingRoster ? (
+              <div className="flex items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                <span className="text-xs font-semibold text-slate-500 ml-2">Caricamento rosa giocatori...</span>
+              </div>
+            ) : rosterPlayers.length === 0 ? (
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-center">
+                <p className="text-xs text-slate-500">
+                  Nessun giocatore registrato in questa categoria. Puoi comunque allegare la lista tramite il file PDF/foto sopra.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-slate-50/80 border border-slate-200 rounded-2xl p-2.5 space-y-2">
+                {/* Search bar for players */}
+                {rosterPlayers.length > 6 && (
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={playerSearchQuery}
+                      onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                      placeholder="Cerca calciatore per cognome, nome o maglia..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                )}
+
+                {/* Scrollable list of players */}
+                <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-0.5">
+                  {filteredRoster.map((player) => {
+                    const isSelected = participatingPlayerIds.includes(player.id);
+                    const displayName = `${player.lastName || ''} ${player.firstName || player.name || ''}`.trim();
+                    return (
+                      <div
+                        key={player.id}
+                        onClick={() => handleTogglePlayer(player.id)}
+                        className={`flex items-center justify-between p-2 rounded-xl cursor-pointer transition select-none ${
+                          isSelected
+                            ? 'bg-emerald-50/90 text-emerald-950 font-bold border border-emerald-200/80 shadow-xs'
+                            : 'hover:bg-white text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div
+                            className={`w-4 h-4 rounded flex items-center justify-center transition shrink-0 ${
+                              isSelected
+                                ? 'bg-emerald-600 text-white'
+                                : 'border border-slate-300 bg-white'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                          {player.jersey && (
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 shrink-0">
+                              #{player.jersey}
+                            </span>
+                          )}
+                          <span className="text-xs truncate">{displayName || 'Calciatore'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 text-[10px] text-slate-400 font-medium">
+                          {player.role && <span>{player.role}</span>}
+                          {player.dob && (
+                            <span className="hidden sm:inline">
+                              ({player.dob.slice(0, 4)})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Convocati Notes (maglie, prestiti, info torneo) */}
+                <div className="pt-1 border-t border-slate-200/70">
+                  <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
+                    Note Convocati / Prestiti / Indicazioni Gara
+                  </label>
+                  <input
+                    type="text"
+                    value={participatingPlayerNotes}
+                    onChange={(e) => setParticipatingPlayerNotes(e.target.value)}
+                    placeholder="es. Portiere prestito 2015, portare kit nero e bianco, ritrovo ore 14:30"
+                    className="w-full px-2.5 py-1.5 text-xs bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Opzioni Notifiche per il Mister */}

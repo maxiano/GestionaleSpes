@@ -102,6 +102,10 @@ export interface Tournament {
   createdAt?: unknown;
   calendarPdf?: TournamentAttachment | null;
   regulationPdf?: TournamentAttachment | null;
+  matchListPdf?: TournamentAttachment | null;
+  playerListPdf?: TournamentAttachment | null;
+  participatingPlayerIds?: string[];
+  participatingPlayerNotes?: string;
 }
 
 export interface TournamentMatch {
