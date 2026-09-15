@@ -14,17 +14,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="SpesApp" />
-    <!-- Reindirizzamento automatico per GitHub Pages se servito da root senza Actions -->
-    <script type="text/javascript">
-      (function() {
-        var isGitHub = window.location.hostname.indexOf('github.io') !== -1;
-        var pathname = window.location.pathname;
-        if (isGitHub && !pathname.endsWith('/docs/') && pathname.indexOf('/docs/') === -1) {
-          var cleanPath = pathname.replace(/\/$/, '');
-          window.location.replace(cleanPath + '/docs/' + window.location.search + window.location.hash);
-        }
-      })();
-    </script>
     <link rel="icon" type="image/x-icon" href="./favicon.ico" />
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png" />
@@ -33,19 +22,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- GitHub Pages Single Page App routing support -->
-    <script type="text/javascript">
-      (function(l) {
-        if (l.search[1] === '/' ) {
-          var decoded = l.search.slice(1).split('&').map(function(s) { 
-            return s.replace(/~and~/g, '&') 
-          }).join('?');
-          window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + decoded + l.hash
-          );
-        }
-      }(window.location))
-    </script>
   </head>
   <body class="bg-slate-50 font-sans text-slate-800 antialiased selection:bg-emerald-500 selection:text-white">
     <div id="root"></div>

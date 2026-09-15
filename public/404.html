@@ -4,20 +4,17 @@
     <meta charset="utf-8">
     <title>Spes Montesacro Gestionale</title>
     <script type="text/javascript">
-      // Single Page Apps for GitHub Pages
-      // MIT License: https://github.com/rafgraph/spa-github-pages
-      var pathSegmentsToKeep = 1;
-
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+      // Reindirizza pulito alla root dell'app GitHub Pages senza query param né loop
+      var repo = '/GestionaleSpes/';
+      if (window.location.pathname.indexOf(repo) !== -1) {
+        window.location.replace(window.location.origin + repo);
+      } else {
+        window.location.replace('./');
+      }
     </script>
   </head>
-  <body>
+  <body style="font-family: sans-serif; text-align: center; padding: 50px; background-color: #f8fafc; color: #334155;">
+    <h2>Reindirizzamento all'applicazione in corso...</h2>
+    <p><a href="/GestionaleSpes/" style="color: #059669; font-weight: 600;">Clicca qui se non vieni reindirizzato automaticamente</a></p>
   </body>
 </html>
