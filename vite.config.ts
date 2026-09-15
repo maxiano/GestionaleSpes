@@ -6,7 +6,7 @@ import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   // Use relative base by default so the build works everywhere (GitHub Pages subfolder, custom domain, or preview)
-  const base = process.env.BASE_URL || './';
+  const base = process.env.BASE_URL || '/GestionaleSpes/';
   return {
     base,
     plugins: [
