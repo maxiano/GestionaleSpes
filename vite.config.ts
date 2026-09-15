@@ -5,14 +5,17 @@ import {defineConfig} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
+  // Use relative base by default so the build works everywhere (GitHub Pages subfolder, custom domain, or preview)
+  const base = process.env.BASE_URL || './';
   return {
-    base: process.env.GITHUB_PAGES === 'true' ? '/GestionaleSpes/' : '/',
+    base,
     plugins: [
       react(),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: [
+          '404.html',
           'logo.svg',
           'favicon.ico',
           'icon-192.png',
