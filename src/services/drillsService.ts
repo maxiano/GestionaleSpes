@@ -24,19 +24,47 @@ export const DRILL_PHASES = [
 
 export const DRILL_CATEGORIES = [
   'Tutte le Categorie',
-  'Piccoli Amici (2019-2021)',
-  'Primi Calci (2017-2018)',
-  'Pulcini (2015-2016)',
-  'Esordienti (2014)',
+  'Esordienti (2014 e 2015)',
+  'Pulcini (2016 e 2017)',
+  'Primi Calci (2018 e 2019)',
+  'Piccoli Amici (2020 e 2021)',
   'Settore Agonistico',
   'Portieri'
 ];
+
+/**
+ * Normalizza le categorie per compatibilità tra versioni e formati
+ */
+export function normalizeDrillCategory(cat?: string): string {
+  if (!cat) return 'Pulcini (2016 e 2017)';
+  const c = cat.toLowerCase().trim();
+  if (c === 'tutte' || c === 'tutte le categorie') return 'Tutte le Categorie';
+  if (c.includes('2014') || c.includes('2015') || (c.includes('esordienti') && !c.includes('pulcini'))) {
+    return 'Esordienti (2014 e 2015)';
+  }
+  if (c.includes('2016') || c.includes('2017') || c.includes('pulcini')) {
+    return 'Pulcini (2016 e 2017)';
+  }
+  if (c.includes('2018') || c.includes('2019') || c.includes('primi calc') || c.includes('primi calcio')) {
+    return 'Primi Calci (2018 e 2019)';
+  }
+  if (c.includes('2020') || c.includes('2021') || c.includes('piccoli amici')) {
+    return 'Piccoli Amici (2020 e 2021)';
+  }
+  if (c.includes('agonistic')) {
+    return 'Settore Agonistico';
+  }
+  if (c.includes('portier')) {
+    return 'Portieri';
+  }
+  return cat;
+}
 
 export const INITIAL_TACTICAL_DRILLS: TacticalDrill[] = [
   {
     id: 'drill-rondo-4v2-transizione',
     title: 'Rondo 4v2 con Ricerca del Terzo Uomo',
-    category: 'Pulcini (2015-2016)',
+    category: 'Pulcini (2016 e 2017)',
     phase: 'Possesso Palla & Rondo',
     intensity: 'Media',
     durationMinutes: 15,
@@ -84,7 +112,7 @@ export const INITIAL_TACTICAL_DRILLS: TacticalDrill[] = [
   {
     id: 'drill-costruzione-bassa-4v3',
     title: 'Costruzione dal Basso 4+Portiere vs 3 in Pressing',
-    category: 'Esordienti (2014)',
+    category: 'Esordienti (2014 e 2015)',
     phase: 'Tattica & Costruzione',
     intensity: 'Alta',
     durationMinutes: 20,
@@ -137,7 +165,7 @@ export const INITIAL_TACTICAL_DRILLS: TacticalDrill[] = [
   {
     id: 'drill-1v1-conclusione-rapida',
     title: '1v1 Frontale con Conclusione e Transizione Immediata',
-    category: 'Primi Calci (2017-2018)',
+    category: 'Primi Calci (2018 e 2019)',
     phase: '1v1 / Duelli & Finalizzazione',
     intensity: 'Alta',
     durationMinutes: 15,
@@ -176,6 +204,50 @@ export const INITIAL_TACTICAL_DRILLS: TacticalDrill[] = [
     isShared: true,
     createdAt: '2026-09-03T11:00:00.000Z',
     updatedAt: '2026-09-03T11:00:00.000Z'
+  },
+  {
+    id: 'drill-piccoli-amici-castello',
+    title: 'La Corsa al Castello Incantato: Guida della Palla e Conclusione',
+    category: 'Piccoli Amici (2020 e 2021)',
+    phase: 'Tecnica & Coordinativo',
+    intensity: 'Media',
+    durationMinutes: 15,
+    playerCount: '6-8 bambini',
+    pitchDimensions: '15 x 12 metri',
+    equipmentNeeded: '6 cinesini colorati, 2 porticine o coni per porta, palloni n°3 o 4 leggeri',
+    objectivesPrimary: 'Confidenza e divertimento con il pallone, guida della palla con entrambi i piedi e tiro finale.',
+    objectivesSecondary: 'Sviluppo degli schemi motori di base (corsa, cambio di direzione, arresto della palla con la suola).',
+    description: 'I bambini partono uno alla volta dalla linea di partenza guidando la palla nella "foresta di cinesini" (slalom o guida libera senza toccare i cinesini). Giunti alla "zona magica", fermano il pallone con la suola e calciano nella porticina per conquistare il castello.',
+    variants: '1) Cambiare il piede di guida (solo destro o solo sinistro); 2) Chiamata del colore della porta al momento del tiro ("Porta Gialla" o "Porta Verde").',
+    coachingPoints: 'Mantenere un clima giocoso e positivo. Incoraggiare tocchi leggeri e festeggiare ogni gol o tentativo con entusiasmo.',
+    pitchType: 'box',
+    elements: [
+      { id: 'b1', type: 'player_blue', x: 20, y: 75, label: 'B1' },
+      { id: 'b2', type: 'player_blue', x: 20, y: 88, label: 'B2' },
+      { id: 'c1', type: 'disc_yellow', x: 35, y: 65 },
+      { id: 'c2', type: 'disc_red', x: 50, y: 45 },
+      { id: 'c3', type: 'disc_blue', x: 65, y: 65 },
+      { id: 'mg1', type: 'mini_goal', x: 80, y: 35 },
+      { id: 'ball1', type: 'ball', x: 25, y: 75 }
+    ],
+    lines: [
+      {
+        id: 'l1',
+        style: 'dribble',
+        points: [{ x: 25, y: 75 }, { x: 42, y: 55 }, { x: 58, y: 52 }, { x: 70, y: 45 }]
+      },
+      {
+        id: 'l2',
+        style: 'shot',
+        points: [{ x: 70, y: 45 }, { x: 80, y: 35 }]
+      }
+    ],
+    authorId: 'staff-spes-system',
+    authorName: 'Mister Staff SPES',
+    authorRole: 'Istruttore Piccoli Amici',
+    isShared: true,
+    createdAt: '2026-09-04T09:30:00.000Z',
+    updatedAt: '2026-09-04T09:30:00.000Z'
   }
 ];
 
@@ -263,10 +335,14 @@ export async function getTacticalDrills(): Promise<TacticalDrill[]> {
     const q = query(collection(db, 'drills'), orderBy('updatedAt', 'desc'));
     const snap = await getDocs(q);
     if (!snap.empty) {
-      const drills = snap.docs.map((d) => ({
-        id: d.id,
-        ...d.data()
-      })) as TacticalDrill[];
+      const drills = snap.docs.map((d) => {
+        const item = d.data() as TacticalDrill;
+        return {
+          id: d.id,
+          ...item,
+          category: normalizeDrillCategory(item.category)
+        };
+      }) as TacticalDrill[];
 
       // Aggiorna cache locale
       if (typeof window !== 'undefined') {
@@ -285,7 +361,10 @@ export async function getTacticalDrills(): Promise<TacticalDrill[]> {
       try {
         const parsed = JSON.parse(local);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return parsed.map((item: TacticalDrill) => ({
+            ...item,
+            category: normalizeDrillCategory(item.category)
+          }));
         }
       } catch (e) {
         console.error('Errore parsing cache locale drills:', e);

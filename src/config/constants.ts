@@ -30,7 +30,7 @@ export const TEAM_GROUPS: TeamGroupOption[] = [
     teams: ["2014 - Gruppo Nero", "2014 - Gruppo Verde"]
   },
   {
-    category: "2015 (Pulcini)",
+    category: "2015 (Esordienti)",
     teams: ["2015 - Gruppo Nero", "2015 - Gruppo Verde"]
   },
   {
@@ -38,7 +38,7 @@ export const TEAM_GROUPS: TeamGroupOption[] = [
     teams: ["2016 - Gruppo Nero", "2016 - Gruppo Verde", "2016 - Gruppo Giallo"]
   },
   {
-    category: "2017 (Primi Calci)",
+    category: "2017 (Pulcini)",
     teams: ["2017 - Gruppo Nero", "2017 - Gruppo Verde", "2017 - Gruppo Giallo"]
   },
   {
@@ -46,7 +46,7 @@ export const TEAM_GROUPS: TeamGroupOption[] = [
     teams: ["2018 - Gruppo Nero", "2018 - Gruppo Verde", "2018 - Gruppo Giallo"]
   },
   {
-    category: "2019 (Piccoli Amici)",
+    category: "2019 (Primi Calci)",
     teams: ["2019 - Gruppo Nero", "2019 - Gruppo Verde", "2019 - Gruppo Giallo"]
   },
   {

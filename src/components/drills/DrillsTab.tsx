@@ -12,7 +12,8 @@ import {
   deleteTacticalDrill,
   duplicateTacticalDrill,
   DRILL_CATEGORIES,
-  DRILL_PHASES
+  DRILL_PHASES,
+  normalizeDrillCategory
 } from '../../services/drillsService';
 import { TacticalBoard } from './TacticalBoard';
 import { DrillPrintModal } from './DrillPrintModal';
@@ -86,7 +87,7 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
     const emptyDrill: TacticalDrill = {
       id: `drill-${Date.now()}`,
       title: 'Nuova Esercitazione',
-      category: 'Pulcini (2015-2016)',
+      category: 'Pulcini (2016 e 2017)',
       phase: 'Possesso Palla & Rondo',
       intensity: 'Media',
       durationMinutes: 15,
@@ -226,7 +227,10 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
 
       // Filtro categoria
       if (selectedCategoryFilter !== 'Tutte' && selectedCategoryFilter !== 'Tutte le Categorie') {
-        if (drill.category !== selectedCategoryFilter) {
+        if (
+          drill.category !== selectedCategoryFilter &&
+          normalizeDrillCategory(drill.category) !== normalizeDrillCategory(selectedCategoryFilter)
+        ) {
           return false;
         }
       }
@@ -637,7 +641,7 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
                       onChange={(e) => setCurrentDrill({ ...currentDrill, category: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500"
                     >
-                      {DRILL_CATEGORIES.map((cat) => (
+                      {DRILL_CATEGORIES.filter((c) => c !== 'Tutte le Categorie').map((cat) => (
                         <option key={cat} value={cat}>
                           {cat}
                         </option>
