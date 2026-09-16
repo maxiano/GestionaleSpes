@@ -83,7 +83,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
     },
     {
       id: 'tab-drills',
-      label: 'Esercitazioni',
+      label: 'Lavagna Tattica & Esercizi',
       category: 'team',
       icon: (active) => (
         <Presentation className={`w-4 h-4 shrink-0 transition ${active ? 'text-cyan-300' : 'text-cyan-600'}`} />

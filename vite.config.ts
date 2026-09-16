@@ -81,7 +81,7 @@ export default defineConfig(() => {
           importScripts: ['./sw-push.js'],
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
           type: 'module',
         },
       }),

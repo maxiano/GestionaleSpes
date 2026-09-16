@@ -344,14 +344,41 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
             <button
               type="button"
               onClick={handleNewDrill}
-              className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm transition shadow-lg shadow-emerald-950/30"
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-sm transition shadow-lg shadow-emerald-950/30 active:scale-95"
             >
               <Plus className="w-5 h-5" />
-              <span>Nuova Esercitazione</span>
+              <span>🎨 Apri Lavagna Grafica / Nuova Esercitazione</span>
             </button>
           )}
         </div>
       </div>
+
+      {/* BANNER IN EVIDENZA LAVAGNA TATTICA */}
+      {viewMode === 'list' && (
+        <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-emerald-500/30 rounded-3xl p-4 sm:p-5 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase tracking-wider">
+                Novità Lavagna Grafica v2.5
+              </span>
+            </div>
+            <h3 className="text-base sm:text-lg font-black text-white">
+              Lavagna Grafica Interattiva &amp; Strumenti Tattici
+            </h3>
+            <p className="text-xs text-slate-300 font-medium">
+              Disponi i nuovi giocatorini, traccia linee divisorie orizzontali o verticali, regolane lunghezza e spessore con le maniglie, e usa la selezione multipla per spostare o eliminare elementi.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleNewDrill}
+            className="shrink-0 w-full md:w-auto px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm rounded-2xl transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <span>Apri Subito la Lavagna</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* NOTIFICA SALVATAGGIO RIUSCITO */}
       {saveSuccess && (
