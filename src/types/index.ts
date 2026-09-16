@@ -194,6 +194,7 @@ export interface DrillLine {
   style: DrillLineStyle;
   color?: string;
   points: { x: number; y: number }[]; // relative percentage (0-100)
+  width?: number; // stroke width / spessore (es. 2, 3.5, 5, 8)
 }
 
 export interface TacticalDrill {

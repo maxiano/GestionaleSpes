@@ -16,12 +16,19 @@ import {
   Plus,
   Minus,
   Maximize2,
+  Minimize2,
   Circle,
   HelpCircle,
   Split,
   Shirt,
   LayoutGrid,
-  ChevronDown
+  ChevronDown,
+  CheckSquare,
+  Square,
+  Move,
+  Columns,
+  Rows,
+  RotateCw
 } from 'lucide-react';
 
 interface TacticalBoardProps {
@@ -50,10 +57,22 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
 
   // Modalità corrente: 'select' (per spostare o selezionare) o 'line_*' (per tracciare frecce)
   const [activeTool, setActiveTool] = useState<'select' | DrillLineStyle>('select');
-  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
-  const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
+  const [selectedLineIds, setSelectedLineIds] = useState<string[]>([]);
+  const [multiSelectMode, setMultiSelectMode] = useState<boolean>(false);
+
+  type DragMode = 'element' | 'line' | 'line_handle_start' | 'line_handle_end' | 'marquee' | null;
+  const [dragMode, setDragMode] = useState<DragMode>(null);
+  const [lastPointerCoords, setLastPointerCoords] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [activeLineHandle, setActiveLineHandle] = useState<{ lineId: string; handle: 'start' | 'end' | 'center' } | null>(null);
+  const [selectionBox, setSelectionBox] = useState<{ start: { x: number; y: number }; current: { x: number; y: number } } | null>(null);
+
+  // Derived state per retrocompatibilità e controlli contestuali
+  const selectedElementId = selectedElementIds[0] || null;
+  const selectedLineId = selectedLineIds[0] || null;
+  const selectedElement = elements.find((e) => e.id === selectedElementId);
+  const selectedLine = lines.find((l) => l.id === selectedLineId);
+  const totalSelectedCount = selectedElementIds.length + selectedLineIds.length;
 
   // Stato per tracciamento nuova linea
   const [drawingLine, setDrawingLine] = useState<{ start: { x: number; y: number }; current: { x: number; y: number } } | null>(null);
@@ -68,6 +87,26 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   // Dimensioni standard SVG board
   const VB_WIDTH = 800;
   const VB_HEIGHT = 520;
+
+  // Scorciatoie da tastiera: Canc / Backspace per eliminare la selezione, Esc per deselezionare
+  useEffect(() => {
+    if (readOnly) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedElementIds.length > 0 || selectedLineIds.length > 0) {
+          e.preventDefault();
+          handleDeleteSelected();
+        }
+      } else if (e.key === 'Escape') {
+        setSelectedElementIds([]);
+        setSelectedLineIds([]);
+        setEditingLabelId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedElementIds, selectedLineIds, readOnly, elements, lines]);
 
   // Converti coordinate mouse/touch in % (0-100) relative all'SVG
   const getPointerCoords = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
@@ -154,8 +193,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     };
 
     onChangeElements([...elements, newElement]);
-    setSelectedElementId(newElement.id);
-    setSelectedLineId(null);
+    setSelectedElementIds([newElement.id]);
+    setSelectedLineIds([]);
   };
 
   // Divisioni rapide preimpostate del campo di gioco
@@ -167,42 +206,60 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
       newLines.push({
         id: `${idPrefix}-h`,
         style: 'divider',
+        width: 4,
         points: [{ x: 4, y: 50 }, { x: 96, y: 50 }]
       });
     } else if (preset === 'vertical') {
       newLines.push({
         id: `${idPrefix}-v`,
         style: 'divider',
+        width: 4,
         points: [{ x: 50, y: 4 }, { x: 50, y: 96 }]
       });
     } else if (preset === 'three_sectors') {
       // 3 Settori: Costruzione bassa, Sviluppo/Costruzione alta, Finalizzazione
       newLines.push(
-        { id: `${idPrefix}-s1`, style: 'divider', points: [{ x: 4, y: 33.3 }, { x: 96, y: 33.3 }] },
-        { id: `${idPrefix}-s2`, style: 'divider', points: [{ x: 4, y: 66.6 }, { x: 96, y: 66.6 }] }
+        { id: `${idPrefix}-s1`, style: 'divider', width: 4, points: [{ x: 4, y: 33.3 }, { x: 96, y: 33.3 }] },
+        { id: `${idPrefix}-s2`, style: 'divider', width: 4, points: [{ x: 4, y: 66.6 }, { x: 96, y: 66.6 }] }
       );
     } else if (preset === 'three_lanes') {
       // 3 Corsie longitudinali: Fascia sinistra, Centro, Fascia destra
       newLines.push(
-        { id: `${idPrefix}-l1`, style: 'divider', points: [{ x: 30, y: 4 }, { x: 30, y: 96 }] },
-        { id: `${idPrefix}-l2`, style: 'divider', points: [{ x: 70, y: 4 }, { x: 70, y: 96 }] }
+        { id: `${idPrefix}-l1`, style: 'divider', width: 4, points: [{ x: 30, y: 4 }, { x: 30, y: 96 }] },
+        { id: `${idPrefix}-l2`, style: 'divider', width: 4, points: [{ x: 70, y: 4 }, { x: 70, y: 96 }] }
       );
     } else if (preset === 'central_box') {
       // Quadrato di gioco / Rondo centrale
       newLines.push(
-        { id: `${idPrefix}-b1`, style: 'divider', points: [{ x: 25, y: 25 }, { x: 75, y: 25 }] },
-        { id: `${idPrefix}-b2`, style: 'divider', points: [{ x: 75, y: 25 }, { x: 75, y: 75 }] },
-        { id: `${idPrefix}-b3`, style: 'divider', points: [{ x: 75, y: 75 }, { x: 25, y: 75 }] },
-        { id: `${idPrefix}-b4`, style: 'divider', points: [{ x: 25, y: 75 }, { x: 25, y: 25 }] }
+        { id: `${idPrefix}-b1`, style: 'divider', width: 4, points: [{ x: 25, y: 25 }, { x: 75, y: 25 }] },
+        { id: `${idPrefix}-b2`, style: 'divider', width: 4, points: [{ x: 75, y: 25 }, { x: 75, y: 75 }] },
+        { id: `${idPrefix}-b3`, style: 'divider', width: 4, points: [{ x: 75, y: 75 }, { x: 25, y: 75 }] },
+        { id: `${idPrefix}-b4`, style: 'divider', width: 4, points: [{ x: 25, y: 75 }, { x: 25, y: 25 }] }
       );
     }
 
     onChangeLines([...lines, ...newLines]);
-    setSelectedLineId(newLines[0]?.id || null);
-    setSelectedElementId(null);
+    setSelectedLineIds(newLines.map((l) => l.id));
+    setSelectedElementIds([]);
   };
 
-  // Inizio puntatore sull'SVG
+  // Aggiungi singola linea divisoria orizzontale o verticale con 1 tap
+  const handleAddSingleDivider = (orientation: 'horizontal' | 'vertical') => {
+    const newLine: DrillLine = {
+      id: `div-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      style: 'divider',
+      width: 4,
+      points:
+        orientation === 'horizontal'
+          ? [{ x: 4, y: 50 }, { x: 96, y: 50 }]
+          : [{ x: 50, y: 4 }, { x: 50, y: 96 }]
+    };
+    onChangeLines([...lines, newLine]);
+    setSelectedLineIds([newLine.id]);
+    setSelectedElementIds([]);
+  };
+
+  // Inizio puntatore sull'SVG (gestione disegno linee o riquadro di selezione)
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (readOnly) return;
     const coords = getPointerCoords(e);
@@ -210,46 +267,115 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     if (activeTool !== 'select') {
       // Inizia a tracciare una freccia tattica
       setDrawingLine({ start: coords, current: coords });
-      e.currentTarget.setPointerCapture(e.pointerId);
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (_) {}
     } else {
-      // Se clicchiamo sullo sfondo del campo deseleziona tutto
+      // Se clicchiamo sullo sfondo del campo: avvia selezione ad area rettangolare
       const target = e.target as HTMLElement;
-      if (
+      const isBackground =
         target.tagName === 'svg' ||
         target.getAttribute('id') === 'field-bg-layer' ||
         target.getAttribute('id') === 'field-turf' ||
         target.getAttribute('id') === 'tactical-elements-layer' ||
-        target.getAttribute('id') === 'tactical-lines-layer'
-      ) {
-        setSelectedElementId(null);
-        setSelectedLineId(null);
-        setEditingLabelId(null);
+        target.getAttribute('id') === 'tactical-lines-layer';
+
+      if (isBackground) {
+        if (!e.shiftKey && !e.ctrlKey && !e.metaKey && !multiSelectMode) {
+          setSelectedElementIds([]);
+          setSelectedLineIds([]);
+          setEditingLabelId(null);
+        }
+        setDragMode('marquee');
+        setSelectionBox({ start: coords, current: coords });
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch (_) {}
       }
     }
   };
 
+  // Movimento puntatore sull'SVG: trascinamento elementi, spostamento linee, ridimensionamento maniglie o disegno
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (readOnly) return;
     const coords = getPointerCoords(e);
 
     if (drawingLine) {
       setDrawingLine((prev) => (prev ? { ...prev, current: coords } : null));
-    } else if (isDragging && selectedElementId) {
-      onChangeElements(
-        elements.map((el) => {
-          if (el.id === selectedElementId) {
+    } else if (dragMode === 'marquee') {
+      setSelectionBox((prev) => (prev ? { ...prev, current: coords } : null));
+    } else if (dragMode === 'element') {
+      const dx = coords.x - lastPointerCoords.x;
+      const dy = coords.y - lastPointerCoords.y;
+      if (Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05) {
+        onChangeElements(
+          elements.map((el) => {
+            if (selectedElementIds.includes(el.id)) {
+              return {
+                ...el,
+                x: Math.max(2, Math.min(98, Math.round((el.x + dx) * 10) / 10)),
+                y: Math.max(2, Math.min(98, Math.round((el.y + dy) * 10) / 10))
+              };
+            }
+            return el;
+          })
+        );
+        setLastPointerCoords(coords);
+      }
+    } else if (dragMode === 'line') {
+      const dx = coords.x - lastPointerCoords.x;
+      const dy = coords.y - lastPointerCoords.y;
+      if (Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05) {
+        onChangeLines(
+          lines.map((l) => {
+            if (selectedLineIds.includes(l.id)) {
+              return {
+                ...l,
+                points: l.points.map((p) => ({
+                  x: Math.max(1, Math.min(99, Math.round((p.x + dx) * 10) / 10)),
+                  y: Math.max(1, Math.min(99, Math.round((p.y + dy) * 10) / 10))
+                }))
+              };
+            }
+            return l;
+          })
+        );
+        setLastPointerCoords(coords);
+      }
+    } else if (dragMode === 'line_handle_start' && activeLineHandle) {
+      onChangeLines(
+        lines.map((l) => {
+          if (l.id === activeLineHandle.lineId && l.points.length >= 2) {
             return {
-              ...el,
-              x: Math.max(4, Math.min(96, coords.x - dragOffset.x)),
-              y: Math.max(4, Math.min(96, coords.y - dragOffset.y))
+              ...l,
+              points: [
+                { x: Math.max(1, Math.min(99, coords.x)), y: Math.max(1, Math.min(99, coords.y)) },
+                l.points[1]
+              ]
             };
           }
-          return el;
+          return l;
+        })
+      );
+    } else if (dragMode === 'line_handle_end' && activeLineHandle) {
+      onChangeLines(
+        lines.map((l) => {
+          if (l.id === activeLineHandle.lineId && l.points.length >= 2) {
+            return {
+              ...l,
+              points: [
+                l.points[0],
+                { x: Math.max(1, Math.min(99, coords.x)), y: Math.max(1, Math.min(99, coords.y)) }
+              ]
+            };
+          }
+          return l;
         })
       );
     }
   };
 
+  // Fine interazione puntatore
   const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
     if (readOnly) return;
     if (drawingLine) {
@@ -258,16 +384,17 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         drawingLine.current.y - drawingLine.start.y
       );
 
-      // Aggiungi la linea solo se ha una lunghezza minima di 3%
-      if (dist >= 3) {
+      // Aggiungi la linea solo se ha una lunghezza minima di 2.5%
+      if (dist >= 2.5) {
         const newLine: DrillLine = {
           id: `line-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           style: activeTool as DrillLineStyle,
-          points: [drawingLine.start, drawingLine.current]
+          points: [drawingLine.start, drawingLine.current],
+          width: activeTool === 'divider' ? 4 : activeTool === 'shot' ? 5 : 3.5
         };
         onChangeLines([...lines, newLine]);
-        setSelectedLineId(newLine.id);
-        setSelectedElementId(null);
+        setSelectedLineIds([newLine.id]);
+        setSelectedElementIds([]);
       }
       setDrawingLine(null);
       try {
@@ -275,56 +402,160 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
       } catch (_) {}
     }
 
-    if (isDragging) {
-      setIsDragging(false);
+    if (dragMode === 'marquee' && selectionBox) {
+      const minX = Math.min(selectionBox.start.x, selectionBox.current.x);
+      const maxX = Math.max(selectionBox.start.x, selectionBox.current.x);
+      const minY = Math.min(selectionBox.start.y, selectionBox.current.y);
+      const maxY = Math.max(selectionBox.start.y, selectionBox.current.y);
+
+      if (maxX - minX > 2 || maxY - minY > 2) {
+        const boxedElements = elements
+          .filter((el) => el.x >= minX && el.x <= maxX && el.y >= minY && el.y <= maxY)
+          .map((el) => el.id);
+
+        const boxedLines = lines
+          .filter((l) => {
+            if (l.points.length < 2) return false;
+            const p1 = l.points[0];
+            const p2 = l.points[1];
+            const lxMin = Math.min(p1.x, p2.x);
+            const lxMax = Math.max(p1.x, p2.x);
+            const lyMin = Math.min(p1.y, p2.y);
+            const lyMax = Math.max(p1.y, p2.y);
+            return !(lxMax < minX || lxMin > maxX || lyMax < minY || lyMin > maxY);
+          })
+          .map((l) => l.id);
+
+        if (boxedElements.length > 0 || boxedLines.length > 0) {
+          setSelectedElementIds(boxedElements);
+          setSelectedLineIds(boxedLines);
+        }
+      }
+      setSelectionBox(null);
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (_) {}
     }
+
+    setDragMode(null);
+    setActiveLineHandle(null);
   };
 
-  // Selezione e inizio trascinamento di un elemento
+  // Selezione e inizio trascinamento di un elemento (singolo o multiplo)
   const handleElementPointerDown = (e: React.PointerEvent, el: DrillElement) => {
     if (readOnly) return;
     e.stopPropagation();
     if (activeTool !== 'select') return;
 
-    setSelectedElementId(el.id);
-    setSelectedLineId(null);
+    const isAdditive = e.shiftKey || e.ctrlKey || e.metaKey || multiSelectMode;
+    const isAlreadySelected = selectedElementIds.includes(el.id);
+
+    if (isAdditive) {
+      setSelectedElementIds((prev) =>
+        prev.includes(el.id) ? prev.filter((id) => id !== el.id) : [...prev, el.id]
+      );
+    } else {
+      if (!isAlreadySelected) {
+        setSelectedElementIds([el.id]);
+        setSelectedLineIds([]);
+      }
+    }
+
     const coords = getPointerCoords(e as any);
-    setDragOffset({
-      x: coords.x - el.x,
-      y: coords.y - el.y
-    });
-    setIsDragging(true);
+    setLastPointerCoords(coords);
+    setDragMode('element');
+    try {
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+    } catch (_) {}
   };
 
-  // Selezione di una linea
+  // Selezione e inizio spostamento di una linea
   const handleLinePointerDown = (e: React.PointerEvent, lineId: string) => {
     if (readOnly) return;
     e.stopPropagation();
     if (activeTool !== 'select') return;
 
-    setSelectedLineId(lineId);
-    setSelectedElementId(null);
+    const isAdditive = e.shiftKey || e.ctrlKey || e.metaKey || multiSelectMode;
+    const isAlreadySelected = selectedLineIds.includes(lineId);
+
+    if (isAdditive) {
+      setSelectedLineIds((prev) =>
+        prev.includes(lineId) ? prev.filter((id) => id !== lineId) : [...prev, lineId]
+      );
+    } else {
+      if (!isAlreadySelected) {
+        setSelectedLineIds([lineId]);
+        setSelectedElementIds([]);
+      }
+    }
+
     setEditingLabelId(null);
+    const coords = getPointerCoords(e as any);
+    setLastPointerCoords(coords);
+    setActiveLineHandle({ lineId, handle: 'center' });
+    setDragMode('line');
+    try {
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+    } catch (_) {}
   };
 
-  // Eliminazione elemento o linea selezionata
+  // Trascinamento delle maniglie di una linea (inizio, fine, o centro)
+  const handleLineHandlePointerDown = (
+    e: React.PointerEvent,
+    lineId: string,
+    handle: 'start' | 'end' | 'center'
+  ) => {
+    if (readOnly) return;
+    e.stopPropagation();
+    if (activeTool !== 'select') return;
+
+    setSelectedLineIds([lineId]);
+    setSelectedElementIds([]);
+    const coords = getPointerCoords(e as any);
+    setLastPointerCoords(coords);
+    setActiveLineHandle({ lineId, handle });
+    setDragMode(
+      handle === 'start' ? 'line_handle_start' : handle === 'end' ? 'line_handle_end' : 'line'
+    );
+    try {
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+    } catch (_) {}
+  };
+
+  // Eliminazione di tutti gli elementi e linee selezionate
   const handleDeleteSelected = () => {
-    if (selectedElementId) {
-      onChangeElements(elements.filter((el) => el.id !== selectedElementId));
-      setSelectedElementId(null);
+    if (selectedElementIds.length > 0 || selectedLineIds.length > 0) {
+      if (selectedElementIds.length > 0) {
+        onChangeElements(elements.filter((el) => !selectedElementIds.includes(el.id)));
+      }
+      if (selectedLineIds.length > 0) {
+        onChangeLines(lines.filter((l) => !selectedLineIds.includes(l.id)));
+      }
+      setSelectedElementIds([]);
+      setSelectedLineIds([]);
       setEditingLabelId(null);
-    } else if (selectedLineId) {
-      onChangeLines(lines.filter((l) => l.id !== selectedLineId));
-      setSelectedLineId(null);
     }
   };
 
-  // Ridimensionamento elemento selezionato (aumenta o diminuisci dimensioni)
+  // Selezione di tutti gli elementi e linee
+  const handleSelectAll = () => {
+    setSelectedElementIds(elements.map((e) => e.id));
+    setSelectedLineIds(lines.map((l) => l.id));
+  };
+
+  // Deseleziona tutto
+  const handleClearSelection = () => {
+    setSelectedElementIds([]);
+    setSelectedLineIds([]);
+    setEditingLabelId(null);
+  };
+
+  // Ridimensionamento elementi selezionati
   const handleChangeElementScale = (delta: number) => {
-    if (!selectedElementId) return;
+    if (selectedElementIds.length === 0) return;
     onChangeElements(
       elements.map((el) => {
-        if (el.id === selectedElementId) {
+        if (selectedElementIds.includes(el.id)) {
           const currentScale = el.scale || 1.0;
           const nextScale = Math.round(Math.max(0.6, Math.min(2.2, currentScale + delta)) * 10) / 10;
           return { ...el, scale: nextScale };
@@ -334,21 +565,201 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     );
   };
 
+  // Modifica spessore/larghezza della linea selezionata
+  const handleChangeLineWidth = (delta: number) => {
+    if (selectedLineIds.length === 0) return;
+    onChangeLines(
+      lines.map((l) => {
+        if (selectedLineIds.includes(l.id)) {
+          const current = l.width ?? (l.style === 'divider' ? 4 : l.style === 'shot' ? 4.5 : 3.5);
+          const next = Math.max(1.5, Math.min(16, Math.round((current + delta) * 10) / 10));
+          return { ...l, width: next };
+        }
+        return l;
+      })
+    );
+  };
+
+  const handleSetLineWidth = (widthVal: number) => {
+    if (selectedLineIds.length === 0) return;
+    onChangeLines(
+      lines.map((l) => {
+        if (selectedLineIds.includes(l.id)) {
+          return { ...l, width: widthVal };
+        }
+        return l;
+      })
+    );
+  };
+
+  // Modifica lunghezza della linea selezionata (scala dal centro)
+  const handleChangeLineLength = (factor: number) => {
+    if (selectedLineIds.length === 0) return;
+    onChangeLines(
+      lines.map((l) => {
+        if (selectedLineIds.includes(l.id) && l.points.length >= 2) {
+          const p1 = l.points[0];
+          const p2 = l.points[1];
+          const cx = (p1.x + p2.x) / 2;
+          const cy = (p1.y + p2.y) / 2;
+          const hx = ((p2.x - p1.x) / 2) * factor;
+          const hy = ((p2.y - p1.y) / 2) * factor;
+          return {
+            ...l,
+            points: [
+              {
+                x: Math.max(2, Math.min(98, Math.round((cx - hx) * 10) / 10)),
+                y: Math.max(2, Math.min(98, Math.round((cy - hy) * 10) / 10))
+              },
+              {
+                x: Math.max(2, Math.min(98, Math.round((cx + hx) * 10) / 10)),
+                y: Math.max(2, Math.min(98, Math.round((cy + hy) * 10) / 10))
+              }
+            ]
+          };
+        }
+        return l;
+      })
+    );
+  };
+
+  // Imposta lunghezza predefinita (tutto campo, 3/4, metà campo)
+  const handleSetLineLengthPreset = (preset: 'full' | 'half' | 'three_quarters') => {
+    if (selectedLineIds.length === 0) return;
+    onChangeLines(
+      lines.map((l) => {
+        if (selectedLineIds.includes(l.id) && l.points.length >= 2) {
+          const p1 = l.points[0];
+          const p2 = l.points[1];
+          const cx = (p1.x + p2.x) / 2;
+          const cy = (p1.y + p2.y) / 2;
+          const isHorizontal = Math.abs(p2.x - p1.x) >= Math.abs(p2.y - p1.y);
+          const targetSpan = preset === 'full' ? 92 : preset === 'three_quarters' ? 69 : 46;
+          const halfSpan = targetSpan / 2;
+
+          if (isHorizontal) {
+            return {
+              ...l,
+              points: [
+                { x: Math.max(4, Math.min(96, cx - halfSpan)), y: cy },
+                { x: Math.max(4, Math.min(96, cx + halfSpan)), y: cy }
+              ]
+            };
+          } else {
+            return {
+              ...l,
+              points: [
+                { x: cx, y: Math.max(4, Math.min(96, cy - halfSpan)) },
+                { x: cx, y: Math.max(4, Math.min(96, cy + halfSpan)) }
+              ]
+            };
+          }
+        }
+        return l;
+      })
+    );
+  };
+
+  // Inverti orientamento linea (da orizzontale a verticale o viceversa)
+  const handleToggleLineOrientation = () => {
+    if (selectedLineIds.length === 0) return;
+    onChangeLines(
+      lines.map((l) => {
+        if (selectedLineIds.includes(l.id) && l.points.length >= 2) {
+          const p1 = l.points[0];
+          const p2 = l.points[1];
+          const cx = (p1.x + p2.x) / 2;
+          const cy = (p1.y + p2.y) / 2;
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+
+          // Ruota di 90 gradi attorno al baricentro
+          const newDx = -dy;
+          const newDy = dx;
+
+          return {
+            ...l,
+            points: [
+              {
+                x: Math.max(2, Math.min(98, Math.round((cx - newDx / 2) * 10) / 10)),
+                y: Math.max(2, Math.min(98, Math.round((cy - newDy / 2) * 10) / 10))
+              },
+              {
+                x: Math.max(2, Math.min(98, Math.round((cx + newDx / 2) * 10) / 10)),
+                y: Math.max(2, Math.min(98, Math.round((cy + newDy / 2) * 10) / 10))
+              }
+            ]
+          };
+        }
+        return l;
+      })
+    );
+  };
+
+  // Rendi perfettamente orizzontale o verticale
+  const handleMakeLineHorizontal = () => {
+    if (selectedLineIds.length === 0) return;
+    onChangeLines(
+      lines.map((l) => {
+        if (selectedLineIds.includes(l.id) && l.points.length >= 2) {
+          const p1 = l.points[0];
+          const p2 = l.points[1];
+          const length = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+          const cx = (p1.x + p2.x) / 2;
+          const cy = (p1.y + p2.y) / 2;
+          const halfSpan = length / 2;
+          return {
+            ...l,
+            points: [
+              { x: Math.max(2, Math.min(98, cx - halfSpan)), y: cy },
+              { x: Math.max(2, Math.min(98, cx + halfSpan)), y: cy }
+            ]
+          };
+        }
+        return l;
+      })
+    );
+  };
+
+  const handleMakeLineVertical = () => {
+    if (selectedLineIds.length === 0) return;
+    onChangeLines(
+      lines.map((l) => {
+        if (selectedLineIds.includes(l.id) && l.points.length >= 2) {
+          const p1 = l.points[0];
+          const p2 = l.points[1];
+          const length = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+          const cx = (p1.x + p2.x) / 2;
+          const cy = (p1.y + p2.y) / 2;
+          const halfSpan = length / 2;
+          return {
+            ...l,
+            points: [
+              { x: cx, y: Math.max(2, Math.min(98, cy - halfSpan)) },
+              { x: cx, y: Math.max(2, Math.min(98, cy + halfSpan)) }
+            ]
+          };
+        }
+        return l;
+      })
+    );
+  };
+
   // Annulla ultima linea
   const handleUndoLine = () => {
     if (lines.length === 0) return;
     onChangeLines(lines.slice(0, lines.length - 1));
     if (selectedLineId === lines[lines.length - 1]?.id) {
-      setSelectedLineId(null);
+      setSelectedLineIds([]);
     }
   };
 
   // Pulisci tutte le linee
   const handleClearLines = () => {
     if (lines.length === 0) return;
-    if (window.confirm('Vuoi rimuovere tutte le frecce dal campo?')) {
+    if (window.confirm('Vuoi rimuovere tutte le frecce e linee dal campo?')) {
       onChangeLines([]);
-      setSelectedLineId(null);
+      setSelectedLineIds([]);
     }
   };
 
@@ -358,8 +769,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     if (window.confirm('Sei sicuro di voler svuotare completamente il campo?')) {
       onChangeElements([]);
       onChangeLines([]);
-      setSelectedElementId(null);
-      setSelectedLineId(null);
+      setSelectedElementIds([]);
+      setSelectedLineIds([]);
       setEditingLabelId(null);
     }
   };
@@ -589,35 +1000,43 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   };
 
   // Rendering delle linee/frecce tracciate
+  // Rendering delle linee/frecce tracciate
   const renderLines = () => {
     return (
       <g id="tactical-lines-layer">
         {lines.map((l) => {
           if (l.points.length < 2) return null;
-          const isSelected = selectedLineId === l.id;
+          const isSelected = selectedLineIds.includes(l.id);
+          const isPrimary = selectedLineId === l.id;
           const p1 = { x: (l.points[0].x / 100) * VB_WIDTH, y: (l.points[0].y / 100) * VB_HEIGHT };
           const p2 = { x: (l.points[1].x / 100) * VB_WIDTH, y: (l.points[1].y / 100) * VB_HEIGHT };
 
+          // Calcola larghezza/spessore custom (se definita)
+          const baseWidth = l.width ?? (l.style === 'divider' ? 4 : l.style === 'shot' ? 4.5 : 3.5);
+          const strokeWidth = isSelected ? baseWidth + 1.5 : baseWidth;
+
           let stroke = '#ffffff';
-          let strokeWidth = isSelected ? '4.5' : '3';
           let strokeDasharray = 'none';
           let markerEnd = isSelected ? 'url(#arrow-selected)' : 'url(#arrow-solid)';
 
           if (l.style === 'divider') {
             stroke = isSelected ? '#38bdf8' : '#f8fafc'; // Bianco puro ad alto contrasto
-            strokeWidth = isSelected ? '4.5' : '3.5';
             strokeDasharray = '10,7';
 
             return (
-              <g key={l.id} className={readOnly ? '' : 'cursor-pointer'} onPointerDown={(e) => handleLinePointerDown(e, l.id)}>
-                {/* Hitbox trasparente larga per selezionare comodamente la linea divisoria */}
+              <g
+                key={l.id}
+                className={readOnly ? '' : 'cursor-grab active:cursor-grabbing select-none'}
+                onPointerDown={(e) => handleLinePointerDown(e, l.id)}
+              >
+                {/* Hitbox trasparente larga per selezionare o trascinare la linea */}
                 <line
                   x1={p1.x}
                   y1={p1.y}
                   x2={p2.x}
                   y2={p2.y}
                   stroke="transparent"
-                  strokeWidth="24"
+                  strokeWidth="26"
                 />
                 {/* Alone di selezione azzurro se selezionata */}
                 {isSelected && (
@@ -627,8 +1046,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     x2={p2.x}
                     y2={p2.y}
                     stroke="#38bdf8"
-                    strokeWidth="9"
-                    opacity="0.4"
+                    strokeWidth={strokeWidth + 6}
+                    opacity="0.45"
                   />
                 )}
                 {/* Sotto-traccia d'ombra per contrasto visivo netto sul campo */}
@@ -638,7 +1057,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   x2={p2.x}
                   y2={p2.y}
                   stroke="rgba(0, 0, 0, 0.45)"
-                  strokeWidth={Number(strokeWidth) + 2}
+                  strokeWidth={strokeWidth + 2}
                   strokeLinecap="round"
                 />
                 {/* Linea divisoria principale tratteggiata */}
@@ -653,6 +1072,41 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   strokeLinecap="round"
                   opacity={isSelected ? 1 : 0.95}
                 />
+
+                {/* Maniglie interattive di controllo per spostare e ridimensionare la linea */}
+                {!readOnly && isSelected && isPrimary && (
+                  <g id={`line-handles-${l.id}`} className="select-none">
+                    {/* Maniglia centrale di spostamento */}
+                    <g
+                      transform={`translate(${(p1.x + p2.x) / 2}, ${(p1.y + p2.y) / 2})`}
+                      className="cursor-move hover:scale-125 transition-transform"
+                      onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'center')}
+                    >
+                      <circle cx="0" cy="0" r="11" fill="#0284c7" stroke="#ffffff" strokeWidth="2.5" />
+                      <path d="M -4.5 0 L 4.5 0 M 0 -4.5 L 0 4.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+                    </g>
+
+                    {/* Maniglia estremità inizio */}
+                    <g
+                      transform={`translate(${p1.x}, ${p1.y})`}
+                      className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
+                      onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'start')}
+                    >
+                      <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
+                      <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                    </g>
+
+                    {/* Maniglia estremità fine */}
+                    <g
+                      transform={`translate(${p2.x}, ${p2.y})`}
+                      className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
+                      onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'end')}
+                    >
+                      <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
+                      <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                    </g>
+                  </g>
+                )}
               </g>
             );
           } else if (l.style === 'pass') {
@@ -664,7 +1118,6 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             markerEnd = isSelected ? 'url(#arrow-selected)' : 'url(#arrow-solid)';
           } else if (l.style === 'shot') {
             stroke = isSelected ? '#38bdf8' : '#ef4444'; // Rosso forte
-            strokeWidth = isSelected ? '5.5' : '4.5';
             markerEnd = isSelected ? 'url(#arrow-selected)' : 'url(#arrow-shot)';
           } else if (l.style === 'dribble') {
             stroke = isSelected ? '#ffffff' : '#38bdf8'; // Azzurro
@@ -679,12 +1132,16 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             const dPath = `M ${p1.x} ${p1.y} Q ${midX + perpX} ${midY + perpY} ${midX} ${midY} T ${p2.x} ${p2.y}`;
 
             return (
-              <g key={l.id} className={readOnly ? '' : 'cursor-pointer'} onPointerDown={(e) => handleLinePointerDown(e, l.id)}>
-                {/* Hitbox trasparente più larga per facilitare la selezione con mouse o tocco */}
+              <g
+                key={l.id}
+                className={readOnly ? '' : 'cursor-grab active:cursor-grabbing select-none'}
+                onPointerDown={(e) => handleLinePointerDown(e, l.id)}
+              >
+                {/* Hitbox trasparente larga per trascinare la linea */}
                 <path
                   d={dPath}
                   stroke="transparent"
-                  strokeWidth="20"
+                  strokeWidth="24"
                   fill="none"
                 />
                 {/* Alone di selezione */}
@@ -692,9 +1149,9 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   <path
                     d={dPath}
                     stroke="#38bdf8"
-                    strokeWidth="8"
+                    strokeWidth={strokeWidth + 6}
                     fill="none"
-                    opacity="0.4"
+                    opacity="0.45"
                   />
                 )}
                 <path
@@ -705,20 +1162,54 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   markerEnd={markerEnd}
                   opacity={isSelected ? 1 : 0.95}
                 />
+
+                {/* Maniglie interattive per spostare ed allungare */}
+                {!readOnly && isSelected && isPrimary && (
+                  <g id={`line-handles-${l.id}`} className="select-none">
+                    <g
+                      transform={`translate(${midX}, ${midY})`}
+                      className="cursor-move hover:scale-125 transition-transform"
+                      onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'center')}
+                    >
+                      <circle cx="0" cy="0" r="11" fill="#0284c7" stroke="#ffffff" strokeWidth="2.5" />
+                      <path d="M -4.5 0 L 4.5 0 M 0 -4.5 L 0 4.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+                    </g>
+                    <g
+                      transform={`translate(${p1.x}, ${p1.y})`}
+                      className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
+                      onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'start')}
+                    >
+                      <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
+                      <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                    </g>
+                    <g
+                      transform={`translate(${p2.x}, ${p2.y})`}
+                      className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
+                      onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'end')}
+                    >
+                      <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
+                      <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                    </g>
+                  </g>
+                )}
               </g>
             );
           }
 
           return (
-            <g key={l.id} className={readOnly ? '' : 'cursor-pointer'} onPointerDown={(e) => handleLinePointerDown(e, l.id)}>
-              {/* Hitbox trasparente larga per selezionare comodamente la freccia */}
+            <g
+              key={l.id}
+              className={readOnly ? '' : 'cursor-grab active:cursor-grabbing select-none'}
+              onPointerDown={(e) => handleLinePointerDown(e, l.id)}
+            >
+              {/* Hitbox trasparente larga per selezionare o trascinare */}
               <line
                 x1={p1.x}
                 y1={p1.y}
                 x2={p2.x}
                 y2={p2.y}
                 stroke="transparent"
-                strokeWidth="20"
+                strokeWidth="24"
               />
               {/* Alone di selezione azzurro se la linea è selezionata */}
               {isSelected && (
@@ -728,8 +1219,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   x2={p2.x}
                   y2={p2.y}
                   stroke="#38bdf8"
-                  strokeWidth="8"
-                  opacity="0.4"
+                  strokeWidth={strokeWidth + 6}
+                  opacity="0.45"
                 />
               )}
               <line
@@ -743,6 +1234,36 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 markerEnd={markerEnd}
                 opacity={isSelected ? 1 : 0.95}
               />
+
+              {/* Maniglie interattive per spostamento ed estremità */}
+              {!readOnly && isSelected && isPrimary && (
+                <g id={`line-handles-${l.id}`} className="select-none">
+                  <g
+                    transform={`translate(${(p1.x + p2.x) / 2}, ${(p1.y + p2.y) / 2})`}
+                    className="cursor-move hover:scale-125 transition-transform"
+                    onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'center')}
+                  >
+                    <circle cx="0" cy="0" r="11" fill="#0284c7" stroke="#ffffff" strokeWidth="2.5" />
+                    <path d="M -4.5 0 L 4.5 0 M 0 -4.5 L 0 4.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+                  </g>
+                  <g
+                    transform={`translate(${p1.x}, ${p1.y})`}
+                    className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
+                    onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'start')}
+                  >
+                    <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
+                    <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                  </g>
+                  <g
+                    transform={`translate(${p2.x}, ${p2.y})`}
+                    className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
+                    onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'end')}
+                  >
+                    <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
+                    <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                  </g>
+                </g>
+              )}
             </g>
           );
         })}
@@ -1148,8 +1669,6 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     return null;
   };
 
-  const selectedElement = elements.find((el) => el.id === selectedElementId);
-
   return (
     <div className="flex flex-col space-y-3" ref={containerRef}>
       {/* Barra comandi superiore: Tipo Campo & Toolbar Strumenti */}
@@ -1226,8 +1745,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               type="button"
               onClick={() => {
                 setActiveTool('run');
-                setSelectedElementId(null);
-                setSelectedLineId(null);
+                handleClearSelection();
               }}
               title="Freccia Corsa / Movimento (Continua Bianca)"
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border ${
@@ -1244,8 +1762,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               type="button"
               onClick={() => {
                 setActiveTool('pass');
-                setSelectedElementId(null);
-                setSelectedLineId(null);
+                handleClearSelection();
               }}
               title="Freccia Passaggio (Tratteggiata Gialla)"
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border ${
@@ -1262,8 +1779,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               type="button"
               onClick={() => {
                 setActiveTool('dribble');
-                setSelectedElementId(null);
-                setSelectedLineId(null);
+                handleClearSelection();
               }}
               title="Linea Guida della Palla / Dribbling (Ondulata Azzurra)"
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border ${
@@ -1280,8 +1796,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               type="button"
               onClick={() => {
                 setActiveTool('shot');
-                setSelectedElementId(null);
-                setSelectedLineId(null);
+                handleClearSelection();
                 setShowDividerMenu(false);
               }}
               title="Freccia Conclusione a Rete (Rossa)"
@@ -1301,8 +1816,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 type="button"
                 onClick={() => {
                   setActiveTool('divider');
-                  setSelectedElementId(null);
-                  setSelectedLineId(null);
+                  handleClearSelection();
                   setShowDividerMenu(false);
                 }}
                 title="Traccia Linea Divisoria / Delimitazione Campo (Tratteggiata Bianca)"
@@ -1345,8 +1859,19 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     }}
                     className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-200 flex items-center justify-between transition cursor-pointer"
                   >
-                    <span className="font-semibold">Linea Metà Campo</span>
+                    <span className="font-semibold">Linea Metà Campo (Orizzontale)</span>
                     <span className="text-[10px] text-slate-400 font-mono">1 linea</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAddQuickDivider('vertical');
+                      setShowDividerMenu(false);
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-cyan-300 flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span className="font-bold">Linea Divisoria Verticale</span>
+                    <span className="text-[10px] text-cyan-400 font-mono">1 linea</span>
                   </button>
                   <button
                     type="button"
@@ -1386,43 +1911,64 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             </div>
           </div>
 
-          {/* Azioni rapide: Controllo Dimensione Oggetti, Elimina selezione, Annulla linea, Svuota, Scarica PNG */}
+          {/* Azioni rapide: Selezione Multipla, Elimina selezione, Annulla linea, Svuota, Scarica PNG */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Controlli Dimensione per l'elemento selezionato */}
-            {selectedElementId && (
-              <div className="flex items-center bg-slate-800 p-0.5 rounded-xl border border-slate-700">
+            {/* Modalità Selezione Multipla (tap multiplo senza dover premere Shift o Ctrl) */}
+            <button
+              type="button"
+              onClick={() => setMultiSelectMode(!multiSelectMode)}
+              title={
+                multiSelectMode
+                  ? 'Modalità Selezione Multipla ATTIVA: tocca più elementi/linee per selezionarli insieme'
+                  : 'Attiva Selezione Multipla (puoi anche usare Shift o trascinare un rettangolo sul campo)'
+              }
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border ${
+                multiSelectMode
+                  ? 'bg-cyan-600 text-white border-cyan-400 shadow-sm ring-2 ring-cyan-400/40'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700'
+              }`}
+            >
+              {multiSelectMode ? (
+                <CheckSquare className="w-3.5 h-3.5 text-cyan-200" />
+              ) : (
+                <Square className="w-3.5 h-3.5 text-slate-400" />
+              )}
+              <span>Multi-Sel</span>
+            </button>
+
+            {/* Seleziona Tutti / Deseleziona rapido */}
+            {(elements.length > 0 || lines.length > 0) && (
+              totalSelectedCount > 0 ? (
                 <button
                   type="button"
-                  onClick={() => handleChangeElementScale(-0.2)}
-                  title="Riduci dimensione elemento"
-                  className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
+                  onClick={handleClearSelection}
+                  title="Deseleziona tutto (Esc)"
+                  className="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-medium transition"
                 >
-                  <Minus className="w-3.5 h-3.5" />
+                  Deseleziona
                 </button>
-                <span className="text-[11px] font-mono font-bold px-1 text-cyan-300" title="Scala attuale">
-                  {Math.round((selectedElement?.scale || 1.0) * 100)}%
-                </span>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => handleChangeElementScale(0.2)}
-                  title="Aumenta dimensione elemento"
-                  className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
+                  onClick={handleSelectAll}
+                  title="Seleziona tutti gli elementi e linee sul campo"
+                  className="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  Seleziona Tutti
                 </button>
-              </div>
+              )
             )}
 
-            {/* Tasto elimina per ELEMENTO o per LINEA selezionata */}
-            {(selectedElementId || selectedLineId) && (
+            {/* Tasto elimina per ELEMENTI o LINEE selezionate */}
+            {totalSelectedCount > 0 && (
               <button
                 type="button"
                 onClick={handleDeleteSelected}
-                title={selectedElementId ? 'Elimina elemento selezionato' : 'Elimina freccia selezionata'}
-                className="p-1.5 rounded-xl bg-rose-600 text-white hover:bg-rose-500 transition flex items-center gap-1 text-xs font-bold px-2.5 shadow-sm animate-pulse"
+                title="Elimina tutti gli elementi e linee selezionate (Tasto Canc o Backspace)"
+                className="p-1.5 rounded-xl bg-rose-600 text-white hover:bg-rose-500 transition flex items-center gap-1.5 text-xs font-bold px-3 shadow-md animate-pulse"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>{selectedLineId ? 'Elimina Freccia' : 'Elimina'}</span>
+                <span>Elimina ({totalSelectedCount})</span>
               </button>
             )}
 
@@ -1454,6 +2000,285 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">PNG</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PANNELLO CONTESTUALE 1: Controllo Avanzato Linee (Spessore, Lunghezza, Orientamento H/V, Spostamento) */}
+      {!readOnly && selectedLineIds.length > 0 && (
+        <div className="bg-slate-900 border-2 border-cyan-500/70 p-2.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-white shadow-xl">
+          {/* Info linea selezionata */}
+          <div className="flex items-center gap-2">
+            <div className="bg-cyan-500/20 text-cyan-300 px-2.5 py-1 rounded-lg font-black text-[11px] flex items-center gap-1.5 border border-cyan-500/30">
+              <Split className="w-3.5 h-3.5" />
+              <span>
+                {selectedLineIds.length > 1
+                  ? `${selectedLineIds.length} Linee Selezionate`
+                  : selectedLine?.style === 'divider'
+                  ? 'Linea Divisoria Selezionata'
+                  : selectedLine?.style === 'pass'
+                  ? 'Freccia Passaggio'
+                  : selectedLine?.style === 'shot'
+                  ? 'Freccia Tiro'
+                  : selectedLine?.style === 'dribble'
+                  ? 'Traccia Dribbling'
+                  : 'Freccia Corsa'}
+              </span>
+            </div>
+          </div>
+
+          {/* Misura Spessore / Larghezza Linea */}
+          <div className="flex items-center gap-1.5 bg-slate-800/90 px-2.5 py-1 rounded-xl border border-slate-700">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Larghezza:</span>
+            <button
+              type="button"
+              onClick={() => handleChangeLineWidth(-1)}
+              title="Riduci spessore linea (-1px)"
+              className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+            <span className="font-mono font-bold text-cyan-300 px-1 min-w-8 text-center">
+              {selectedLine?.width ?? (selectedLine?.style === 'divider' ? 4 : selectedLine?.style === 'shot' ? 5 : 3.5)}px
+            </span>
+            <button
+              type="button"
+              onClick={() => handleChangeLineWidth(1)}
+              title="Aumenta spessore linea (+1px)"
+              className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+            <div className="h-3.5 w-px bg-slate-700 mx-0.5" />
+            <button
+              type="button"
+              onClick={() => handleSetLineWidth(2.5)}
+              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            >
+              Fine
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetLineWidth(4)}
+              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            >
+              Media
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetLineWidth(6.5)}
+              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            >
+              Spessa
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetLineWidth(9)}
+              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            >
+              Max
+            </button>
+          </div>
+
+          {/* Misura Lunghezza Linea */}
+          <div className="flex items-center gap-1.5 bg-slate-800/90 px-2.5 py-1 rounded-xl border border-slate-700">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Lunghezza:</span>
+            <button
+              type="button"
+              onClick={() => handleChangeLineLength(0.85)}
+              title="Accorcia lunghezza (-15%)"
+              className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
+            >
+              <Minimize2 className="w-3 h-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleChangeLineLength(1.15)}
+              title="Allunga linea (+15%)"
+              className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
+            >
+              <Maximize2 className="w-3 h-3" />
+            </button>
+            <div className="h-3.5 w-px bg-slate-700 mx-0.5" />
+            <button
+              type="button"
+              onClick={() => handleSetLineLengthPreset('full')}
+              title="Estendi a tutto campo (100%)"
+              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            >
+              100%
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetLineLengthPreset('three_quarters')}
+              title="Imposta a 3/4 campo"
+              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            >
+              75%
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetLineLengthPreset('half')}
+              title="Imposta a metà campo"
+              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            >
+              50%
+            </button>
+          </div>
+
+          {/* Orientamento & Allineamento: Ruota 90°, Orizzontale, Verticale */}
+          <div className="flex items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700">
+            <button
+              type="button"
+              onClick={handleToggleLineOrientation}
+              title="Ruota di 90 gradi attorno al centro"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            >
+              <RotateCw className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Ruota 90°</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleMakeLineHorizontal}
+              title="Allinea la linea orizzontalmente"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold hover:bg-slate-700 text-slate-300 transition"
+            >
+              <Rows className="w-3.5 h-3.5 text-slate-400" />
+              <span>Orizzontale</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleMakeLineVertical}
+              title="Allinea la linea verticalmente"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold hover:bg-slate-700 text-cyan-300 transition"
+            >
+              <Columns className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Verticale</span>
+            </button>
+          </div>
+
+          {/* Eliminazione rapida e chiusura */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              title="Elimina linea selezionata (Canc / Backspace)"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Elimina</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              title="Deseleziona linea (Esc)"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+            >
+              Chiudi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PANNELLO CONTESTUALE 2: Controllo Elementi Selezionati (Scala Dimensione, Modifica Numero, Eliminazione) */}
+      {!readOnly && selectedElementIds.length > 0 && selectedLineIds.length === 0 && (
+        <div className="bg-slate-900 border-2 border-emerald-500/60 p-2.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-white shadow-xl">
+          <div className="flex items-center gap-2">
+            <div className="bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-lg font-black text-[11px] flex items-center gap-1.5 border border-emerald-500/30">
+              <Circle className="w-3.5 h-3.5 fill-emerald-400" />
+              <span>
+                {selectedElementIds.length > 1
+                  ? `${selectedElementIds.length} Elementi Selezionati`
+                  : `Elemento Selezionato (${selectedElement?.label || selectedElement?.type || 'Giocatore'})`}
+              </span>
+            </div>
+          </div>
+
+          {/* Scala dimensione elemento */}
+          <div className="flex items-center gap-1.5 bg-slate-800/90 px-2.5 py-1 rounded-xl border border-slate-700">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Misura:</span>
+            <button
+              type="button"
+              onClick={() => handleChangeElementScale(-0.2)}
+              title="Riduci dimensione elemento (-20%)"
+              className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <span className="font-mono font-bold text-emerald-300 px-1 min-w-10 text-center">
+              {Math.round((selectedElement?.scale || 1.0) * 100)}%
+            </span>
+            <button
+              type="button"
+              onClick={() => handleChangeElementScale(0.2)}
+              title="Aumenta dimensione elemento (+20%)"
+              className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Tasto Modifica Numero/Sigla se è un giocatore */}
+          {selectedElement && selectedElement.type.startsWith('player') && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingLabelId(selectedElement.id);
+                setTempLabel(selectedElement.label || '');
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold border border-slate-700 transition"
+            >
+              Modifica Numero ({selectedElement.label || '#'})
+            </button>
+          )}
+
+          {/* Azioni Elimina e Deseleziona */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              title="Elimina elementi selezionati (Canc o Backspace)"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Elimina ({selectedElementIds.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+            >
+              Chiudi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PANNELLO CONTESTUALE 3: Selezione Mista Elementi + Linee */}
+      {!readOnly && selectedElementIds.length > 0 && selectedLineIds.length > 0 && (
+        <div className="bg-slate-900 border-2 border-indigo-500/60 p-2.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-white shadow-xl">
+          <div className="flex items-center gap-2">
+            <span className="bg-indigo-500/20 text-indigo-300 px-2.5 py-1 rounded-lg font-black text-[11px] border border-indigo-500/30">
+              {totalSelectedCount} Oggetti Selezionati ({selectedElementIds.length} giocatori/attrezzi + {selectedLineIds.length} linee)
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              title="Elimina tutti gli oggetti selezionati (Canc o Backspace)"
+              className="flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Elimina Tutti ({totalSelectedCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+            >
+              Deseleziona
             </button>
           </div>
         </div>
@@ -1743,6 +2568,22 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           <g id="tactical-elements-layer">
             {elements.map((el) => renderElement(el))}
           </g>
+
+          {/* Riquadro di selezione trascinabile (Marquee box) */}
+          {selectionBox && (
+            <rect
+              x={(Math.min(selectionBox.start.x, selectionBox.current.x) / 100) * VB_WIDTH}
+              y={(Math.min(selectionBox.start.y, selectionBox.current.y) / 100) * VB_HEIGHT}
+              width={(Math.abs(selectionBox.current.x - selectionBox.start.x) / 100) * VB_WIDTH}
+              height={(Math.abs(selectionBox.current.y - selectionBox.start.y) / 100) * VB_HEIGHT}
+              fill="rgba(56, 189, 248, 0.18)"
+              stroke="#38bdf8"
+              strokeWidth="2"
+              strokeDasharray="4 3"
+              rx="3"
+              pointerEvents="none"
+            />
+          )}
         </svg>
 
         {/* Guida visiva / Hint discreto */}

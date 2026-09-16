@@ -306,6 +306,7 @@ export function sanitizeDrillForStorage(d: TacticalDrill): TacticalDrill {
       id: l.id || `line-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       style: l.style || 'pass',
       color: l.color || '',
+      width: Number.isFinite(l.width) ? l.width : undefined,
       points: (l.points || []).map((p) => ({
         x: Number.isFinite(p.x) ? p.x : 0,
         y: Number.isFinite(p.y) ? p.y : 0
