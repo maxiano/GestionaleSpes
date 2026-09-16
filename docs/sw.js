@@ -91,7 +91,7 @@ define(['./workbox-7e5eb42b'], (function (workbox) { 'use strict';
     "revision": "ba41a2279ebdc25d5db463b289dbca95"
   }, {
     "url": "index.html",
-    "revision": "19c4e260f619285f3187c5ad9f7ec684"
+    "revision": "cba2217bd75f217cb03a1c56460f2215"
   }, {
     "url": "icon-maskable-512.png",
     "revision": "b817ede17f2f0d269dda28f1432d053b"
@@ -117,10 +117,10 @@ define(['./workbox-7e5eb42b'], (function (workbox) { 'use strict';
     "url": "assets/logo-DMnEyw2d.svg",
     "revision": null
   }, {
-    "url": "assets/index-g7AfpFfk.js",
+    "url": "assets/index-DJU4yJ13.js",
     "revision": null
   }, {
-    "url": "assets/index-BBJNWH09.css",
+    "url": "assets/index-D9MIdU4N.css",
     "revision": null
   }, {
     "url": "assets/icon-512-D8WQ2FLv.png",
