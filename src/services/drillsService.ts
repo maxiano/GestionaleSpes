@@ -296,7 +296,8 @@ export function sanitizeDrillForStorage(d: TacticalDrill): TacticalDrill {
       x: Number.isFinite(e.x) ? Math.max(0, Math.min(100, e.x)) : 50,
       y: Number.isFinite(e.y) ? Math.max(0, Math.min(100, e.y)) : 50,
       label: e.label || '',
-      rotation: Number.isFinite(e.rotation) ? e.rotation : 0
+      rotation: Number.isFinite(e.rotation) ? e.rotation : 0,
+      scale: Number.isFinite(e.scale) ? e.scale : 1.0
     }));
 
   const cleanLines: DrillLine[] = (d.lines || [])

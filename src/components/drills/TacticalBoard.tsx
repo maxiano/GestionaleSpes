@@ -17,7 +17,11 @@ import {
   Minus,
   Maximize2,
   Circle,
-  HelpCircle
+  HelpCircle,
+  Split,
+  Shirt,
+  LayoutGrid,
+  ChevronDown
 } from 'lucide-react';
 
 interface TacticalBoardProps {
@@ -58,6 +62,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   const [selectedPaletteItem, setSelectedPaletteItem] = useState<DrillItemType>('player_blue');
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [tempLabel, setTempLabel] = useState<string>('');
+  const [showDividerMenu, setShowDividerMenu] = useState(false);
+  const [paletteTab, setPaletteTab] = useState<'figurines' | 'markers'>('figurines');
 
   // Dimensioni standard SVG board
   const VB_WIDTH = 800;
@@ -119,18 +125,21 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   // Aggiungi elemento al centro o tramite click sul campo
   const handleAddElement = (type: DrillItemType, x = 50, y = 50) => {
     let defaultLabel = '';
-    if (type === 'player_blue') {
-      const count = elements.filter((e) => e.type === 'player_blue').length + 1;
+    if (type === 'player_blue' || type === 'mini_player_blue') {
+      const count = elements.filter((e) => e.type === 'player_blue' || e.type === 'mini_player_blue').length + 1;
       defaultLabel = `B${count}`;
-    } else if (type === 'player_red') {
-      const count = elements.filter((e) => e.type === 'player_red').length + 1;
+    } else if (type === 'player_red' || type === 'mini_player_red') {
+      const count = elements.filter((e) => e.type === 'player_red' || e.type === 'mini_player_red').length + 1;
       defaultLabel = `R${count}`;
-    } else if (type === 'player_yellow') {
+    } else if (type === 'player_yellow' || type === 'mini_player_yellow') {
       defaultLabel = 'J';
-    } else if (type === 'player_green') {
-      const count = elements.filter((e) => e.type === 'player_green').length + 1;
+    } else if (type === 'player_green' || type === 'mini_player_green') {
+      const count = elements.filter((e) => e.type === 'player_green' || e.type === 'mini_player_green').length + 1;
       defaultLabel = `V${count}`;
-    } else if (type === 'player_gk') {
+    } else if (type === 'mini_player_white') {
+      const count = elements.filter((e) => e.type === 'mini_player_white').length + 1;
+      defaultLabel = `W${count}`;
+    } else if (type === 'player_gk' || type === 'mini_player_gk') {
       defaultLabel = 'GK';
     }
 
@@ -147,6 +156,50 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     onChangeElements([...elements, newElement]);
     setSelectedElementId(newElement.id);
     setSelectedLineId(null);
+  };
+
+  // Divisioni rapide preimpostate del campo di gioco
+  const handleAddQuickDivider = (preset: 'horizontal' | 'vertical' | 'three_sectors' | 'three_lanes' | 'central_box') => {
+    const idPrefix = `div-${Date.now()}`;
+    const newLines: DrillLine[] = [];
+
+    if (preset === 'horizontal') {
+      newLines.push({
+        id: `${idPrefix}-h`,
+        style: 'divider',
+        points: [{ x: 4, y: 50 }, { x: 96, y: 50 }]
+      });
+    } else if (preset === 'vertical') {
+      newLines.push({
+        id: `${idPrefix}-v`,
+        style: 'divider',
+        points: [{ x: 50, y: 4 }, { x: 50, y: 96 }]
+      });
+    } else if (preset === 'three_sectors') {
+      // 3 Settori: Costruzione bassa, Sviluppo/Costruzione alta, Finalizzazione
+      newLines.push(
+        { id: `${idPrefix}-s1`, style: 'divider', points: [{ x: 4, y: 33.3 }, { x: 96, y: 33.3 }] },
+        { id: `${idPrefix}-s2`, style: 'divider', points: [{ x: 4, y: 66.6 }, { x: 96, y: 66.6 }] }
+      );
+    } else if (preset === 'three_lanes') {
+      // 3 Corsie longitudinali: Fascia sinistra, Centro, Fascia destra
+      newLines.push(
+        { id: `${idPrefix}-l1`, style: 'divider', points: [{ x: 30, y: 4 }, { x: 30, y: 96 }] },
+        { id: `${idPrefix}-l2`, style: 'divider', points: [{ x: 70, y: 4 }, { x: 70, y: 96 }] }
+      );
+    } else if (preset === 'central_box') {
+      // Quadrato di gioco / Rondo centrale
+      newLines.push(
+        { id: `${idPrefix}-b1`, style: 'divider', points: [{ x: 25, y: 25 }, { x: 75, y: 25 }] },
+        { id: `${idPrefix}-b2`, style: 'divider', points: [{ x: 75, y: 25 }, { x: 75, y: 75 }] },
+        { id: `${idPrefix}-b3`, style: 'divider', points: [{ x: 75, y: 75 }, { x: 25, y: 75 }] },
+        { id: `${idPrefix}-b4`, style: 'divider', points: [{ x: 25, y: 75 }, { x: 25, y: 25 }] }
+      );
+    }
+
+    onChangeLines([...lines, ...newLines]);
+    setSelectedLineId(newLines[0]?.id || null);
+    setSelectedElementId(null);
   };
 
   // Inizio puntatore sull'SVG
@@ -550,7 +603,59 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           let strokeDasharray = 'none';
           let markerEnd = isSelected ? 'url(#arrow-selected)' : 'url(#arrow-solid)';
 
-          if (l.style === 'pass') {
+          if (l.style === 'divider') {
+            stroke = isSelected ? '#38bdf8' : '#f8fafc'; // Bianco puro ad alto contrasto
+            strokeWidth = isSelected ? '4.5' : '3.5';
+            strokeDasharray = '10,7';
+
+            return (
+              <g key={l.id} className={readOnly ? '' : 'cursor-pointer'} onPointerDown={(e) => handleLinePointerDown(e, l.id)}>
+                {/* Hitbox trasparente larga per selezionare comodamente la linea divisoria */}
+                <line
+                  x1={p1.x}
+                  y1={p1.y}
+                  x2={p2.x}
+                  y2={p2.y}
+                  stroke="transparent"
+                  strokeWidth="24"
+                />
+                {/* Alone di selezione azzurro se selezionata */}
+                {isSelected && (
+                  <line
+                    x1={p1.x}
+                    y1={p1.y}
+                    x2={p2.x}
+                    y2={p2.y}
+                    stroke="#38bdf8"
+                    strokeWidth="9"
+                    opacity="0.4"
+                  />
+                )}
+                {/* Sotto-traccia d'ombra per contrasto visivo netto sul campo */}
+                <line
+                  x1={p1.x}
+                  y1={p1.y}
+                  x2={p2.x}
+                  y2={p2.y}
+                  stroke="rgba(0, 0, 0, 0.45)"
+                  strokeWidth={Number(strokeWidth) + 2}
+                  strokeLinecap="round"
+                />
+                {/* Linea divisoria principale tratteggiata */}
+                <line
+                  x1={p1.x}
+                  y1={p1.y}
+                  x2={p2.x}
+                  y2={p2.y}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={strokeDasharray}
+                  strokeLinecap="round"
+                  opacity={isSelected ? 1 : 0.95}
+                />
+              </g>
+            );
+          } else if (l.style === 'pass') {
             stroke = isSelected ? '#38bdf8' : '#facc15'; // Giallo vivo tratteggiato (o azzurro se selezionato)
             strokeDasharray = '8,6';
             markerEnd = isSelected ? 'url(#arrow-selected)' : 'url(#arrow-dashed)';
@@ -656,13 +761,19 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 ? '#ef4444'
                 : activeTool === 'dribble'
                 ? '#38bdf8'
+                : activeTool === 'divider'
+                ? '#f8fafc'
                 : '#ffffff'
             }
-            strokeWidth="3.5"
-            strokeDasharray={activeTool === 'pass' ? '8,6' : 'none'}
+            strokeWidth={activeTool === 'divider' ? '4' : '3.5'}
+            strokeDasharray={
+              activeTool === 'divider' ? '10,7' : activeTool === 'pass' ? '8,6' : 'none'
+            }
             opacity="0.9"
             markerEnd={
-              activeTool === 'pass'
+              activeTool === 'divider'
+                ? 'none'
+                : activeTool === 'pass'
                 ? 'url(#arrow-dashed)'
                 : activeTool === 'shot'
                 ? 'url(#arrow-shot)'
@@ -739,6 +850,123 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             pointerEvents="none"
           >
             {el.label || (el.type === 'player_gk' ? 'GK' : '1')}
+          </text>
+        </g>
+      );
+    }
+
+    // PICCOLI GIOCATORINI (Figurine tattiche con maglia, pantaloncini, colletto sagomato, scarpini e numero)
+    if (
+      el.type === 'mini_player_blue' ||
+      el.type === 'mini_player_red' ||
+      el.type === 'mini_player_yellow' ||
+      el.type === 'mini_player_green' ||
+      el.type === 'mini_player_white' ||
+      el.type === 'mini_player_gk'
+    ) {
+      let jerseyColor = '#1d4ed8'; // blue-700
+      let trimColor = '#60a5fa'; // blue-400
+      let shortsColor = '#0f172a'; // dark shorts
+      let textColor = '#ffffff';
+      let skinColor = '#fed7aa'; // light peach skin
+
+      if (el.type === 'mini_player_red') {
+        jerseyColor = '#dc2626'; // red-600
+        trimColor = '#fca5a5';
+        shortsColor = '#ffffff'; // pantaloncini bianchi
+      } else if (el.type === 'mini_player_yellow') {
+        jerseyColor = '#eab308'; // yellow-500
+        trimColor = '#fef08a';
+        shortsColor = '#0f172a';
+        textColor = '#0f172a';
+      } else if (el.type === 'mini_player_green') {
+        jerseyColor = '#16a34a'; // green-600
+        trimColor = '#86efac';
+        shortsColor = '#0f172a';
+      } else if (el.type === 'mini_player_white') {
+        jerseyColor = '#f8fafc'; // white
+        trimColor = '#94a3b8';
+        shortsColor = '#1e293b';
+        textColor = '#0f172a';
+      } else if (el.type === 'mini_player_gk') {
+        jerseyColor = '#ea580c'; // orange-600
+        trimColor = '#fdba74';
+        shortsColor = '#0f172a';
+      }
+
+      return (
+        <g
+          key={el.id}
+          transform={`translate(${cx}, ${cy}) scale(${elScale * 0.95})`}
+          className={readOnly ? '' : 'cursor-grab active:cursor-grabbing select-none'}
+          onPointerDown={(e) => handleElementPointerDown(e, el)}
+          onDoubleClick={() => {
+            if (readOnly) return;
+            setEditingLabelId(el.id);
+            setTempLabel(el.label || '');
+          }}
+        >
+          {/* Alone di selezione con rettangolo arrotondato */}
+          {isSelected && (
+            <rect
+              x="-15"
+              y="-18"
+              width="30"
+              height="35"
+              rx="8"
+              fill="none"
+              stroke="#38bdf8"
+              strokeWidth="2.5"
+              strokeDasharray="3 3"
+            />
+          )}
+
+          {/* Ombra sagomata morbida a terra sull'erba */}
+          <ellipse cx="0.5" cy="14" rx="11" ry="3.5" fill="rgba(0,0,0,0.38)" />
+
+          {/* Scarpini da calcio */}
+          <ellipse cx="-3.5" cy="13.2" rx="2.4" ry="1.2" fill="#0f172a" />
+          <ellipse cx="3.5" cy="13.2" rx="2.4" ry="1.2" fill="#0f172a" />
+
+          {/* Gambe / Calzettoni */}
+          <rect x="-4.8" y="9.5" width="2.6" height="3.5" rx="0.8" fill={jerseyColor} />
+          <rect x="2.2" y="9.5" width="2.6" height="3.5" rx="0.8" fill={jerseyColor} />
+
+          {/* Pantaloncini */}
+          <path
+            d="M -6.5 5 L -7 10.5 L -1.5 10.5 L 0 7 L 1.5 10.5 L 7 10.5 L 6.5 5 Z"
+            fill={shortsColor}
+            stroke="#0f172a"
+            strokeWidth="0.8"
+          />
+
+          {/* Maglietta da calcio con spalle e maniche sagomate */}
+          <path
+            d="M -9 -4 L -13.5 1.5 L -9 4 L -6.5 1 L -6.5 5.5 L 6.5 5.5 L 6.5 1 L 9 4 L 13.5 1.5 L 9 -4 L 4.5 -5.8 Q 0 -4.5 -4.5 -5.8 Z"
+            fill={jerseyColor}
+            stroke={trimColor}
+            strokeWidth="0.8"
+          />
+
+          {/* Bordo colletto V-neck */}
+          <path d="M -2.5 -5 Q 0 -3 2.5 -5" fill="none" stroke={trimColor} strokeWidth="1" />
+
+          {/* Testa & Capigliatura */}
+          <circle cx="0" cy="-9.2" r="4.2" fill={skinColor} stroke="#78350f" strokeWidth="0.6" />
+          <path d="M -4.2 -9.5 Q 0 -14 4.2 -9.5 Q 0 -11.8 -4.2 -9.5 Z" fill="#38220f" />
+
+          {/* Numero o Sigla del giocatore impresso sul petto */}
+          <text
+            x="0"
+            y="2.8"
+            textAnchor="middle"
+            fill={textColor}
+            fontSize={el.label && el.label.length > 2 ? '7' : '8.5'}
+            fontWeight="900"
+            fontFamily="system-ui, sans-serif"
+            pointerEvents="none"
+          >
+            {el.label || (el.type === 'mini_player_gk' ? 'GK' : '1')}
           </text>
         </g>
       );
@@ -1054,6 +1282,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 setActiveTool('shot');
                 setSelectedElementId(null);
                 setSelectedLineId(null);
+                setShowDividerMenu(false);
               }}
               title="Freccia Conclusione a Rete (Rossa)"
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border ${
@@ -1065,6 +1294,96 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               <ArrowRight className="w-3.5 h-3.5 text-rose-400" />
               <span>Tiro</span>
             </button>
+
+            {/* Linea Divisoria / Delimitazione Campo con Menù Rapido */}
+            <div className="relative inline-flex">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTool('divider');
+                  setSelectedElementId(null);
+                  setSelectedLineId(null);
+                  setShowDividerMenu(false);
+                }}
+                title="Traccia Linea Divisoria / Delimitazione Campo (Tratteggiata Bianca)"
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-l-xl text-xs font-bold transition border ${
+                  activeTool === 'divider'
+                    ? 'bg-amber-400 text-slate-950 border-amber-300 shadow font-black'
+                    : 'bg-slate-800 text-amber-300 hover:bg-slate-700 border-slate-700'
+                }`}
+              >
+                <Split className="w-3.5 h-3.5 text-amber-300" />
+                <span>Linea Divisoria</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDividerMenu(!showDividerMenu)}
+                title="Menu divisioni rapide del campo (Metà campo, 3 settori, 3 corsie, quadrato rondo)"
+                className={`px-1.5 py-1.5 rounded-r-xl border-l-0 border text-xs font-bold transition flex items-center ${
+                  showDividerMenu
+                    ? 'bg-amber-500 text-slate-950 border-amber-400'
+                    : activeTool === 'divider'
+                    ? 'bg-amber-400 text-slate-950 border-amber-300'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700'
+                }`}
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Menu a comparsa per le divisioni rapide */}
+              {showDividerMenu && (
+                <div className="absolute top-full left-0 mt-1.5 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-50 text-xs animate-in fade-in zoom-in-95">
+                  <div className="px-2.5 py-1 text-[10px] font-black uppercase text-amber-400 border-b border-slate-800 mb-1 flex items-center justify-between">
+                    <span>Divisioni Rapide Campo</span>
+                    <LayoutGrid className="w-3 h-3 text-amber-400" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAddQuickDivider('horizontal');
+                      setShowDividerMenu(false);
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-200 flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span className="font-semibold">Linea Metà Campo</span>
+                    <span className="text-[10px] text-slate-400 font-mono">1 linea</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAddQuickDivider('three_sectors');
+                      setShowDividerMenu(false);
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-200 flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span className="font-semibold">3 Settori (Costruz./Sviluppo/Rete)</span>
+                    <span className="text-[10px] text-amber-400 font-mono">2 linee</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAddQuickDivider('three_lanes');
+                      setShowDividerMenu(false);
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-200 flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span className="font-semibold">3 Corsie (Fasce + Centro)</span>
+                    <span className="text-[10px] text-amber-400 font-mono">2 linee</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAddQuickDivider('central_box');
+                      setShowDividerMenu(false);
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-200 flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span className="font-semibold">Quadrato / Rondo Centrale</span>
+                    <span className="text-[10px] text-cyan-400 font-mono">4 linee</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Azioni rapide: Controllo Dimensione Oggetti, Elimina selezione, Annulla linea, Svuota, Scarica PNG */}
@@ -1140,120 +1459,233 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         </div>
       )}
 
-      {/* Palette Elementi rapida per aggiungere Giocatori e Materiale */}
+      {/* Palette Elementi rapida per aggiungere Giocatori, Giocatorini e Materiale */}
       {!readOnly && (
-        <div className="bg-slate-100/90 p-2.5 rounded-2xl border border-slate-200 flex items-center gap-2 overflow-x-auto text-xs font-bold text-slate-700 shadow-2xs">
-          <span className="text-[11px] font-black uppercase text-slate-500 shrink-0 pl-1">Aggiungi sul campo:</span>
+        <div className="bg-slate-100/95 p-2.5 rounded-2xl border border-slate-200 flex flex-col gap-2 text-xs font-bold text-slate-700 shadow-2xs">
+          {/* Selettore tipologia giocatori e attrezzi */}
+          <div className="flex items-center justify-between gap-2 flex-wrap pb-1 border-b border-slate-200/80">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5">Stile Giocatori:</span>
+              <button
+                type="button"
+                onClick={() => setPaletteTab('figurines')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black transition ${
+                  paletteTab === 'figurines'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                }`}
+              >
+                <Shirt className="w-3.5 h-3.5" />
+                <span>Piccoli Giocatorini</span>
+                <span className="bg-amber-400 text-slate-950 text-[9px] px-1.5 py-0.2 rounded-full font-black ml-0.5">TOP</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaletteTab('markers')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition ${
+                  paletteTab === 'markers'
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                }`}
+              >
+                <Circle className="w-3.5 h-3.5" />
+                <span>Dischi Classici</span>
+              </button>
+            </div>
 
-          {/* Giocatori Blu */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('player_blue')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition shadow-2xs shrink-0"
-          >
-            <Circle className="w-3.5 h-3.5 fill-white" />
-            <span>Blu (+1)</span>
-          </button>
+            <div className="text-[11px] text-slate-500 font-medium hidden sm:block">
+              {paletteTab === 'figurines' ? 'Figurine con maglietta, pantaloncini e scarpini' : 'Cerchi tattici con numero'}
+            </div>
+          </div>
 
-          {/* Giocatori Rossi */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('player_red')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition shadow-2xs shrink-0"
-          >
-            <Circle className="w-3.5 h-3.5 fill-white" />
-            <span>Rosso (+1)</span>
-          </button>
+          {/* Riga Pulsanti Elementi */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            {/* FIGURINE GIOCATORINI */}
+            {paletteTab === 'figurines' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('mini_player_blue')}
+                  title="Inserisci Giocatorino Blu sul campo"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition shadow-2xs shrink-0"
+                >
+                  <Shirt className="w-3.5 h-3.5 fill-blue-300 text-white" />
+                  <span>Giocatorino Blu</span>
+                </button>
 
-          {/* Giocatore Giallo / Jolly */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('player_yellow')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-400 text-slate-900 hover:bg-amber-500 transition shadow-2xs shrink-0"
-          >
-            <Circle className="w-3.5 h-3.5 fill-slate-900" />
-            <span>Jolly (J)</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('mini_player_red')}
+                  title="Inserisci Giocatorino Rosso sul campo"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition shadow-2xs shrink-0"
+                >
+                  <Shirt className="w-3.5 h-3.5 fill-red-300 text-white" />
+                  <span>Giocatorino Rosso</span>
+                </button>
 
-          {/* Portiere GK */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('player_gk')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-orange-600 text-white hover:bg-orange-700 transition shadow-2xs shrink-0"
-          >
-            <Circle className="w-3.5 h-3.5 fill-white" />
-            <span>Portiere (GK)</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('mini_player_yellow')}
+                  title="Inserisci Giocatorino Giallo (Jolly)"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 hover:bg-amber-500 transition shadow-2xs shrink-0"
+                >
+                  <Shirt className="w-3.5 h-3.5 fill-amber-200 text-slate-950" />
+                  <span>Jolly Giallo</span>
+                </button>
 
-          {/* Palla realistica */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('ball')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 hover:bg-slate-50 transition shadow-2xs shrink-0"
-          >
-            <span className="text-sm">⚽</span>
-            <span>Pallone</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('mini_player_green')}
+                  title="Inserisci Giocatorino Verde sul campo"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-2xs shrink-0"
+                >
+                  <Shirt className="w-3.5 h-3.5 fill-emerald-300 text-white" />
+                  <span>Verde</span>
+                </button>
 
-          {/* Cono arancione */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('cone')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-orange-100 text-orange-900 border border-orange-200 hover:bg-orange-200 transition shrink-0"
-          >
-            <span className="text-xs">▲</span>
-            <span>Cono</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('mini_player_white')}
+                  title="Inserisci Giocatorino Bianco sul campo"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 transition shadow-2xs shrink-0"
+                >
+                  <Shirt className="w-3.5 h-3.5 fill-slate-100 text-slate-700" />
+                  <span>Bianco</span>
+                </button>
 
-          {/* Cinesino Giallo */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('disc_yellow')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-yellow-100 text-yellow-900 border border-yellow-300 hover:bg-yellow-200 transition shrink-0"
-          >
-            <span className="text-xs">●</span>
-            <span>Cinesino Giallo</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('mini_player_gk')}
+                  title="Inserisci Giocatorino Portiere (GK)"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-orange-600 text-white hover:bg-orange-700 transition shadow-2xs shrink-0"
+                >
+                  <Shirt className="w-3.5 h-3.5 fill-orange-300 text-white" />
+                  <span>Portiere (GK)</span>
+                </button>
+              </>
+            ) : (
+              /* DISCHI CLASSICI */
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('player_blue')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition shadow-2xs shrink-0"
+                >
+                  <Circle className="w-3.5 h-3.5 fill-white" />
+                  <span>Blu (+1)</span>
+                </button>
 
-          {/* Cinesino Rosso */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('disc_red')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-100 text-red-900 border border-red-200 hover:bg-red-200 transition shrink-0"
-          >
-            <span className="text-xs">●</span>
-            <span>Cinesino Rosso</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('player_red')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition shadow-2xs shrink-0"
+                >
+                  <Circle className="w-3.5 h-3.5 fill-white" />
+                  <span>Rosso (+1)</span>
+                </button>
 
-          {/* Mini Porta */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('mini_goal')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-200 text-slate-800 hover:bg-slate-300 transition shrink-0"
-          >
-            <span className="text-xs">🥅</span>
-            <span>Porticina</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('player_yellow')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-400 text-slate-900 hover:bg-amber-500 transition shadow-2xs shrink-0"
+                >
+                  <Circle className="w-3.5 h-3.5 fill-slate-900" />
+                  <span>Jolly (J)</span>
+                </button>
 
-          {/* Scaletta */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('ladder')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-200 text-slate-800 hover:bg-slate-300 transition shrink-0"
-          >
-            <span className="text-xs">🪜</span>
-            <span>Scaletta</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('player_green')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-2xs shrink-0"
+                >
+                  <Circle className="w-3.5 h-3.5 fill-white" />
+                  <span>Verde</span>
+                </button>
 
-          {/* Sagoma */}
-          <button
-            type="button"
-            onClick={() => handleAddElement('dummy')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-200 text-slate-800 hover:bg-slate-300 transition shrink-0"
-          >
-            <span className="text-xs">👤</span>
-            <span>Sagoma</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddElement('player_gk')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-orange-600 text-white hover:bg-orange-700 transition shadow-2xs shrink-0"
+                >
+                  <Circle className="w-3.5 h-3.5 fill-white" />
+                  <span>Portiere (GK)</span>
+                </button>
+              </>
+            )}
+
+            {/* Separatore */}
+            <div className="h-6 w-px bg-slate-300 mx-1 shrink-0" />
+
+            {/* Palla realistica */}
+            <button
+              type="button"
+              onClick={() => handleAddElement('ball')}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-900 hover:bg-slate-50 transition shadow-2xs shrink-0"
+            >
+              <span className="text-sm">⚽</span>
+              <span>Pallone</span>
+            </button>
+
+            {/* Cono arancione */}
+            <button
+              type="button"
+              onClick={() => handleAddElement('cone')}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-orange-100 text-orange-900 border border-orange-200 hover:bg-orange-200 transition shrink-0"
+            >
+              <span className="text-xs">▲</span>
+              <span>Cono</span>
+            </button>
+
+            {/* Cinesino Giallo */}
+            <button
+              type="button"
+              onClick={() => handleAddElement('disc_yellow')}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-yellow-100 text-yellow-900 border border-yellow-300 hover:bg-yellow-200 transition shrink-0"
+            >
+              <span className="text-xs">●</span>
+              <span>Cinesino Giallo</span>
+            </button>
+
+            {/* Cinesino Rosso */}
+            <button
+              type="button"
+              onClick={() => handleAddElement('disc_red')}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-100 text-red-900 border border-red-200 hover:bg-red-200 transition shrink-0"
+            >
+              <span className="text-xs">●</span>
+              <span>Cinesino Rosso</span>
+            </button>
+
+            {/* Mini Porta */}
+            <button
+              type="button"
+              onClick={() => handleAddElement('mini_goal')}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-200 text-slate-800 hover:bg-slate-300 transition shrink-0"
+            >
+              <span className="text-xs">🥅</span>
+              <span>Porticina</span>
+            </button>
+
+            {/* Scaletta */}
+            <button
+              type="button"
+              onClick={() => handleAddElement('ladder')}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-200 text-slate-800 hover:bg-slate-300 transition shrink-0"
+            >
+              <span className="text-xs">🪜</span>
+              <span>Scaletta</span>
+            </button>
+
+            {/* Sagoma */}
+            <button
+              type="button"
+              onClick={() => handleAddElement('dummy')}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-200 text-slate-800 hover:bg-slate-300 transition shrink-0"
+            >
+              <span className="text-xs">👤</span>
+              <span>Sagoma</span>
+            </button>
+          </div>
         </div>
       )}
 

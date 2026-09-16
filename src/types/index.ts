@@ -160,6 +160,12 @@ export type DrillItemType =
   | 'player_yellow'
   | 'player_green'
   | 'player_gk'
+  | 'mini_player_blue'
+  | 'mini_player_red'
+  | 'mini_player_yellow'
+  | 'mini_player_green'
+  | 'mini_player_white'
+  | 'mini_player_gk'
   | 'ball'
   | 'cone'
   | 'disc_yellow'
@@ -181,7 +187,7 @@ export interface DrillElement {
   scale?: number; // Dimension scaling factor (e.g. 0.8, 1.0, 1.3, 1.6)
 }
 
-export type DrillLineStyle = 'pass' | 'run' | 'dribble' | 'shot';
+export type DrillLineStyle = 'pass' | 'run' | 'dribble' | 'shot' | 'divider';
 
 export interface DrillLine {
   id: string;
