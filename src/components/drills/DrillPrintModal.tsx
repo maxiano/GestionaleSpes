@@ -51,7 +51,125 @@ export const DrillPrintModal: React.FC<DrillPrintModalProps> = ({
   if (!isOpen || !drill) return null;
 
   const handlePrint = () => {
-    window.print();
+    const printElement = document.getElementById('official-drill-printout');
+    if (!printElement) {
+      window.print();
+      return;
+    }
+
+    // Rimuove eventuali vecchi iframe di stampa per evitare duplicazioni
+    const existingFrame = document.getElementById('spes-drill-print-frame');
+    if (existingFrame) {
+      existingFrame.remove();
+    }
+
+    // Crea un iframe nascosto dedicato esclusivamente alla stampa
+    const iframe = document.createElement('iframe');
+    iframe.id = 'spes-drill-print-frame';
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '210mm';
+    iframe.style.height = '297mm';
+    iframe.style.border = 'none';
+    iframe.style.opacity = '0';
+    iframe.style.pointerEvents = 'none';
+    iframe.style.zIndex = '-9999';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      window.print();
+      return;
+    }
+
+    // Recupera tutti gli stili attivi (Tailwind, Google fonts, regole CSS)
+    const headStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map(node => node.outerHTML)
+      .join('\n');
+
+    const drillTitle = drill.title || 'Scheda Esercitazione SPES';
+
+    // Scrive un documento HTML completo che contiene SOLO ed ESCLUSIVAMENTE l'anteprima
+    iframeDoc.open();
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html lang="it">
+        <head>
+          <meta charset="utf-8" />
+          <title>${drillTitle} - SPES Montesacro</title>
+          ${headStyles}
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 6mm 8mm;
+            }
+            *, *::before, *::after {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #ffffff !important;
+              color: #0f172a !important;
+              font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+              width: 100% !important;
+              height: auto !important;
+            }
+            #official-drill-printout {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #ffffff !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+            .print-avoid-break {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+            }
+            svg {
+              max-width: 100% !important;
+              height: auto !important;
+              display: block !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            img {
+              max-width: 100% !important;
+              height: auto !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+          </style>
+        </head>
+        <body class="bg-white text-slate-900">
+          <div id="official-drill-printout" class="${printElement.className}">
+            ${printElement.innerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    // Attende il rendering di font e grafici vettoriali, poi lancia la stampa dell'iframe
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.warn('Stampa via iframe non disponibile, fallback a window.print()', err);
+        window.print();
+      } finally {
+        setTimeout(() => {
+          iframe.remove();
+        }, 2000);
+      }
+    }, 250);
   };
 
   // Esporta e scarica direttamente l'immagine ad alta risoluzione (1600x1040)
@@ -352,9 +470,9 @@ export const DrillPrintModal: React.FC<DrillPrintModalProps> = ({
           {/* LAYOUT 1: COMPATTO A SINGOLA PAGINA A4                                    */}
           {/* ========================================================================= */}
           {printLayout === 'compact' ? (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
               {/* COLONNA SINISTRA: Schema Tattico Grafico + Parametri tecnici */}
-              <div className="md:col-span-6 space-y-2.5 print-avoid-break">
+              <div className="space-y-2.5 print-avoid-break">
                 {/* Schema del campo da calcio con TacticalBoard */}
                 <div className="rounded-xl overflow-hidden border-2 border-slate-900 shadow-xs bg-slate-100">
                   <div className="w-full relative" style={{ aspectRatio: '800 / 520' }}>
@@ -464,7 +582,7 @@ export const DrillPrintModal: React.FC<DrillPrintModalProps> = ({
               </div>
 
               {/* COLONNA DESTRA: Obiettivi didattici, svolgimento, regole e coaching points */}
-              <div className="md:col-span-6 space-y-2.5 text-xs">
+              <div className="space-y-2.5 text-xs">
                 {/* Obiettivi */}
                 <div className="p-2.5 bg-emerald-50/70 border border-emerald-300 rounded-xl print-avoid-break">
                   <h4 className="font-black text-emerald-950 uppercase tracking-wider text-[10px] mb-0.5">
