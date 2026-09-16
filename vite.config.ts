@@ -1,3 +1,46 @@
+// Polyfill global crypto & diagnostics_channel for older Node.js versions (< 19 / 20)
+try {
+  if (typeof globalThis.crypto === 'undefined') {
+    const nodeCrypto = await import('node:crypto');
+    globalThis.crypto = (nodeCrypto.default || nodeCrypto) as any;
+  }
+} catch {
+  // Ignora se non disponibile
+}
+
+try {
+  const dc = await import('node:diagnostics_channel');
+  const dcModule: any = dc.default || dc;
+  if (dcModule && typeof dcModule.tracingChannel !== 'function') {
+    dcModule.tracingChannel = function (name: string): any {
+      const channel = (nameOrChannel: string): any => {
+        if (typeof dcModule.channel === 'function') return dcModule.channel(nameOrChannel);
+        return {
+          hasSubscribers: false,
+          publish: () => {},
+          subscribe: () => {},
+          unsubscribe: () => {},
+        };
+      };
+      return {
+        start: channel(`tracing:${name}:start`),
+        end: channel(`tracing:${name}:end`),
+        asyncStart: channel(`tracing:${name}:asyncStart`),
+        asyncEnd: channel(`tracing:${name}:asyncEnd`),
+        error: channel(`tracing:${name}:error`),
+        hasSubscribers: false,
+        subscribe: () => {},
+        unsubscribe: () => {},
+        traceSync: (fn: any) => fn(),
+        tracePromise: (fn: any) => fn(),
+        traceCallback: (fn: any) => fn,
+      };
+    };
+  }
+} catch {
+  // Ignora se non disponibile
+}
+
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
