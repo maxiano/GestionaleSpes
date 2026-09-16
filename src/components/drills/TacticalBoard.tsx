@@ -40,6 +40,7 @@ interface TacticalBoardProps {
   onChangeLines: (lines: DrillLine[]) => void;
   onCaptureSnapshot?: (dataUrl: string) => void;
   readOnly?: boolean;
+  colorScheme?: 'standard' | 'high_contrast_bw';
 }
 
 export const TacticalBoard: React.FC<TacticalBoardProps> = ({
@@ -50,7 +51,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   lines,
   onChangeLines,
   onCaptureSnapshot,
-  readOnly = false
+  readOnly = false,
+  colorScheme = 'standard'
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -822,6 +824,9 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     const height = VB_HEIGHT - margin * 2; // 480
     const centerX = VB_WIDTH / 2;
     const centerY = VB_HEIGHT / 2;
+    const isBw = colorScheme === 'high_contrast_bw';
+    const lineColor = isBw ? '#0f172a' : '#ffffff';
+    const goalFill = isBw ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.2)';
 
     return (
       <g id="field-bg-layer">
@@ -843,50 +848,57 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           </radialGradient>
           {/* Marker frecce tattiche */}
           <marker id="arrow-solid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#ffffff" />
+            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill={lineColor} />
           </marker>
           <marker id="arrow-dashed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#facc15" />
+            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill={isBw ? '#475569' : '#facc15'} />
           </marker>
           <marker id="arrow-shot" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444" />
+            <path d="M 0 1 L 10 5 L 0 9 z" fill={isBw ? '#0f172a' : '#ef4444'} />
           </marker>
           <marker id="arrow-dribble" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#38bdf8" />
+            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill={isBw ? '#334155' : '#38bdf8'} />
           </marker>
           <marker id="arrow-selected" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
           </marker>
         </defs>
 
-        {/* Sfondo globale */}
-        <rect id="field-turf" x="0" y="0" width={VB_WIDTH} height={VB_HEIGHT} fill="url(#turf-stripes)" rx="12" />
+        {/* Sfondo globale: solido di salvaguardia per la stampa + pattern o alto contrasto B&W */}
+        {isBw ? (
+          <rect id="field-turf" x="0" y="0" width={VB_WIDTH} height={VB_HEIGHT} fill="#f8fafc" stroke="#0f172a" strokeWidth="2.5" rx="12" />
+        ) : (
+          <>
+            <rect id="field-turf-base" x="0" y="0" width={VB_WIDTH} height={VB_HEIGHT} fill="#1b6e3b" rx="12" />
+            <rect id="field-turf" x="0" y="0" width={VB_WIDTH} height={VB_HEIGHT} fill="url(#turf-stripes)" rx="12" />
+          </>
+        )}
 
         {/* Linee di campo in base a pitchType */}
         {pitchType === 'full' && (
-          <g stroke="#ffffff" strokeWidth="2.5" fill="none" opacity="0.95">
+          <g stroke={lineColor} strokeWidth="2.5" fill="none" opacity="0.95">
             {/* Perimetro */}
             <rect x={margin} y={margin} width={width} height={height} rx="2" />
             {/* Linea mediana */}
             <line x1={centerX} y1={margin} x2={centerX} y2={VB_HEIGHT - margin} />
             {/* Cerchio di centrocampo */}
             <circle cx={centerX} cy={centerY} r="65" />
-            <circle cx={centerX} cy={centerY} r="3" fill="#ffffff" />
+            <circle cx={centerX} cy={centerY} r="3" fill={lineColor} />
             {/* Area di rigore SX */}
             <rect x={margin} y={centerY - 110} width="110" height="220" />
             <rect x={margin} y={centerY - 55} width="40" height="110" />
-            <circle cx={margin + 80} cy={centerY} r="2.5" fill="#ffffff" />
+            <circle cx={margin + 80} cy={centerY} r="2.5" fill={lineColor} />
             <path d={`M ${margin + 110} ${centerY - 45} A 65 65 0 0 1 ${margin + 110} ${centerY + 45}`} />
             {/* Porta SX */}
-            <rect x={margin - 16} y={centerY - 40} width="16" height="80" fill="rgba(255,255,255,0.15)" strokeWidth="2" strokeDasharray="3 3" />
+            <rect x={margin - 16} y={centerY - 40} width="16" height="80" fill={goalFill} strokeWidth="2" strokeDasharray="3 3" />
 
             {/* Area di rigore DX */}
             <rect x={VB_WIDTH - margin - 110} y={centerY - 110} width="110" height="220" />
             <rect x={VB_WIDTH - margin - 40} y={centerY - 55} width="40" height="110" />
-            <circle cx={VB_WIDTH - margin - 80} cy={centerY} r="2.5" fill="#ffffff" />
+            <circle cx={VB_WIDTH - margin - 80} cy={centerY} r="2.5" fill={lineColor} />
             <path d={`M ${VB_WIDTH - margin - 110} ${centerY - 45} A 65 65 0 0 0 ${VB_WIDTH - margin - 110} ${centerY + 45}`} />
             {/* Porta DX */}
-            <rect x={VB_WIDTH - margin} y={centerY - 40} width="16" height="80" fill="rgba(255,255,255,0.15)" strokeWidth="2" strokeDasharray="3 3" />
+            <rect x={VB_WIDTH - margin} y={centerY - 40} width="16" height="80" fill={goalFill} strokeWidth="2" strokeDasharray="3 3" />
 
             {/* Calci d'angolo */}
             <path d={`M ${margin} ${margin + 16} A 16 16 0 0 0 ${margin + 16} ${margin}`} />
@@ -897,31 +909,31 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         )}
 
         {pitchType === 'half' && (
-          <g stroke="#ffffff" strokeWidth="2.5" fill="none" opacity="0.95">
+          <g stroke={lineColor} strokeWidth="2.5" fill="none" opacity="0.95">
             {/* Perimetro metà campo (porta in basso o in alto) */}
             <rect x={margin} y={margin} width={width} height={height} rx="2" />
             {/* Linea di metà campo in alto */}
             <line x1={margin} y1={margin + 35} x2={VB_WIDTH - margin} y2={margin + 35} strokeDasharray="6 4" strokeWidth="2" />
             {/* Cerchio di centrocampo parziale */}
             <path d={`M ${centerX - 90} ${margin + 35} A 90 90 0 0 0 ${centerX + 90} ${margin + 35}`} />
-            <circle cx={centerX} cy={margin + 35} r="3" fill="#ffffff" />
+            <circle cx={centerX} cy={margin + 35} r="3" fill={lineColor} />
 
             {/* Grande area di rigore in basso */}
             <rect x={centerX - 190} y={VB_HEIGHT - margin - 180} width="380" height="180" />
             {/* Piccola area */}
             <rect x={centerX - 90} y={VB_HEIGHT - margin - 65} width="180" height="65" />
             {/* Dischetto rigore */}
-            <circle cx={centerX} cy={VB_HEIGHT - margin - 120} r="3" fill="#ffffff" />
+            <circle cx={centerX} cy={VB_HEIGHT - margin - 120} r="3" fill={lineColor} />
             {/* Lunetta area di rigore */}
             <path d={`M ${centerX - 70} ${VB_HEIGHT - margin - 180} A 70 70 0 0 1 ${centerX + 70} ${VB_HEIGHT - margin - 180}`} />
 
             {/* Porta regolamentare */}
-            <rect x={centerX - 65} y={VB_HEIGHT - margin} width="130" height="18" fill="rgba(255,255,255,0.2)" strokeWidth="2.5" />
+            <rect x={centerX - 65} y={VB_HEIGHT - margin} width="130" height="18" fill={goalFill} strokeWidth="2.5" />
           </g>
         )}
 
         {pitchType === 'penalty_box' && (
-          <g stroke="#ffffff" strokeWidth="2.5" fill="none" opacity="0.95">
+          <g stroke={lineColor} strokeWidth="2.5" fill="none" opacity="0.95">
             {/* Vista ingrandita area di rigore */}
             <rect x={margin} y={margin} width={width} height={height} rx="2" />
             {/* Linea limite area di rigore a metà campo visivo */}
@@ -929,22 +941,22 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             {/* Lunetta alta */}
             <path d={`M ${centerX - 90} ${margin + 90} A 90 90 0 0 1 ${centerX + 90} ${margin + 90}`} />
             {/* Dischetto rigore */}
-            <circle cx={centerX} cy={margin + 210} r="4" fill="#ffffff" />
+            <circle cx={centerX} cy={margin + 210} r="4" fill={lineColor} />
             {/* Piccola area */}
             <rect x={centerX - 130} y={VB_HEIGHT - margin - 100} width="260" height="100" />
             {/* Porta grande con pali */}
-            <rect x={centerX - 80} y={VB_HEIGHT - margin} width="160" height="20" fill="rgba(255,255,255,0.25)" strokeWidth="3" />
+            <rect x={centerX - 80} y={VB_HEIGHT - margin} width="160" height="20" fill={goalFill} strokeWidth="3" />
           </g>
         )}
 
         {pitchType === 'box' && (
-          <g stroke="#ffffff" strokeWidth="2.5" fill="none" opacity="0.95">
+          <g stroke={lineColor} strokeWidth="2.5" fill="none" opacity="0.95">
             {/* Rettangolo ridotto per possessi / rondo */}
             <rect x={margin + 40} y={margin + 20} width={width - 80} height={height - 40} strokeWidth="3" />
             {/* Griglia interna tratteggiata per settori */}
             <line x1={centerX} y1={margin + 20} x2={centerX} y2={VB_HEIGHT - margin - 20} strokeDasharray="8 6" strokeWidth="1.5" />
             <line x1={margin + 40} y1={centerY} x2={VB_WIDTH - margin - 40} y2={centerY} strokeDasharray="8 6" strokeWidth="1.5" />
-            <circle cx={centerX} cy={centerY} r="4" fill="#ffffff" />
+            <circle cx={centerX} cy={centerY} r="4" fill={lineColor} />
             {/* Cerchietto o losanga al centro per riferimento visivo */}
             <circle cx={centerX} cy={centerY} r="45" strokeDasharray="6 4" strokeWidth="1.5" />
           </g>

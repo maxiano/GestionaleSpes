@@ -66,4 +66,68 @@
   tbody tr:nth-child(even) {
     background-color: #f8fafc !important;
   }
+
+  /* ========================================================= */
+  /* STAMPA ESERCITAZIONI TATTICHE SPES (SALVAGUARDIA TESTO E IMMAGINI) */
+  /* ========================================================= */
+  body.drill-print-active {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 10pt !important;
+    line-height: 1.4 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.drill-print-active * {
+    visibility: hidden;
+  }
+
+  body.drill-print-active #official-drill-printout,
+  body.drill-print-active #official-drill-printout * {
+    visibility: visible;
+  }
+
+  body.drill-print-active #official-drill-printout {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.drill-print-active #official-drill-printout .print-avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Salvaguardia nitidezza e colori SVG (campo, linee, giocatori, porte) */
+  body.drill-print-active #official-drill-printout svg {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    shape-rendering: geometricPrecision;
+  }
+
+  body.drill-print-active #official-drill-printout img {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    image-rendering: -webkit-optimize-contrast;
+  }
+
+  /* Formato compatto 1 pagina: densità calibrata per entrare in 1 foglio A4 */
+  body.drill-print-active #official-drill-printout.drill-layout-compact {
+    font-size: 9.5pt !important;
+    line-height: 1.35 !important;
+  }
 }
