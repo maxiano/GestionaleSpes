@@ -2,7 +2,7 @@ import React from 'react';
 import { TacticalDrill } from '../../types';
 import { ClubLogo } from '../common/ClubLogo';
 import { TacticalBoard } from './TacticalBoard';
-import { Printer, X, Share2, Clock, Users, Maximize2, Shield, Calendar } from 'lucide-react';
+import { Printer, X, Share2, Clock, Users, Maximize2, Shield, Calendar, Compass } from 'lucide-react';
 
 interface DrillPrintModalProps {
   drill: TacticalDrill | null;
@@ -26,6 +26,7 @@ export const DrillPrintModal: React.FC<DrillPrintModalProps> = ({
       `📋 *Titolo:* ${drill.title}\n` +
       `🏷️ *Categoria:* ${drill.category}\n` +
       `🎯 *Fase:* ${drill.phase}\n` +
+      (drill.tacticalZone ? `🗺️ *Zona:* ${drill.tacticalZone}\n` : '') +
       `⏱️ *Durata:* ${drill.durationMinutes || 15} min | 👥 *Giocatori:* ${drill.playerCount || 'N/D'}\n` +
       `📌 *Obiettivo:* ${drill.objectivesPrimary}\n\n` +
       `📝 *Svolgimento:* ${drill.description.substring(0, 180)}...\n\n` +
@@ -108,26 +109,34 @@ export const DrillPrintModal: React.FC<DrillPrintModalProps> = ({
                 {drill.category}
               </span>
               <p className="text-[11px] font-bold text-emerald-700">{drill.phase}</p>
+              {drill.tacticalZone && (
+                <p className="text-[10px] font-bold text-sky-800">{drill.tacticalZone}</p>
+              )}
               <p className="text-[10px] text-slate-500">
                 Data: {new Date(drill.updatedAt || drill.createdAt).toLocaleDateString('it-IT')}
               </p>
             </div>
           </div>
 
-          {/* Titolo e Badge Esercitazione */}
+          {/* Titolo e Sottotitolo Principi Metodologici */}
           <div className="mb-4">
             <h2 className="text-2xl font-black text-slate-950 tracking-tight leading-tight">
               {drill.title}
             </h2>
+            <div className="mt-1.5 p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <p className="text-[11px] font-bold text-emerald-900 leading-snug">
+                Tutte le esercitazioni devono implementare questi 4 principi: <span className="underline decoration-emerald-500">gioco e mi muovo</span>, <span className="underline decoration-emerald-500">gestione del pallone</span>, <span className="underline decoration-emerald-500">riaggressione</span> e <span className="underline decoration-emerald-500">contrattacco</span>.
+              </p>
+            </div>
           </div>
 
           {/* Tabella Parametri Esercizio */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
               <div>
                 <span className="text-[10px] text-slate-500 uppercase font-black block">Durata</span>
-                <span className="font-bold text-slate-900">{drill.durationMinutes || 15} minuti</span>
+                <span className="font-bold text-slate-900">{drill.durationMinutes || 15} min</span>
               </div>
             </div>
 
@@ -142,7 +151,7 @@ export const DrillPrintModal: React.FC<DrillPrintModalProps> = ({
             <div className="flex items-center gap-2">
               <Maximize2 className="w-4 h-4 text-amber-600 shrink-0" />
               <div>
-                <span className="text-[10px] text-slate-500 uppercase font-black block">Dimensioni Spazio</span>
+                <span className="text-[10px] text-slate-500 uppercase font-black block">Dimensioni</span>
                 <span className="font-bold text-slate-900">{drill.pitchDimensions || 'Metà campo'}</span>
               </div>
             </div>
@@ -152,6 +161,16 @@ export const DrillPrintModal: React.FC<DrillPrintModalProps> = ({
               <div>
                 <span className="text-[10px] text-slate-500 uppercase font-black block">Intensità</span>
                 <span className="font-bold text-slate-900">{drill.intensity || 'Media'}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
+              <Compass className="w-4 h-4 text-sky-600 shrink-0" />
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-black block">Zona Campo</span>
+                <span className="font-bold text-sky-900 truncate block">
+                  {drill.tacticalZone || 'Costruzione bassa'}
+                </span>
               </div>
             </div>
           </div>

@@ -32,6 +32,14 @@ export const DRILL_CATEGORIES = [
   'Portieri'
 ];
 
+export const DRILL_TACTICAL_ZONES = [
+  'Zona di costruzione bassa',
+  'Zona di costruzione alta',
+  'Zona di finalizzazione'
+] as const;
+
+export type DrillTacticalZone = (typeof DRILL_TACTICAL_ZONES)[number];
+
 /**
  * Normalizza le categorie per compatibilità tra versioni e formati
  */
@@ -66,6 +74,7 @@ export const INITIAL_TACTICAL_DRILLS: TacticalDrill[] = [
     title: 'Rondo 4v2 con Ricerca del Terzo Uomo',
     category: 'Pulcini (2016 e 2017)',
     phase: 'Possesso Palla & Rondo',
+    tacticalZone: 'Zona di costruzione bassa',
     intensity: 'Media',
     durationMinutes: 15,
     playerCount: '6 giocatori per quadrato',
@@ -114,6 +123,7 @@ export const INITIAL_TACTICAL_DRILLS: TacticalDrill[] = [
     title: 'Costruzione dal Basso 4+Portiere vs 3 in Pressing',
     category: 'Esordienti (2014 e 2015)',
     phase: 'Tattica & Costruzione',
+    tacticalZone: 'Zona di costruzione bassa',
     intensity: 'Alta',
     durationMinutes: 20,
     playerCount: '8-10 giocatori',
@@ -167,6 +177,7 @@ export const INITIAL_TACTICAL_DRILLS: TacticalDrill[] = [
     title: '1v1 Frontale con Conclusione e Transizione Immediata',
     category: 'Primi Calci (2018 e 2019)',
     phase: '1v1 / Duelli & Finalizzazione',
+    tacticalZone: 'Zona di finalizzazione',
     intensity: 'Alta',
     durationMinutes: 15,
     playerCount: '8-12 bambini',
@@ -210,6 +221,7 @@ export const INITIAL_TACTICAL_DRILLS: TacticalDrill[] = [
     title: 'La Corsa al Castello Incantato: Guida della Palla e Conclusione',
     category: 'Piccoli Amici (2020 e 2021)',
     phase: 'Tecnica & Coordinativo',
+    tacticalZone: 'Zona di costruzione alta',
     intensity: 'Media',
     durationMinutes: 15,
     playerCount: '6-8 bambini',
@@ -304,6 +316,7 @@ export function sanitizeDrillForStorage(d: TacticalDrill): TacticalDrill {
     title: (d.title || '').trim() || 'Nuova Esercitazione',
     category: d.category || 'Tutte le Categorie',
     phase: d.phase || 'Possesso Palla & Rondo',
+    tacticalZone: d.tacticalZone || 'Zona di costruzione bassa',
     intensity: d.intensity || 'Media',
     durationMinutes: Number(d.durationMinutes) || 15,
     playerCount: d.playerCount || '',

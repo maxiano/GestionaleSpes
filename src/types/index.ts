@@ -195,6 +195,7 @@ export interface TacticalDrill {
   title: string;
   category: string; // e.g. "Tutte", "2014 (Esordienti)", etc.
   phase: string; // "Riscaldamento", "Tecnica / Coordinativo", "Possesso Palla", "Tattica", "Partita a Tema", "Portieri", "1v1 / Duelli"
+  tacticalZone?: string; // "Zona di costruzione bassa" | "Zona di costruzione alta" | "Zona di finalizzazione"
   intensity?: 'Bassa' | 'Media' | 'Alta';
   durationMinutes?: number;
   playerCount?: string;

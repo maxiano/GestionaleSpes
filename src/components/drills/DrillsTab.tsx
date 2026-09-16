@@ -13,6 +13,7 @@ import {
   duplicateTacticalDrill,
   DRILL_CATEGORIES,
   DRILL_PHASES,
+  DRILL_TACTICAL_ZONES,
   normalizeDrillCategory
 } from '../../services/drillsService';
 import { TacticalBoard } from './TacticalBoard';
@@ -55,6 +56,7 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('Tutte');
   const [selectedPhaseFilter, setSelectedPhaseFilter] = useState('Tutte');
+  const [selectedZoneFilter, setSelectedZoneFilter] = useState('Tutte');
   const [onlyMyDrills, setOnlyMyDrills] = useState(false);
 
   // Esercizio in modifica o creazione
@@ -89,6 +91,7 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
       title: 'Nuova Esercitazione',
       category: 'Pulcini (2016 e 2017)',
       phase: 'Possesso Palla & Rondo',
+      tacticalZone: 'Zona di costruzione bassa',
       intensity: 'Media',
       durationMinutes: 15,
       playerCount: '8-10 giocatori',
@@ -242,6 +245,13 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
         }
       }
 
+      // Filtro zona del campo
+      if (selectedZoneFilter !== 'Tutte') {
+        if (drill.tacticalZone !== selectedZoneFilter) {
+          return false;
+        }
+      }
+
       // Filtro "I miei esercizi"
       if (onlyMyDrills) {
         if (drill.authorId !== userProfile.uid) {
@@ -251,7 +261,15 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
 
       return true;
     });
-  }, [drills, searchQuery, selectedCategoryFilter, selectedPhaseFilter, onlyMyDrills, userProfile.uid]);
+  }, [
+    drills,
+    searchQuery,
+    selectedCategoryFilter,
+    selectedPhaseFilter,
+    selectedZoneFilter,
+    onlyMyDrills,
+    userProfile.uid
+  ]);
 
   return (
     <div id="drills-tab-container" className="space-y-6">
@@ -267,9 +285,27 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             Lavagna Tattica &amp; Esercitazioni
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl font-medium">
-            Disegna graficamente gli schemi, definisci obiettivi e regole, stampa le schede ufficiali e condividile con gli altri mister dello staff.
+          <p className="text-xs sm:text-sm font-semibold text-emerald-300 mt-1.5 max-w-3xl leading-relaxed">
+            Tutte le esercitazioni devono implementare questi 4 principi: gioco e mi muovo, gestione del pallone, riaggressione e contrattacco
           </p>
+          <div className="flex flex-wrap items-center gap-2 mt-2.5 text-[11px] font-bold text-slate-200">
+            <span className="px-2.5 py-1 rounded-xl bg-slate-800/90 border border-slate-700/80 flex items-center gap-1.5 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              1. Gioco e mi muovo
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-slate-800/90 border border-slate-700/80 flex items-center gap-1.5 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-teal-400"></span>
+              2. Gestione del pallone
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-slate-800/90 border border-slate-700/80 flex items-center gap-1.5 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+              3. Riaggressione
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-slate-800/90 border border-slate-700/80 flex items-center gap-1.5 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+              4. Contrattacco
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto">
@@ -356,6 +392,20 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
                 {DRILL_CATEGORIES.filter((c) => c !== 'Tutte le Categorie').map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
+                  </option>
+                ))}
+              </select>
+
+              {/* Zona del campo */}
+              <select
+                value={selectedZoneFilter}
+                onChange={(e) => setSelectedZoneFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="Tutte">Tutte le Zone</option>
+                {DRILL_TACTICAL_ZONES.map((zone) => (
+                  <option key={zone} value={zone}>
+                    {zone}
                   </option>
                 ))}
               </select>
@@ -447,6 +497,11 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
                       <span className="px-2 py-0.5 bg-slate-900/90 backdrop-blur-xs text-white text-[10px] font-black uppercase rounded-lg border border-slate-700">
                         {drill.category}
                       </span>
+                      {drill.tacticalZone && (
+                        <span className="px-2 py-0.5 bg-sky-950/90 backdrop-blur-xs text-sky-300 text-[10px] font-bold rounded-lg border border-sky-800/80">
+                          {drill.tacticalZone}
+                        </span>
+                      )}
                     </div>
 
                     <div className="absolute top-3 right-3">
@@ -459,9 +514,15 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
                   {/* CONTENUTO INFORMATIVO */}
                   <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
                     <div>
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 mb-1">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 mb-1 flex-wrap">
                         <span>{drill.phase}</span>
-                        <span>•</span>
+                        {drill.tacticalZone && (
+                          <>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-sky-800">{drill.tacticalZone}</span>
+                          </>
+                        )}
+                        <span className="text-slate-300">•</span>
                         <span className="text-slate-500">{drill.intensity || 'Media'} intensità</span>
                       </div>
 
@@ -665,6 +726,35 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                {/* Zona di Costruzione / Finalizzazione */}
+                <div>
+                  <label className="font-black text-[11px] uppercase text-slate-600 block mb-1">
+                    Zona del Campo:
+                  </label>
+                  <select
+                    value={currentDrill.tacticalZone || 'Zona di costruzione bassa'}
+                    onChange={(e) => setCurrentDrill({ ...currentDrill, tacticalZone: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {DRILL_TACTICAL_ZONES.map((zone) => (
+                      <option key={zone} value={zone}>
+                        {zone}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Banner 4 Principi Metodologici */}
+                <div className="bg-emerald-50 border border-emerald-200/90 rounded-2xl p-3 text-xs shadow-2xs">
+                  <div className="flex items-center gap-1.5 font-black text-emerald-950 mb-1">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Principi Fondamentali dell'Esercitazione</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-900 leading-snug font-medium">
+                    Tutte le esercitazioni devono implementare questi 4 principi: <strong>gioco e mi muovo</strong>, <strong>gestione del pallone</strong>, <strong>riaggressione</strong> e <strong>contrattacco</strong>.
+                  </p>
                 </div>
 
                 {/* Durata, Giocatori, Intensità */}
