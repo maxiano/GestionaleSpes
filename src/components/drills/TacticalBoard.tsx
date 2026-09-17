@@ -54,6 +54,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   readOnly = false,
   colorScheme = 'standard'
 }) => {
+  const isBw = colorScheme === 'high_contrast_bw';
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -824,7 +825,6 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     const height = VB_HEIGHT - margin * 2; // 480
     const centerX = VB_WIDTH / 2;
     const centerY = VB_HEIGHT / 2;
-    const isBw = colorScheme === 'high_contrast_bw';
     const lineColor = isBw ? '#0f172a' : '#ffffff';
     const goalFill = isBw ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.2)';
 
@@ -846,22 +846,6 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             <stop offset="0%" stopColor="rgba(0,0,0,0.5)" />
             <stop offset="100%" stopColor="rgba(0,0,0,0)" />
           </radialGradient>
-          {/* Marker frecce tattiche */}
-          <marker id="arrow-solid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill={lineColor} />
-          </marker>
-          <marker id="arrow-dashed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill={isBw ? '#475569' : '#facc15'} />
-          </marker>
-          <marker id="arrow-shot" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill={isBw ? '#0f172a' : '#ef4444'} />
-          </marker>
-          <marker id="arrow-dribble" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill={isBw ? '#334155' : '#38bdf8'} />
-          </marker>
-          <marker id="arrow-selected" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
-          </marker>
         </defs>
 
         {/* Sfondo globale: solido di salvaguardia per la stampa + pattern o alto contrasto B&W */}
@@ -1014,6 +998,44 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   // Rendering delle linee/frecce tracciate
   // Rendering delle linee/frecce tracciate
   const renderLines = () => {
+    // Helper per renderizzare la cuspide/punta della freccia come elemento geometrico SVG esplicito.
+    // In questo modo la punta è parte integrante del DOM grafico e non scompare MAI in stampa, PDF o iframe
+    const renderArrowHead = (
+      tipX: number,
+      tipY: number,
+      angleRad: number,
+      color: string,
+      style: DrillLineStyle,
+      isSelected: boolean
+    ) => {
+      if (style === 'divider') return null;
+
+      const size = style === 'shot' ? 14 : 12;
+      const halfWidth = style === 'shot' ? 7.5 : 6;
+      const deg = (angleRad * 180) / Math.PI;
+
+      return (
+        <g transform={`translate(${tipX}, ${tipY}) rotate(${deg})`} pointerEvents="none">
+          {/* Alone azzurro di selezione attorno alla punta se la linea è selezionata */}
+          {isSelected && (
+            <path
+              d={`M 0 0 L ${-size - 3} ${-halfWidth - 3} L ${-size * 0.7 - 2} 0 L ${-size - 3} ${halfWidth + 3} Z`}
+              fill="#38bdf8"
+              opacity="0.45"
+            />
+          )}
+          {/* Punta a freccia sportiva solida, nitida e visibile su qualsiasi sfondo/stampa */}
+          <path
+            d={`M 0 0 L ${-size} ${-halfWidth} L ${-size * 0.75} 0 L ${-size} ${halfWidth} Z`}
+            fill={color}
+            stroke={color}
+            strokeWidth="1"
+            strokeLinejoin="round"
+          />
+        </g>
+      );
+    };
+
     return (
       <g id="tactical-lines-layer">
         {lines.map((l) => {
@@ -1029,7 +1051,6 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
 
           let stroke = '#ffffff';
           let strokeDasharray = 'none';
-          let markerEnd = isSelected ? 'url(#arrow-selected)' : 'url(#arrow-solid)';
 
           if (l.style === 'divider') {
             stroke = isSelected ? '#38bdf8' : '#f8fafc'; // Bianco puro ad alto contrasto
@@ -1122,18 +1143,14 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               </g>
             );
           } else if (l.style === 'pass') {
-            stroke = isSelected ? '#38bdf8' : '#facc15'; // Giallo vivo tratteggiato (o azzurro se selezionato)
+            stroke = isSelected ? '#38bdf8' : (isBw ? '#1e293b' : '#facc15'); // Giallo vivo tratteggiato (o scuro se b&w)
             strokeDasharray = '8,6';
-            markerEnd = isSelected ? 'url(#arrow-selected)' : 'url(#arrow-dashed)';
           } else if (l.style === 'run') {
-            stroke = isSelected ? '#38bdf8' : '#ffffff'; // Bianco solido
-            markerEnd = isSelected ? 'url(#arrow-selected)' : 'url(#arrow-solid)';
+            stroke = isSelected ? '#38bdf8' : (isBw ? '#0f172a' : '#ffffff'); // Bianco solido (o scuro se b&w)
           } else if (l.style === 'shot') {
-            stroke = isSelected ? '#38bdf8' : '#ef4444'; // Rosso forte
-            markerEnd = isSelected ? 'url(#arrow-selected)' : 'url(#arrow-shot)';
+            stroke = isSelected ? '#38bdf8' : (isBw ? '#0f172a' : '#ef4444'); // Rosso forte (o scuro se b&w)
           } else if (l.style === 'dribble') {
-            stroke = isSelected ? '#ffffff' : '#38bdf8'; // Azzurro
-            markerEnd = isSelected ? 'url(#arrow-selected)' : 'url(#arrow-dribble)';
+            stroke = isSelected ? '#ffffff' : (isBw ? '#1e293b' : '#38bdf8'); // Azzurro (o scuro se b&w)
             // Linea ondulata usando curva di Bézier
             const midX = (p1.x + p2.x) / 2;
             const midY = (p1.y + p2.y) / 2;
@@ -1142,6 +1159,11 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             const perpX = -dy * 0.15;
             const perpY = dx * 0.15;
             const dPath = `M ${p1.x} ${p1.y} Q ${midX + perpX} ${midY + perpY} ${midX} ${midY} T ${p2.x} ${p2.y}`;
+
+            // Calcolo direzione tangente al punto finale p2
+            const endDx = p2.x - (midX - perpX);
+            const endDy = p2.y - (midY - perpY);
+            const angle = Math.atan2(endDy, endDx);
 
             return (
               <g
@@ -1171,9 +1193,10 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   stroke={stroke}
                   strokeWidth={strokeWidth}
                   fill="none"
-                  markerEnd={markerEnd}
                   opacity={isSelected ? 1 : 0.95}
                 />
+                {/* Punta geometrica esplicita della freccia */}
+                {renderArrowHead(p2.x, p2.y, angle, stroke, l.style, isSelected)}
 
                 {/* Maniglie interattive per spostare ed allungare */}
                 {!readOnly && isSelected && isPrimary && (
@@ -1207,6 +1230,9 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               </g>
             );
           }
+
+          // Linee rette (corsa, passaggio, tiro)
+          const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
           return (
             <g
@@ -1243,9 +1269,10 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 stroke={stroke}
                 strokeWidth={strokeWidth}
                 strokeDasharray={strokeDasharray}
-                markerEnd={markerEnd}
                 opacity={isSelected ? 1 : 0.95}
               />
+              {/* Punta geometrica esplicita della freccia */}
+              {renderArrowHead(p2.x, p2.y, angle, stroke, l.style, isSelected)}
 
               {/* Maniglie interattive per spostamento ed estremità */}
               {!readOnly && isSelected && isPrimary && (
@@ -1281,41 +1308,40 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         })}
 
         {/* Linea attiva in corso di tracciamento */}
-        {drawingLine && (
-          <line
-            x1={(drawingLine.start.x / 100) * VB_WIDTH}
-            y1={(drawingLine.start.y / 100) * VB_HEIGHT}
-            x2={(drawingLine.current.x / 100) * VB_WIDTH}
-            y2={(drawingLine.current.y / 100) * VB_HEIGHT}
-            stroke={
-              activeTool === 'pass'
-                ? '#facc15'
-                : activeTool === 'shot'
-                ? '#ef4444'
-                : activeTool === 'dribble'
-                ? '#38bdf8'
-                : activeTool === 'divider'
-                ? '#f8fafc'
-                : '#ffffff'
-            }
-            strokeWidth={activeTool === 'divider' ? '4' : '3.5'}
-            strokeDasharray={
-              activeTool === 'divider' ? '10,7' : activeTool === 'pass' ? '8,6' : 'none'
-            }
-            opacity="0.9"
-            markerEnd={
-              activeTool === 'divider'
-                ? 'none'
-                : activeTool === 'pass'
-                ? 'url(#arrow-dashed)'
-                : activeTool === 'shot'
-                ? 'url(#arrow-shot)'
-                : activeTool === 'dribble'
-                ? 'url(#arrow-dribble)'
-                : 'url(#arrow-solid)'
-            }
-          />
-        )}
+        {drawingLine && (() => {
+          const startX = (drawingLine.start.x / 100) * VB_WIDTH;
+          const startY = (drawingLine.start.y / 100) * VB_HEIGHT;
+          const currX = (drawingLine.current.x / 100) * VB_WIDTH;
+          const currY = (drawingLine.current.y / 100) * VB_HEIGHT;
+          const tempStroke =
+            activeTool === 'pass'
+              ? (isBw ? '#1e293b' : '#facc15')
+              : activeTool === 'shot'
+              ? (isBw ? '#0f172a' : '#ef4444')
+              : activeTool === 'dribble'
+              ? (isBw ? '#1e293b' : '#38bdf8')
+              : activeTool === 'divider'
+              ? '#f8fafc'
+              : (isBw ? '#0f172a' : '#ffffff');
+          const tempAngle = Math.atan2(currY - startY, currX - startX);
+          return (
+            <>
+              <line
+                x1={startX}
+                y1={startY}
+                x2={currX}
+                y2={currY}
+                stroke={tempStroke}
+                strokeWidth={activeTool === 'divider' ? '4' : '3.5'}
+                strokeDasharray={
+                  activeTool === 'divider' ? '10,7' : activeTool === 'pass' ? '8,6' : 'none'
+                }
+                opacity="0.9"
+              />
+              {renderArrowHead(currX, currY, tempAngle, tempStroke, activeTool, false)}
+            </>
+          );
+        })()}
       </g>
     );
   };
