@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Player, Callup, LockerAssignment } from '../types';
+import { Player, Callup, LockerAssignment, TournamentMatch } from '../types';
 import { formatDateIT, normalizeDateToISO } from './formatters';
 
 export function sendToWhatsApp(text: string, title = "Spes Montesacro Report") {
@@ -459,3 +459,284 @@ export function formatLockerRoomsWhatsApp(
 
   return msg;
 }
+
+export interface ClubTournamentExportItem {
+  id: string;
+  name: string;
+  teamId: string;
+  categoryName?: string;
+  coachName: string;
+  statusText: 'In corso' | 'Passato';
+  startDate: string;
+  endDate: string;
+  location: string;
+  matches: TournamentMatch[];
+}
+
+export function exportClubTournamentsToExcel(
+  items: ClubTournamentExportItem[],
+  filterLabel = 'Tutti'
+) {
+  // Palette di tinte pastello delicate ed eleganti per evidenziare le categorie
+  const CATEGORY_ROW_TONES = [
+    'EBF3FC', // Blu pastello delicato (in tinta col blu zaffiro)
+    'EAF8ED', // Menta chiarissimo
+    'FFF8E7', // Ambra / vaniglia chiarissimo
+    'F4EBFB', // Lilla pastello chiarissimo
+    'FDEEE5', // Pesca chiarissimo
+    'E6F8F6', // Acqua marina pastello
+    'FCE8F0', // Rosa tenue pastello
+    'F1F3F9', // Ghiaccio / ardesia chiarissimo
+    'FEF4E8', // Albicocca chiarissimo
+    'E8F5E9', // Salvia pastello
+    'EDE7F6', // Violetto chiarissimo
+    'E0F2F1'  // Turchese chiarissimo
+  ];
+
+  const categoryColorMap = new Map<string, string>();
+  let nextColorIndex = 0;
+  const getCategoryColor = (cat: string): string => {
+    const key = (cat || 'generale').trim().toLowerCase();
+    if (!categoryColorMap.has(key)) {
+      categoryColorMap.set(key, CATEGORY_ROW_TONES[nextColorIndex % CATEGORY_ROW_TONES.length]);
+      nextColorIndex++;
+    }
+    return categoryColorMap.get(key)!;
+  };
+
+  // Blu Zaffiro ufficiale (#0F52BA) per le intestazioni
+  const SAPPHIRE_BLUE = '0F52BA';
+
+  const headerStyle = {
+    fill: {
+      patternType: 'solid',
+      fgColor: { rgb: SAPPHIRE_BLUE }
+    },
+    font: {
+      name: 'Calibri',
+      sz: 11,
+      bold: true,
+      color: { rgb: 'FFFFFF' }
+    },
+    alignment: {
+      vertical: 'center',
+      horizontal: 'center',
+      wrapText: true
+    },
+    border: {
+      top: { style: 'thin', color: { rgb: '093574' } },
+      bottom: { style: 'medium', color: { rgb: '093574' } },
+      left: { style: 'thin', color: { rgb: '093574' } },
+      right: { style: 'thin', color: { rgb: '093574' } }
+    }
+  };
+
+  // Foglio 1: Calendario Completo Partite (Ogni riga una partita)
+  // Nota: Colonna 'Stato Torneo' rimossa su richiesta utente.
+  // Colonna 'Stato Gara': solo due opzioni 'Da disputare' o 'Disputata'.
+  const allMatchesData: any[] = [];
+  let matchSeq = 1;
+
+  items.forEach((t) => {
+    const catName = t.teamId || t.categoryName || '-';
+    if (t.matches.length === 0) {
+      allMatchesData.push({
+        '#': '-',
+        'Nome Torneo': t.name,
+        'Categoria / Squadra': catName,
+        'Mister Responsabile': t.coachName || 'Staff Tecnico',
+        'Data Gara': t.startDate ? formatDateIT(t.startDate) : '-',
+        'Orario': '-',
+        'Partita / Incontro': 'Nessuna partita programmata',
+        'Campo / Impianto': t.location || '-',
+        'Risultato': '-',
+        'Stato Gara': 'Da disputare'
+      });
+    } else {
+      t.matches.forEach((m) => {
+        allMatchesData.push({
+          '#': matchSeq++,
+          'Nome Torneo': t.name,
+          'Categoria / Squadra': catName,
+          'Mister Responsabile': t.coachName || 'Staff Tecnico',
+          'Data Gara': m.date ? formatDateIT(m.date) : '-',
+          'Orario': m.time || '-',
+          'Partita / Incontro': m.match,
+          'Campo / Impianto': m.location || t.location || '-',
+          'Risultato': m.result || '-',
+          'Stato Gara': m.played ? 'Disputata' : 'Da disputare'
+        });
+      });
+    }
+  });
+
+  const wsMatches = XLSX.utils.json_to_sheet(allMatchesData);
+  const matchCols = [
+    { wch: 6 },  // #
+    { wch: 28 }, // Nome Torneo
+    { wch: 24 }, // Categoria / Squadra
+    { wch: 24 }, // Mister Responsabile
+    { wch: 14 }, // Data Gara
+    { wch: 10 }, // Orario
+    { wch: 34 }, // Partita / Incontro
+    { wch: 26 }, // Campo / Impianto
+    { wch: 16 }, // Risultato
+    { wch: 18 }  // Stato Gara (Da disputare o Disputata)
+  ];
+  wsMatches['!cols'] = matchCols;
+
+  // Stile intestazioni Foglio 1: Bold, Bianco su Blu Zaffiro
+  for (let c = 0; c < matchCols.length; c++) {
+    const cellRef = XLSX.utils.encode_cell({ r: 0, c });
+    if (wsMatches[cellRef]) {
+      wsMatches[cellRef].s = headerStyle;
+    }
+  }
+
+  // Stile righe dati Foglio 1: Evidenziazione a colore distinto per ciascuna categoria
+  allMatchesData.forEach((row, rowIdx) => {
+    const r = rowIdx + 1;
+    const cat = row['Categoria / Squadra'] || '';
+    const rowColor = getCategoryColor(cat);
+
+    for (let c = 0; c < matchCols.length; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c });
+      if (wsMatches[cellRef]) {
+        const isCenter = c === 0 || c === 4 || c === 5 || c === 8 || c === 9;
+        const isBold = c === 0 || c === 6 || c === 8;
+
+        wsMatches[cellRef].s = {
+          fill: {
+            patternType: 'solid',
+            fgColor: { rgb: rowColor }
+          },
+          font: {
+            name: 'Calibri',
+            sz: 10,
+            color: { rgb: '0F172A' },
+            bold: isBold
+          },
+          alignment: {
+            vertical: 'center',
+            horizontal: isCenter ? 'center' : 'left',
+            wrapText: true
+          },
+          border: {
+            top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+            right: { style: 'thin', color: { rgb: 'E2E8F0' } }
+          }
+        };
+      }
+    }
+  });
+
+  wsMatches['!rows'] = [
+    { hpt: 26 },
+    ...allMatchesData.map(() => ({ hpt: 22 }))
+  ];
+
+  // Foglio 2: Riepilogo Tornei
+  const tournamentsData = items.map((t) => {
+    const totalMatches = t.matches.length;
+    const playedMatches = t.matches.filter((m) => m.played).length;
+    const pendingMatches = totalMatches - playedMatches;
+    const matchesSummary = t.matches
+      .map((m) => {
+        const d = m.date ? formatDateIT(m.date) : '';
+        const time = m.time ? `ore ${m.time}` : '';
+        const res = m.result ? `[${m.result}]` : m.played ? '[Disputata]' : '[Da disputare]';
+        return `${d} ${time} ${m.match} ${res}`.trim();
+      })
+      .join(' | ');
+
+    return {
+      'Nome Torneo': t.name,
+      'Categoria / Squadra': t.teamId || t.categoryName || 'Tutte',
+      'Mister Responsabile': t.coachName || 'Staff Tecnico',
+      'Data Inizio': t.startDate ? formatDateIT(t.startDate) : '-',
+      'Data Fine': t.endDate ? formatDateIT(t.endDate) : '-',
+      'Sede / Impianto': t.location || '-',
+      'Totale Gare': totalMatches,
+      'Gare Disputate': playedMatches,
+      'Gare Da Giocare': pendingMatches,
+      'Calendario Gare Sintesi': matchesSummary || 'Nessuna gara registrata'
+    };
+  });
+
+  const wsTournaments = XLSX.utils.json_to_sheet(tournamentsData);
+  const tourCols = [
+    { wch: 28 }, // Nome Torneo
+    { wch: 26 }, // Categoria / Squadra
+    { wch: 24 }, // Mister Responsabile
+    { wch: 14 }, // Data Inizio
+    { wch: 14 }, // Data Fine
+    { wch: 26 }, // Sede
+    { wch: 12 }, // Totale Gare
+    { wch: 14 }, // Gare Disputate
+    { wch: 14 }, // Gare Da Giocare
+    { wch: 45 }  // Calendario Gare Sintesi
+  ];
+  wsTournaments['!cols'] = tourCols;
+
+  // Stile intestazioni Foglio 2: Bold, Bianco su Blu Zaffiro
+  for (let c = 0; c < tourCols.length; c++) {
+    const cellRef = XLSX.utils.encode_cell({ r: 0, c });
+    if (wsTournaments[cellRef]) {
+      wsTournaments[cellRef].s = headerStyle;
+    }
+  }
+
+  // Stile righe Foglio 2: Evidenziazione a colore distinto per ciascuna categoria
+  tournamentsData.forEach((row, rowIdx) => {
+    const r = rowIdx + 1;
+    const cat = row['Categoria / Squadra'] || '';
+    const rowColor = getCategoryColor(cat);
+
+    for (let c = 0; c < tourCols.length; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c });
+      if (wsTournaments[cellRef]) {
+        const isCenter = c === 3 || c === 4 || c === 6 || c === 7 || c === 8;
+        wsTournaments[cellRef].s = {
+          fill: {
+            patternType: 'solid',
+            fgColor: { rgb: rowColor }
+          },
+          font: {
+            name: 'Calibri',
+            sz: 10,
+            color: { rgb: '0F172A' },
+            bold: c === 0
+          },
+          alignment: {
+            vertical: 'center',
+            horizontal: isCenter ? 'center' : 'left',
+            wrapText: true
+          },
+          border: {
+            top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+            right: { style: 'thin', color: { rgb: 'E2E8F0' } }
+          }
+        };
+      }
+    }
+  });
+
+  wsTournaments['!rows'] = [
+    { hpt: 26 },
+    ...tournamentsData.map(() => ({ hpt: 22 }))
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  // Il Foglio 1 è il Calendario Partite (ogni riga una partita)
+  XLSX.utils.book_append_sheet(workbook, wsMatches, 'Partite Tornei (Calendario)');
+  XLSX.utils.book_append_sheet(workbook, wsTournaments, 'Riepilogo Tornei');
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const cleanFilter = filterLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
+  XLSX.writeFile(workbook, `Spes_Montesacro_Partite_Tornei_${cleanFilter}_${dateStr}.xlsx`);
+}
+

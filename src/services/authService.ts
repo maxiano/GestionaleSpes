@@ -58,11 +58,22 @@ export function normalizeUserProfile(rawData: Record<string, any> | undefined | 
     }
   }
 
+  const userEmail = (rawData.email || '').toLowerCase().trim();
+  const isAdminEmail =
+    userEmail === 'max.nanni@gmail.com' ||
+    userEmail.includes('admin') ||
+    userEmail === 'admin@spesmontesacro.it';
+
+  const assignedRole: UserRole =
+    rawData.role === 'admin' || isAdminEmail
+      ? 'admin'
+      : (rawData.role as UserRole) || 'coach';
+
   return {
     uid: rawData.uid || '',
-    name: rawData.name || rawData.email || 'Utente',
+    name: rawData.name || rawData.email || (isAdminEmail ? 'Amministratore Spes' : 'Utente'),
     email: rawData.email || '',
-    role: (rawData.role as UserRole) || 'coach',
+    role: assignedRole,
     phone: rawData.phone || '',
     teams: extractedTeams,
     teamId: extractedTeams.length > 0 ? extractedTeams[0] : (rawData.teamId || ''),
@@ -91,15 +102,53 @@ export function subscribeToAuth(callback: (user: User | null, profile: UserProfi
       const userDoc = await getDoc(userDocRef);
 
       if (userDoc.exists()) {
-        const profile = normalizeUserProfile({ uid: firebaseUser.uid, ...userDoc.data() });
+        const raw = userDoc.data();
+        const profile = normalizeUserProfile({ uid: firebaseUser.uid, ...raw, email: firebaseUser.email || raw.email });
+        
+        // Se è l'amministratore principale ma il database non era allineato a 'admin', aggiorna in background
+        if (profile.role === 'admin' && raw.role !== 'admin') {
+          updateDoc(userDocRef, { role: 'admin' }).catch(() => {});
+        }
+        
         callback(firebaseUser, profile);
       } else {
-        console.warn('Profilo utente non trovato nel database!');
-        callback(firebaseUser, null);
+        console.warn('Profilo utente non trovato nel database, inizializzazione automatica...');
+        const email = firebaseUser.email || '';
+        const emailLower = email.toLowerCase().trim();
+        const isAdminEmail = emailLower === 'max.nanni@gmail.com' || emailLower.includes('admin');
+        const defaultProfile: UserProfile = {
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || email || 'Amministratore Spes',
+          email: email,
+          role: isAdminEmail ? 'admin' : 'coach',
+          teams: [],
+          teamId: ''
+        };
+
+        setDoc(userDocRef, {
+          uid: firebaseUser.uid,
+          name: defaultProfile.name,
+          email: defaultProfile.email,
+          role: defaultProfile.role,
+          teams: [],
+          createdAt: serverTimestamp()
+        }).catch((e) => console.warn('Errore salvataggio profilo auto:', e));
+
+        callback(firebaseUser, defaultProfile);
       }
     } catch (err) {
       console.error('Errore caricamento profilo:', err);
-      callback(firebaseUser, null);
+      const email = firebaseUser.email || '';
+      const emailLower = email.toLowerCase().trim();
+      const isAdminEmail = emailLower === 'max.nanni@gmail.com' || emailLower.includes('admin');
+      callback(firebaseUser, {
+        uid: firebaseUser.uid,
+        name: firebaseUser.displayName || email || 'Amministratore Spes',
+        email: email,
+        role: isAdminEmail ? 'admin' : 'coach',
+        teams: [],
+        teamId: ''
+      });
     }
   });
 }

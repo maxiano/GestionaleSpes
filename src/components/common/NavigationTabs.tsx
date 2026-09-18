@@ -90,7 +90,16 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
       )
     },
 
-    // Gruppo 2: Strutture & Club (5 voci - solo Admin)
+    // Gruppo 2: Strutture & Club (solo Admin)
+    {
+      id: 'tab-club-tournaments',
+      label: 'Tornei del Club (Admin)',
+      category: 'club',
+      adminOnly: true,
+      icon: (active) => (
+        <Trophy className={`w-4 h-4 shrink-0 transition ${active ? 'text-amber-300' : 'text-amber-500'}`} />
+      )
+    },
     {
       id: 'tab-field-diagram',
       label: 'Schema Campi',
@@ -246,7 +255,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
                 <div className="px-2 py-1">
                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                    Gestione Club & Strutture
+                    Gestione Club (Admin)
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -309,7 +318,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
                 }`}
               >
                 <Layers className="w-3.5 h-3.5 text-slate-500" />
-                <span>Tutte le sezioni (10)</span>
+                <span>Tutte le sezioni ({visibleTabs.length})</span>
               </button>
               <button
                 type="button"
@@ -321,7 +330,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>Attività Squadra (5)</span>
+                <span>Attività Squadra ({teamTabs.length})</span>
               </button>
               <button
                 type="button"
@@ -333,13 +342,13 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                <span>Strutture &amp; Club (5)</span>
+                <span>Gestione Club ({clubTabs.length})</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Riga 1: Attività Squadra (5 colonne bilanciate) */}
+        {/* Riga 1: Attività Squadra (6 colonne bilanciate) */}
         {(selectedCategory === 'all' || selectedCategory === 'team') && (
           <div className="space-y-1.5">
             {isAdmin && selectedCategory === 'all' && (
@@ -350,7 +359,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
                 </span>
               </div>
             )}
-            <div className="grid grid-cols-5 gap-2 w-full">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 w-full">
               {teamTabs.map(renderTabButton)}
             </div>
           </div>
@@ -361,18 +370,18 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
           <div className="h-px bg-slate-100 my-0.5"></div>
         )}
 
-        {/* Riga 2: Gestione Club & Strutture (5 colonne bilanciate) */}
+        {/* Riga 2: Gestione Club & Strutture (6 colonne bilanciate) */}
         {isAdmin && (selectedCategory === 'all' || selectedCategory === 'club') && clubTabs.length > 0 && (
           <div className="space-y-1.5">
             {selectedCategory === 'all' && (
               <div className="flex items-center gap-2 px-1">
                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800">
-                  Gestione Strutture &amp; Club
+                  Gestione Club (Admin)
                 </span>
               </div>
             )}
-            <div className="grid grid-cols-5 gap-2 w-full">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 w-full">
               {clubTabs.map(renderTabButton)}
             </div>
           </div>

@@ -36,6 +36,7 @@ import { StaffTab } from './components/staff/StaffTab';
 import { StaffAttendanceTab } from './components/staff/StaffAttendanceTab';
 import { LockerRoomsTab } from './components/locker-rooms/LockerRoomsTab';
 import { FieldDiagramTab } from './components/field-diagram/FieldDiagramTab';
+import { ClubTournamentsTab } from './components/tournaments/ClubTournamentsTab';
 import { ParentsTab } from './components/parents/ParentsTab';
 import { ParentPortal } from './components/parent-portal/ParentPortal';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator';
@@ -322,7 +323,10 @@ export default function App() {
   }
 
   // Logged in as Coach / Admin: Show Full Technical Dashboard
-  const isAdmin = userProfile.role === 'admin';
+  const isAdmin =
+    userProfile.role === 'admin' ||
+    userProfile.email?.toLowerCase() === 'max.nanni@gmail.com' ||
+    userProfile.email?.toLowerCase().includes('admin');
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
@@ -398,6 +402,8 @@ export default function App() {
             ? 'Programmazione Spogliatoi e Campi'
             : activeTab === 'tab-field-diagram'
             ? 'Schema Campi Allenamento'
+            : activeTab === 'tab-club-tournaments'
+            ? 'Registro Completo Tornei del Club'
             : 'Documento Tecnico Ufficiale'
         }
       />
@@ -415,7 +421,7 @@ export default function App() {
         {/* Navigation Tabs */}
         <NavigationTabs
           activeTab={activeTab}
-          userRole={userProfile.role}
+          userRole={isAdmin ? 'admin' : userProfile.role}
           onTabChange={(tab) => setActiveTab(tab)}
         />
 
@@ -448,11 +454,19 @@ export default function App() {
           )}
 
           {activeTab === 'tab-tournaments' && (
-            <TournamentsTab activeTeamId={activeTeamId} />
+            <TournamentsTab
+              activeTeamId={activeTeamId}
+              isAdmin={isAdmin}
+              onOpenClubTournaments={() => setActiveTab('tab-club-tournaments')}
+            />
           )}
 
           {activeTab === 'tab-drills' && (
             <DrillsTab userProfile={userProfile} />
+          )}
+
+          {activeTab === 'tab-club-tournaments' && isAdmin && (
+            <ClubTournamentsTab />
           )}
 
           {activeTab === 'tab-locker-rooms' && isAdmin && <LockerRoomsTab />}

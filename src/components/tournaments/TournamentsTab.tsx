@@ -50,9 +50,15 @@ import { openOrDownloadPdf, formatPdfFileSize } from '../../utils/pdfHelpers';
 
 interface TournamentsTabProps {
   activeTeamId: string;
+  isAdmin?: boolean;
+  onOpenClubTournaments?: () => void;
 }
 
-export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) => {
+export const TournamentsTab: React.FC<TournamentsTabProps> = ({
+  activeTeamId,
+  isAdmin,
+  onOpenClubTournaments
+}) => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<TournamentMatch[]>([]);
   const [rosterPlayers, setRosterPlayers] = useState<Player[]>([]);
@@ -408,6 +414,17 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({ activeTeamId }) 
               <span>Export</span>
             </button>
           </div>
+
+          {isAdmin && onOpenClubTournaments && (
+            <button
+              onClick={onOpenClubTournaments}
+              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 border border-amber-500/30 text-xs px-3.5 py-2.5 rounded-xl font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+              title="Apri la schermata Panoramica Tornei del Club (Admin)"
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-600" />
+              <span>Tornei del Club (Admin)</span>
+            </button>
+          )}
 
           <button
             onClick={handleOpenAddTournament}

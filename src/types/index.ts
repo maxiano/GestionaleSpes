@@ -152,7 +152,8 @@ export type ActiveTab =
   | 'tab-parents'
   | 'tab-staff-attendance'
   | 'tab-locker-rooms'
-  | 'tab-field-diagram';
+  | 'tab-field-diagram'
+  | 'tab-club-tournaments';
 
 export type DrillPitchType = 'full' | 'half' | 'penalty_box' | 'box';
 
