@@ -64,6 +64,10 @@ export interface AttendanceSession {
 export interface Callup {
   id: string;
   teamId: string;
+  matchType?: 'Amichevole' | 'Campionato' | 'Torneo' | string;
+  tournamentId?: string;
+  tournamentName?: string;
+  coachName?: string;
   opponent: string;
   location: string;
   date: string;
@@ -71,6 +75,7 @@ export interface Callup {
   gatheringTime: string;
   players: (string | { id?: string; playerId?: string; name?: string; playerName?: string })[];
   responses?: Record<string, 'confirmed' | 'present' | 'absent' | string>;
+  notes?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
 }

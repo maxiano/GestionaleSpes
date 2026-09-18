@@ -391,7 +391,49 @@ export function formatCallupWhatsAppInvite(callup: Callup): string {
 
 export function formatCallupWhatsAppFinal(callup: Callup): string {
   const siren = "\uD83D\uDEA8";
-  return `${siren} CONVOCAZIONE DEFINITIVA - Spes Montesacro ${siren}\n\nPartita: *${callup.opponent}*\nRitrovo: *${callup.gatheringTime}*\n\nLa lista è stata finalizzata. Controllate il portale per i dettagli definitivi!`;
+  let typeLabel = "PARTITA";
+  if (callup.matchType === 'Torneo') {
+    typeLabel = callup.tournamentName ? `TORNEO (${callup.tournamentName})` : 'TORNEO';
+  } else if (callup.matchType === 'Amichevole') {
+    typeLabel = 'GARA AMICHEVOLE';
+  } else if (callup.matchType === 'Campionato') {
+    typeLabel = 'GARA DI CAMPIONATO';
+  }
+
+  let msg = `${siren} *CONVOCAZIONE GARA - SPES MONTESACRO* ${siren}\n\n`;
+  msg += `🏆 *Tipo:* ${typeLabel}\n`;
+  msg += `⚽ *Partita:* Spes Montesacro vs *${callup.opponent}*\n`;
+  if (callup.coachName) {
+    msg += `👔 *Mister:* ${callup.coachName}\n`;
+  }
+  msg += `📅 *Data:* ${formatDateIT(callup.date)}\n`;
+  msg += `🕒 *Inizio Gara:* ${callup.matchTime}\n`;
+  msg += `⏰ *Ritrovo al Campo:* ${callup.gatheringTime}\n`;
+  msg += `📍 *Luogo:* ${callup.location}\n\n`;
+
+  // Players list
+  const players = (callup.players || []).map((p) => {
+    if (typeof p === 'string' && p.includes('|')) return p.split('|')[1];
+    if (typeof p === 'string') return p;
+    return (p as any)?.name || 'Atleta';
+  });
+
+  if (players.length > 0) {
+    msg += `👥 *CONVOCATI (${players.length}):*\n`;
+    players.forEach((pName, idx) => {
+      msg += `${idx + 1}. ${pName}\n`;
+    });
+    msg += `\n`;
+  }
+
+  // Mandatory notes
+  msg += `⚠️ *DISPOSIZIONI E REGOLE OBBLIGATORIE:*\n`;
+  msg += `• Venire al campo in tuta di rappresentanza e parastinchi obbligatori.\n`;
+  msg += `• Non venire al campo con gli scarpini già indossati.\n`;
+  msg += `• Avvisare sempre prima di eventuali assenze o ritardi.\n\n`;
+  msg += `🖤🤍💚 *Forza Spes Montesacro!*`;
+
+  return msg;
 }
 
 export function exportLockerRoomsToExcelFile(

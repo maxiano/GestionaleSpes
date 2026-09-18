@@ -450,7 +450,11 @@ export default function App() {
           )}
 
           {activeTab === 'tab-callup' && (
-            <CallupsTab players={players} activeTeamId={activeTeamId} />
+            <CallupsTab
+              players={players}
+              activeTeamId={activeTeamId}
+              userProfile={userProfile}
+            />
           )}
 
           {activeTab === 'tab-tournaments' && (
