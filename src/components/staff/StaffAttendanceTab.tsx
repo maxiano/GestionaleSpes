@@ -3,6 +3,7 @@ import { StaffAttendance, StaffEquipment, UserProfile } from '../../types';
 import {
   getStaffAttendances,
   saveStaffAttendance,
+  updateStaffAttendance,
   deleteStaffAttendance,
   getStaffEquipmentList,
   saveStaffEquipment,
@@ -15,6 +16,8 @@ import {
   Package,
   Printer,
   Trash2,
+  Pencil,
+  X,
   Plus,
   Loader2,
   CheckCircle2,
@@ -38,6 +41,15 @@ export const StaffAttendanceTab: React.FC = () => {
   const [attReplacementId, setAttReplacementId] = useState('');
   const [attNotes, setAttNotes] = useState('');
   const [submittingAtt, setSubmittingAtt] = useState(false);
+
+  // Edit modal state - Attendance
+  const [editingAttendance, setEditingAttendance] = useState<StaffAttendance | null>(null);
+  const [editAttDate, setEditAttDate] = useState('');
+  const [editAttCoachId, setEditAttCoachId] = useState('');
+  const [editAttStatus, setEditAttStatus] = useState<'Presente' | 'Assente'>('Presente');
+  const [editAttReplacementId, setEditAttReplacementId] = useState('');
+  const [editAttNotes, setEditAttNotes] = useState('');
+  const [savingEditAtt, setSavingEditAtt] = useState(false);
 
   // Form states - Equipment
   const [eqCoachId, setEqCoachId] = useState('');
@@ -141,6 +153,43 @@ export const StaffAttendanceTab: React.FC = () => {
       alert('Errore: ' + err.message);
     } finally {
       setSubmittingEq(false);
+    }
+  };
+
+  const handleOpenEditAttendance = (item: StaffAttendance) => {
+    setEditingAttendance(item);
+    setEditAttDate(item.date);
+    setEditAttCoachId(item.coachId);
+    setEditAttStatus(item.status);
+    setEditAttReplacementId(item.replacementId || '');
+    setEditAttNotes(item.notes || '');
+  };
+
+  const handleCloseEditAttendance = () => {
+    setEditingAttendance(null);
+  };
+
+  const handleUpdateAttendanceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAttendance) return;
+    if (!editAttCoachId) return alert('Seleziona il tecnico!');
+    setSavingEditAtt(true);
+
+    try {
+      await updateStaffAttendance(editingAttendance.id, {
+        date: editAttDate,
+        coachId: editAttCoachId,
+        status: editAttStatus,
+        replacementId: editAttStatus === 'Assente' ? editAttReplacementId || null : null,
+        notes: editAttNotes.trim()
+      });
+
+      setEditingAttendance(null);
+      await loadData();
+    } catch (err: any) {
+      alert('Errore durante l\'aggiornamento: ' + err.message);
+    } finally {
+      setSavingEditAtt(false);
     }
   };
 
@@ -328,7 +377,7 @@ export const StaffAttendanceTab: React.FC = () => {
                     <th className="p-3 font-bold">Stato</th>
                     <th className="p-3 font-bold">Sostituito da</th>
                     <th className="p-3 font-bold">Note / Motivo</th>
-                    <th className="p-3 font-bold text-center print:hidden">Azioni</th>
+                    <th className="p-3 font-bold text-center print:hidden w-44">Azioni</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
@@ -361,13 +410,26 @@ export const StaffAttendanceTab: React.FC = () => {
                           {item.notes ? `"${item.notes}"` : '-'}
                         </td>
                         <td className="p-3 text-center print:hidden">
-                          <button
-                            onClick={() => handleDeleteAttendance(item.id)}
-                            className="text-rose-600 hover:text-rose-800 text-xs font-bold px-2.5 py-1 bg-white border border-rose-200 rounded-lg shadow-sm transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 inline mr-1" />
-                            <span>Elimina</span>
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditAttendance(item)}
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs font-bold px-2.5 py-1.5 bg-white border border-blue-200 rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer active:scale-95"
+                              title="Modifica presenza o sostituzione"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              <span>Modifica</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAttendance(item.id)}
+                              className="text-rose-600 hover:text-rose-800 hover:bg-rose-50 text-xs font-bold px-2.5 py-1.5 bg-white border border-rose-200 rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer active:scale-95"
+                              title="Elimina voce dallo storico"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Elimina</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -595,6 +657,168 @@ export const StaffAttendanceTab: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modale Modifica Presenza / Sostituzione Staff */}
+      {editingAttendance && (
+        <div
+          id="modal-edit-staff-attendance"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden animate-fade-in"
+          onClick={handleCloseEditAttendance}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl border border-blue-500/30">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black tracking-tight">Modifica Presenza / Sostituzione</h3>
+                  <p className="text-[11px] text-slate-400 font-medium">Aggiorna la registrazione per lo staff</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseEditAttendance}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                title="Chiudi"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleUpdateAttendanceSubmit} className="p-6 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Data *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={editAttDate}
+                  onChange={(e) => setEditAttDate(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Tecnico *
+                </label>
+                <select
+                  required
+                  value={editAttCoachId}
+                  onChange={(e) => setEditAttCoachId(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                >
+                  <option value="">Seleziona tecnico...</option>
+                  {staffUsers.map((u) => (
+                    <option key={u.uid} value={u.uid}>
+                      {u.name} ({u.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Stato *
+                </label>
+                <select
+                  value={editAttStatus}
+                  onChange={(e) => setEditAttStatus(e.target.value as 'Presente' | 'Assente')}
+                  className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                >
+                  <option value="Presente">Presente</option>
+                  <option value="Assente">Assente</option>
+                </select>
+              </div>
+
+              {editAttStatus === 'Assente' && (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">
+                      🔄 Sostituito da (Coach di riserva)
+                    </label>
+                    <select
+                      value={editAttReplacementId}
+                      onChange={(e) => setEditAttReplacementId(e.target.value)}
+                      className="w-full bg-white border border-amber-300 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none cursor-pointer"
+                    >
+                      <option value="">Nessun sostituto / Campo scoperto</option>
+                      {staffUsers.map((u) => (
+                        <option key={u.uid} value={u.uid}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">
+                      Note / Motivo Assenza
+                    </label>
+                    <input
+                      type="text"
+                      value={editAttNotes}
+                      onChange={(e) => setEditAttNotes(e.target.value)}
+                      placeholder="es. Motivi personali, influenza..."
+                      className="w-full bg-white border border-amber-300 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {editAttStatus === 'Presente' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Note (Opzionale)
+                  </label>
+                  <input
+                    type="text"
+                    value={editAttNotes}
+                    onChange={(e) => setEditAttNotes(e.target.value)}
+                    placeholder="Eventuali note su campo o attività..."
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleCloseEditAttendance}
+                  disabled={savingEditAtt}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer disabled:opacity-50"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEditAtt}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  {savingEditAtt ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Salvataggio...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Salva Modifiche</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

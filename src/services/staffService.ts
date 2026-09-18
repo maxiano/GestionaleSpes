@@ -3,7 +3,8 @@ import {
   getDocs,
   addDoc,
   doc,
-  deleteDoc
+  deleteDoc,
+  updateDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { StaffAttendance, StaffEquipment } from '../types';
@@ -30,6 +31,16 @@ export async function saveStaffAttendance(data: Omit<StaffAttendance, 'id'>): Pr
     createdAt: new Date()
   });
   return ref.id;
+}
+
+export async function updateStaffAttendance(
+  id: string,
+  data: Partial<Omit<StaffAttendance, 'id'>>
+): Promise<void> {
+  await updateDoc(doc(db, 'staff_attendances', id), {
+    ...data,
+    updatedAt: new Date()
+  });
 }
 
 export async function deleteStaffAttendance(id: string): Promise<void> {
