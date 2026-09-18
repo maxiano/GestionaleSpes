@@ -12,7 +12,8 @@ import {
   exportPlayersToExcelFile,
   exportParentsToExcelFile,
   exportLockerRoomsToExcelFile,
-  readExcelFile
+  readExcelFile,
+  parsePlayerRow
 } from './utils/exports';
 import { getLockerSchedule } from './services/lockerRoomsService';
 import { fetchParentsUsers, createParentAccount } from './services/authService';
@@ -162,43 +163,16 @@ export default function App() {
       if (rows.length === 0) return alert('Il file Excel è vuoto.');
 
       const importedList = rows
-        .map((row) => {
-          const firstName = row['Nome'] || '';
-          const lastName = row['Cognome'] || '';
-          const teamId = row['Squadra / Gruppo'] || row['teamId'] || activeTeamId;
-          if (!firstName && !lastName) return null;
+        .map((row) => parsePlayerRow(row, activeTeamId))
+        .filter(Boolean) as Array<Omit<Player, 'id'>>;
 
-          return {
-            firstName,
-            lastName,
-            name: `${lastName} ${firstName}`.trim(),
-            dob: row['Data di Nascita (YYYY-MM-DD)'] || row['Data di Nascita'] || null,
-            role: row['Ruolo'] || 'Non specificato',
-            jersey: String(row['Numero Maglia'] || ''),
-            medicalExp: row['Scadenza Medica (YYYY-MM-DD)'] || row['Scadenza Medica'] || null,
-            parentPhone: String(
-              row['Telefono Padre / Genitore 1'] ||
-              row['Telefono Padre'] ||
-              row['Tel. Padre'] ||
-              row['Telefono Genitore'] ||
-              row['parentPhone'] ||
-              ''
-            ).trim(),
-            parentPhone2: String(
-              row['Telefono Madre / Genitore 2'] ||
-              row['Telefono Madre'] ||
-              row['Tel. Madre'] ||
-              row['Telefono Genitore 2'] ||
-              row['parentPhone2'] ||
-              ''
-            ).trim(),
-            teamId: teamId || activeTeamId
-          };
-        })
-        .filter(Boolean) as any[];
+      if (importedList.length === 0) {
+        alert('Nessun giocatore valido trovato nel file Excel.');
+        return;
+      }
 
       const count = await batchImportPlayers(importedList);
-      alert(`✅ Importati con successo ${count} giocatori!`);
+      alert(`✅ Importati con successo ${count} giocatori con tutti i dati (matricola, date, ruoli, recapiti, note)!`);
       loadRoster();
     } catch (err: any) {
       console.error(err);

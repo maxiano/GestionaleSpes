@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Player, Callup, LockerAssignment } from '../types';
-import { formatDateIT } from './formatters';
+import { formatDateIT, normalizeDateToISO } from './formatters';
 
 export function sendToWhatsApp(text: string, title = "Spes Montesacro Report") {
   if (navigator.share) {
@@ -91,30 +91,253 @@ export function downloadCSV(filename: string, csvContent: string) {
 }
 
 export function exportRosterCSV(teamId: string, players: Player[]) {
-  let csv = `Cognome;Nome;Numero Maglia;Data Nascita;Ruolo;Scadenza Certificato;Tel. Padre;Tel. Madre\n`;
+  let csv = `Cognome;Nome;Matricola;Numero Maglia;Data Nascita;Ruolo;Scadenza Certificato;Tel. Padre;Tel. Madre;Squadra;Note\n`;
   players.forEach((p) => {
-    csv += `"${p.lastName || ''}";"${p.firstName || ''}";"${p.jersey || ''}";"${p.dob || ''}";"${p.role || ''}";"${p.medicalExp || ''}";"${p.parentPhone || ''}";"${p.parentPhone2 || ''}"\n`;
+    const lastName = (p.lastName || '').replace(/"/g, '""');
+    const firstName = (p.firstName || '').replace(/"/g, '""');
+    const matricola = (p.matricola || '').replace(/"/g, '""');
+    const jersey = (p.jersey || '').replace(/"/g, '""');
+    const dob = (p.dob || '').replace(/"/g, '""');
+    const role = (p.role || '').replace(/"/g, '""');
+    const medicalExp = (p.medicalExp || '').replace(/"/g, '""');
+    const parentPhone = (p.parentPhone || '').replace(/"/g, '""');
+    const parentPhone2 = (p.parentPhone2 || '').replace(/"/g, '""');
+    const squad = (p.teamId || teamId || '').replace(/"/g, '""');
+    const notes = (p.notes || '').replace(/"/g, '""');
+
+    csv += `"${lastName}";"${firstName}";"${matricola}";"${jersey}";"${dob}";"${role}";"${medicalExp}";"${parentPhone}";"${parentPhone2}";"${squad}";"${notes}"\n`;
   });
   downloadCSV(`Rosa_${teamId || 'Squadra'}.csv`, csv);
 }
 
-export function exportPlayersToExcelFile(players: Player[]) {
+export function exportPlayersToExcelFile(players: Player[], fileNamePrefix = 'Tutti_i_Giocatori') {
   const data = players.map((p) => ({
-    "Nome": p.firstName || '',
     "Cognome": p.lastName || '',
+    "Nome": p.firstName || '',
+    "Matricola": p.matricola || '',
+    "Numero Maglia": p.jersey || '',
     "Data di Nascita (YYYY-MM-DD)": p.dob || '',
     "Ruolo": p.role || '',
-    "Numero Maglia": p.jersey || '',
     "Scadenza Medica (YYYY-MM-DD)": p.medicalExp || '',
     "Telefono Padre / Genitore 1": p.parentPhone || '',
     "Telefono Madre / Genitore 2": p.parentPhone2 || '',
-    "Squadra / Gruppo": p.teamId || ''
+    "Squadra / Gruppo": p.teamId || '',
+    "Note": p.notes || ''
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(data);
+
+  // Imposta larghezze leggibili per tutte le colonne
+  worksheet['!cols'] = [
+    { wch: 18 }, // Cognome
+    { wch: 18 }, // Nome
+    { wch: 16 }, // Matricola
+    { wch: 14 }, // Numero Maglia
+    { wch: 22 }, // Data di Nascita
+    { wch: 16 }, // Ruolo
+    { wch: 22 }, // Scadenza Medica
+    { wch: 22 }, // Tel Padre
+    { wch: 22 }, // Tel Madre
+    { wch: 22 }, // Squadra
+    { wch: 30 }  // Note
+  ];
+
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Giocatori");
-  XLSX.writeFile(workbook, `Tutti_i_Giocatori_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `${fileNamePrefix}_${dateStr}.xlsx`);
+}
+
+/**
+ * Parser universale per una riga di giocatore da CSV o Excel.
+ * Riconosce tutte le varianti di intestazione e converte le date nel formato standard YYYY-MM-DD.
+ */
+export function parsePlayerRow(row: Record<string, any>, fallbackTeamId: string): Omit<Player, 'id'> | null {
+  if (!row || typeof row !== 'object') return null;
+
+  // Cerca il cognome in varie denominazioni
+  let lastName = String(
+    row['Cognome'] ??
+    row['cognome'] ??
+    row['Cognome Giocatore'] ??
+    row['Last Name'] ??
+    row['LastName'] ??
+    row['Surname'] ??
+    row['Family Name'] ??
+    ''
+  ).trim();
+
+  // Cerca il nome in varie denominazioni
+  let firstName = String(
+    row['Nome'] ??
+    row['nome'] ??
+    row['Nome Giocatore'] ??
+    row['First Name'] ??
+    row['FirstName'] ??
+    row['Given Name'] ??
+    ''
+  ).trim();
+
+  // Se c'è solo una colonna 'Nominativo' o 'Nome Completo' o 'Giocatore'
+  if (!lastName && !firstName) {
+    const full = String(
+      row['Nominativo'] ??
+      row['Nome Completo'] ??
+      row['Giocatore'] ??
+      row['Atleta'] ??
+      row['Full Name'] ??
+      row['name'] ??
+      ''
+    ).trim();
+
+    if (full) {
+      const parts = full.split(/\s+/);
+      if (parts.length === 1) {
+        lastName = parts[0];
+      } else {
+        lastName = parts[0];
+        firstName = parts.slice(1).join(' ');
+      }
+    }
+  }
+
+  // Se non c'è né nome né cognome, riga non valida
+  if (!lastName && !firstName) return null;
+
+  // Matricola / Cartellino FIGC
+  const matricola = String(
+    row['Matricola'] ??
+    row['matricola'] ??
+    row['N° Matricola'] ??
+    row['Numero Matricola'] ??
+    row['N. Matricola'] ??
+    row['Num Matricola'] ??
+    row['Cartellino'] ??
+    row['Tessera'] ??
+    row['Tessera FIGC'] ??
+    row['FIGC'] ??
+    row['ID FIGC'] ??
+    row['Registration No'] ??
+    row['Registration Number'] ??
+    ''
+  ).trim();
+
+  // Numero di maglia
+  const rawJersey = row['Numero Maglia'] ??
+    row['Maglia'] ??
+    row['N° Maglia'] ??
+    row['N. Maglia'] ??
+    row['Num Maglia'] ??
+    row['jersey'] ??
+    row['Jersey'] ??
+    row['Numero'] ??
+    row['#'] ??
+    '';
+  const jersey = rawJersey !== undefined && rawJersey !== null ? String(rawJersey).trim().replace(/[^0-9]/g, '') : '';
+
+  // Data di Nascita
+  const rawDob = row['Data di Nascita (YYYY-MM-DD)'] ??
+    row['Data Nascita'] ??
+    row['Data di Nascita'] ??
+    row['Nascita'] ??
+    row['dob'] ??
+    row['DOB'] ??
+    row['Birth Date'] ??
+    row['Data Nasc.'] ??
+    null;
+  const dob = normalizeDateToISO(rawDob);
+
+  // Ruolo
+  const role = String(
+    row['Ruolo'] ??
+    row['ruolo'] ??
+    row['Role'] ??
+    row['role'] ??
+    row['Posizione'] ??
+    row['Position'] ??
+    'Non specificato'
+  ).trim();
+
+  // Scadenza Certificato Medico
+  const rawMedical = row['Scadenza Medica (YYYY-MM-DD)'] ??
+    row['Scadenza Certificato'] ??
+    row['Scadenza Medica'] ??
+    row['Visita Medica'] ??
+    row['Certificato Medico'] ??
+    row['Scadenza Visita'] ??
+    row['medicalExp'] ??
+    row['Medical Exp'] ??
+    row['Certificato'] ??
+    null;
+  const medicalExp = normalizeDateToISO(rawMedical);
+
+  // Telefono Padre / Genitore 1
+  const parentPhone = String(
+    row['Telefono Padre / Genitore 1'] ??
+    row['Telefono Padre'] ??
+    row['Tel. Padre'] ??
+    row['Tel Padre'] ??
+    row['Telefono Genitore 1'] ??
+    row['Tel. Genitore 1'] ??
+    row['Tel. Genitore'] ??
+    row['Telefono Genitore'] ??
+    row['parentPhone'] ??
+    row['Phone 1'] ??
+    ''
+  ).trim();
+
+  // Telefono Madre / Genitore 2
+  const parentPhone2 = String(
+    row['Telefono Madre / Genitore 2'] ??
+    row['Telefono Madre'] ??
+    row['Tel. Madre'] ??
+    row['Tel Madre'] ??
+    row['Telefono Genitore 2'] ??
+    row['Tel. Genitore 2'] ??
+    row['parentPhone2'] ??
+    row['Phone 2'] ??
+    ''
+  ).trim();
+
+  // Squadra / Categoria
+  const teamId = String(
+    row['Squadra / Gruppo'] ??
+    row['Squadra / Categoria'] ??
+    row['Squadra'] ??
+    row['Categoria'] ??
+    row['Gruppo'] ??
+    row['teamId'] ??
+    row['Team'] ??
+    fallbackTeamId
+  ).trim() || fallbackTeamId;
+
+  // Note
+  const notes = String(
+    row['Note'] ??
+    row['note'] ??
+    row['Note / Osservazioni'] ??
+    row['Osservazioni'] ??
+    row['Notes'] ??
+    row['notes'] ??
+    ''
+  ).trim();
+
+  const displayName = `${lastName} ${firstName}`.trim();
+
+  return {
+    firstName,
+    lastName,
+    name: displayName,
+    matricola,
+    jersey,
+    dob,
+    role: role || 'Non specificato',
+    medicalExp,
+    parentPhone,
+    parentPhone2,
+    teamId,
+    notes: notes || undefined
+  };
 }
 
 export function exportParentsToExcelFile(parents: Array<{ name?: string; email?: string; phone?: string; childIds?: string[] }>) {

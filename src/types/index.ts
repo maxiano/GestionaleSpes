@@ -18,6 +18,7 @@ export interface Player {
   firstName?: string;
   lastName?: string;
   name?: string;
+  matricola?: string; // Numero di Matricola / Cartellino FIGC
   dob?: string | null;
   jersey?: string;
   role?: string;
@@ -32,6 +33,7 @@ export interface Player {
   gruppoSquadra?: string;
   teamName?: string;
   team?: string;
+  notes?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
 }

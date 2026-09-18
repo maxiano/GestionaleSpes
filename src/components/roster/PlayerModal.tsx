@@ -21,12 +21,14 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
 }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [matricola, setMatricola] = useState('');
   const [dob, setDob] = useState('');
   const [jersey, setJersey] = useState('');
   const [role, setRole] = useState('');
   const [medicalExp, setMedicalExp] = useState('');
   const [parentPhone, setParentPhone] = useState('');
   const [parentPhone2, setParentPhone2] = useState('');
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,21 +36,25 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
     if (playerToEdit) {
       setFirstName(playerToEdit.firstName || '');
       setLastName(playerToEdit.lastName || '');
+      setMatricola(playerToEdit.matricola || '');
       setDob(playerToEdit.dob || '');
       setJersey(playerToEdit.jersey || '');
       setRole(playerToEdit.role || '');
       setMedicalExp(playerToEdit.medicalExp || '');
       setParentPhone(playerToEdit.parentPhone || '');
       setParentPhone2(playerToEdit.parentPhone2 || '');
+      setNotes(playerToEdit.notes || '');
     } else {
       setFirstName('');
       setLastName('');
+      setMatricola('');
       setDob('');
       setJersey('');
       setRole('');
       setMedicalExp('');
       setParentPhone('');
       setParentPhone2('');
+      setNotes('');
     }
     setError(null);
   }, [playerToEdit, isOpen]);
@@ -86,13 +92,15 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
         firstName: fName,
         lastName: lName,
         name: `${lName} ${fName}`.trim(),
+        matricola: matricola.trim() || '',
         dob: dob || null,
         jersey: jersey ? String(parseInt(jersey, 10)) : '',
         role: role || 'Non specificato',
         medicalExp: medicalExp || null,
         parentPhone: parentPhone.trim() || '',
         parentPhone2: parentPhone2.trim() || '',
-        teamId: activeTeamId
+        teamId: activeTeamId,
+        notes: notes.trim() || undefined
       };
 
       await savePlayer(payload, playerToEdit ? playerToEdit.id : null);
@@ -166,13 +174,14 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Data Nascita
+                N° Matricola / FIGC
               </label>
               <input
-                type="date"
-                id="player-dob"
-                value={dob}
-                onChange={(e) => setDob(e.target.value)}
+                type="text"
+                id="player-matricola"
+                value={matricola}
+                onChange={(e) => setMatricola(e.target.value)}
+                placeholder="es. 1234567"
                 className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
@@ -211,6 +220,18 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Data Nascita
+              </label>
+              <input
+                type="date"
+                id="player-dob"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                 Scadenza Certificato Medico
               </label>
               <input
@@ -221,39 +242,54 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
                 className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
-            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Tel. Padre / Genitore 1
-                </label>
-                <input
-                  type="tel"
-                  id="player-parent-phone"
-                  value={parentPhone}
-                  onChange={(e) => setParentPhone(e.target.value)}
-                  placeholder="es. 3331234567"
-                  className="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Tel. Madre / Genitore 2
-                </label>
-                <input
-                  type="tel"
-                  id="player-parent-phone-2"
-                  value={parentPhone2}
-                  onChange={(e) => setParentPhone2(e.target.value)}
-                  placeholder="es. 3389876543"
-                  className="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <span className="text-[10px] text-slate-500 block leading-tight">
-                  💡 Inserendo entrambi i numeri, sia l'account del padre che della madre riconosceranno automaticamente il ragazzo nel Portale Famiglia.
-                </span>
-              </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Tel. Padre / Genitore 1
+              </label>
+              <input
+                type="tel"
+                id="player-parent-phone"
+                value={parentPhone}
+                onChange={(e) => setParentPhone(e.target.value)}
+                placeholder="es. 3331234567"
+                className="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
             </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Tel. Madre / Genitore 2
+              </label>
+              <input
+                type="tel"
+                id="player-parent-phone-2"
+                value={parentPhone2}
+                onChange={(e) => setParentPhone2(e.target.value)}
+                placeholder="es. 3389876543"
+                className="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <span className="text-[10px] text-slate-500 block leading-tight">
+                💡 Inserendo entrambi i numeri, sia l'account del padre che della madre riconosceranno automaticamente il ragazzo nel Portale Famiglia.
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Note o Indicazioni (Facoltative)
+            </label>
+            <input
+              type="text"
+              id="player-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="es. Allergie, intolleranze, piede preferito o note tesseramento"
+              className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-3">

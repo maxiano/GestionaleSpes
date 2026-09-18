@@ -59,3 +59,63 @@ export function isValidDate(dateString?: string | null): boolean {
   const date = new Date(dateString);
   return !isNaN(date.getTime());
 }
+
+/**
+ * Normalizza qualsiasi formato di data (ISO YYYY-MM-DD, italiano DD/MM/YYYY, data seriale Excel o Date)
+ * in una stringa standard ISO YYYY-MM-DD, oppure null se non valida.
+ */
+export function normalizeDateToISO(raw: unknown): string | null {
+  if (raw === null || raw === undefined || raw === '') return null;
+
+  // Se è già un oggetto Date valido
+  if (raw instanceof Date) {
+    if (isNaN(raw.getTime())) return null;
+    return raw.toISOString().slice(0, 10);
+  }
+
+  // Se è un numero seriale di data Excel (es. 44561)
+  if (typeof raw === 'number' && !isNaN(raw) && raw > 1000 && raw < 100000) {
+    // Offset Excel: Excel conta i giorni dal 30/12/1899 a causa del bug bisestile del 1900
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const jsDate = new Date(excelEpoch.getTime() + raw * 86400000);
+    if (!isNaN(jsDate.getTime())) {
+      return jsDate.toISOString().slice(0, 10);
+    }
+  }
+
+  const str = String(raw).trim();
+  if (!str) return null;
+
+  // Se già nel formato standard YYYY-MM-DD
+  if (/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/.test(str)) {
+    return str;
+  }
+
+  // Se nel formato italiano DD/MM/YYYY o DD-MM-YYYY o DD.MM.YYYY
+  const itMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (itMatch) {
+    const day = itMatch[1].padStart(2, '0');
+    const month = itMatch[2].padStart(2, '0');
+    const year = itMatch[3];
+    const candidate = `${year}-${month}-${day}`;
+    if (isValidDate(candidate)) return candidate;
+  }
+
+  // Se nel formato YYYY/MM/DD
+  const slashIsoMatch = str.match(/^(\d{4})[\/\.](\d{1,2})[\/\.](\d{1,2})$/);
+  if (slashIsoMatch) {
+    const year = slashIsoMatch[1];
+    const month = slashIsoMatch[2].padStart(2, '0');
+    const day = slashIsoMatch[3].padStart(2, '0');
+    const candidate = `${year}-${month}-${day}`;
+    if (isValidDate(candidate)) return candidate;
+  }
+
+  // Fallback con Date.parse
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 1900 && parsed.getFullYear() < 2100) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return null;
+}

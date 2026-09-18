@@ -1,7 +1,14 @@
 import React, { useRef } from 'react';
 import { Player } from '../../types';
 import { formatDateIT } from '../../utils/formatters';
-import { exportRosterCSV, sendToWhatsApp, parseCSVFile } from '../../utils/exports';
+import {
+  exportRosterCSV,
+  exportPlayersToExcelFile,
+  sendToWhatsApp,
+  parseCSVFile,
+  readExcelFile,
+  parsePlayerRow
+} from '../../utils/exports';
 import { deletePlayer, batchImportPlayers } from '../../services/playersService';
 import {
   Users,
@@ -15,7 +22,8 @@ import {
   Calendar,
   AlertCircle,
   CheckCircle2,
-  HelpCircle
+  HelpCircle,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface RosterTabProps {
@@ -34,6 +42,7 @@ export const RosterTab: React.FC<RosterTabProps> = ({
   onRefresh
 }) => {
   const csvInputRef = useRef<HTMLInputElement>(null);
+  const excelInputRef = useRef<HTMLInputElement>(null);
   const today = new Date().toISOString().split('T')[0];
 
   const handleDelete = async (playerId: string, playerName?: string) => {
@@ -53,7 +62,8 @@ export const RosterTab: React.FC<RosterTabProps> = ({
     let text = `👥 *ROSA UFFICIALE GIOCATORI*\n🏆 *Spes Montesacro - ${activeTeamId}*\n📊 *Totale Tesserati:* ${players.length}\n\n`;
     players.forEach((p, i) => {
       const displayName = p.lastName ? `${p.lastName} ${p.firstName}` : p.name;
-      text += `${i + 1}. ${displayName}${p.jersey ? ` (#${p.jersey})` : ''}\n`;
+      const matr = p.matricola ? ` [Matr. ${p.matricola}]` : '';
+      text += `${i + 1}. ${displayName}${p.jersey ? ` (#${p.jersey})` : ''}${matr}\n`;
     });
     sendToWhatsApp(text, `Rosa ${activeTeamId}`);
   };
@@ -79,27 +89,16 @@ export const RosterTab: React.FC<RosterTabProps> = ({
       }
 
       const playerPayloads = rows
-        .map((r) => {
-          const lastName = (r['Cognome'] || r['cognome'] || '').trim();
-          const firstName = (r['Nome'] || r['nome'] || '').trim();
-          if (!lastName && !firstName) return null;
-          return {
-            lastName,
-            firstName,
-            name: `${lastName} ${firstName}`.trim(),
-            jersey: (r['Numero Maglia'] || r['Maglia'] || r['jersey'] || '').toString().trim(),
-            dob: (r['Data Nascita'] || r['dob'] || '').trim(),
-            role: (r['Ruolo'] || r['role'] || '').trim(),
-            medicalExp: (r['Scadenza Certificato'] || r['medicalExp'] || '').trim(),
-            parentPhone: (r['Tel. Padre'] || r['Tel. Genitore 1'] || r['Tel. Genitore'] || r['parentPhone'] || '').toString().trim(),
-            parentPhone2: (r['Tel. Madre'] || r['Tel. Genitore 2'] || r['parentPhone2'] || '').toString().trim(),
-            teamId: activeTeamId
-          };
-        })
-        .filter(Boolean) as any[];
+        .map((r) => parsePlayerRow(r, activeTeamId))
+        .filter(Boolean) as Array<Omit<Player, 'id'>>;
+
+      if (playerPayloads.length === 0) {
+        alert('Nessun giocatore valido trovato nel file.');
+        return;
+      }
 
       const count = await batchImportPlayers(playerPayloads);
-      alert(`✅ Importati con successo ${count} giocatori!`);
+      alert(`✅ Importati con successo ${count} giocatori con tutti i dati anagrafici e recapiti!`);
       onRefresh();
     } catch (err: any) {
       console.error(err);
@@ -107,6 +106,50 @@ export const RosterTab: React.FC<RosterTabProps> = ({
     } finally {
       e.target.value = '';
     }
+  };
+
+  const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const rows = await readExcelFile<any>(file);
+      if (!rows || rows.length === 0) {
+        alert('Il file Excel è vuoto.');
+        return;
+      }
+
+      if (!confirm(`Trovati ${rows.length} record in Excel. Importare nella squadra "${activeTeamId}"?`)) {
+        e.target.value = '';
+        return;
+      }
+
+      const playerPayloads = rows
+        .map((r) => parsePlayerRow(r, activeTeamId))
+        .filter(Boolean) as Array<Omit<Player, 'id'>>;
+
+      if (playerPayloads.length === 0) {
+        alert('Nessun giocatore valido trovato nel file Excel.');
+        return;
+      }
+
+      const count = await batchImportPlayers(playerPayloads);
+      alert(`✅ Importati con successo ${count} giocatori da Excel con tutti i dati!`);
+      onRefresh();
+    } catch (err: any) {
+      console.error(err);
+      alert('Errore lettura Excel: ' + err.message);
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const handleExportRosterExcel = () => {
+    if (players.length === 0) {
+      alert('Nessun giocatore in rosa da esportare.');
+      return;
+    }
+    exportPlayersToExcelFile(players, `Rosa_${activeTeamId || 'Squadra'}`);
   };
 
   return (
@@ -124,12 +167,13 @@ export const RosterTab: React.FC<RosterTabProps> = ({
             </span>
           </h3>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Anagrafica tesserati, numeri di maglia, visite mediche e recapiti
+            Anagrafica tesserati, numero matricola FIGC, maglia, visite mediche e recapiti genitori
           </p>
         </div>
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* File inputs */}
           <input
             type="file"
             ref={csvInputRef}
@@ -137,24 +181,51 @@ export const RosterTab: React.FC<RosterTabProps> = ({
             accept=".csv"
             className="hidden"
           />
+          <input
+            type="file"
+            ref={excelInputRef}
+            onChange={handleExcelImport}
+            accept=".xlsx,.xls"
+            className="hidden"
+          />
 
+          {/* Import dropdown/buttons */}
           <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-2xl border border-slate-200">
             <button
               onClick={() => csvInputRef.current?.click()}
-              className="hover:bg-white text-slate-700 hover:text-slate-900 text-xs px-3 py-2 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5"
-              title="Importa da file CSV"
+              className="hover:bg-white text-slate-700 hover:text-slate-900 text-xs px-2.5 py-2 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5"
+              title="Importa giocatori da file CSV (con matricola, visite, recapiti)"
             >
               <FileUp className="w-3.5 h-3.5 text-blue-600" />
               <span>Import CSV</span>
             </button>
-            <div className="w-[1px] h-4 bg-slate-200"></div>
+            <button
+              onClick={() => excelInputRef.current?.click()}
+              className="hover:bg-white text-slate-700 hover:text-slate-900 text-xs px-2.5 py-2 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5"
+              title="Importa giocatori da file Excel (.xlsx) con tutti i dati"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Import Excel</span>
+            </button>
+          </div>
+
+          {/* Export dropdown/buttons */}
+          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-2xl border border-slate-200">
             <button
               onClick={() => exportRosterCSV(activeTeamId, players)}
-              className="hover:bg-white text-slate-700 hover:text-slate-900 text-xs px-3 py-2 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5"
-              title="Esporta in CSV"
+              className="hover:bg-white text-slate-700 hover:text-slate-900 text-xs px-2.5 py-2 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5"
+              title="Esporta tutti i dati della rosa in file CSV"
             >
-              <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+              <FileDown className="w-3.5 h-3.5 text-slate-600" />
               <span>Export CSV</span>
+            </button>
+            <button
+              onClick={handleExportRosterExcel}
+              className="hover:bg-white text-slate-700 hover:text-slate-900 text-xs px-2.5 py-2 rounded-xl font-bold transition shadow-sm active:scale-95 flex items-center gap-1.5"
+              title="Esporta tutti i dati della rosa in file Excel (.xlsx) formattato"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Export Excel</span>
             </button>
           </div>
 
@@ -220,13 +291,18 @@ export const RosterTab: React.FC<RosterTabProps> = ({
                 className="p-4 border border-slate-200/80 rounded-2xl bg-slate-50/60 hover:bg-white transition flex justify-between items-start text-xs shadow-sm hover:shadow"
               >
                 <div className="space-y-1.5 flex-1 pr-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-extrabold text-sm text-slate-900">
                       ⚽ {displayName}
                     </p>
                     {player.jersey && (
                       <span className="text-[10px] font-black px-1.5 py-0.5 bg-slate-900 text-white rounded-md">
                         #{player.jersey}
+                      </span>
+                    )}
+                    {player.matricola && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-md">
+                        Matr. {player.matricola}
                       </span>
                     )}
                   </div>
@@ -250,6 +326,12 @@ export const RosterTab: React.FC<RosterTabProps> = ({
                       </span>
                     )}
                   </div>
+
+                  {player.notes && (
+                    <p className="text-[11px] text-slate-500 italic bg-amber-50/70 px-2 py-1 rounded-lg border border-amber-200/60 leading-tight">
+                      📝 {player.notes}
+                    </p>
+                  )}
 
                   <div className="pt-1">{medBadge}</div>
                 </div>
@@ -292,13 +374,15 @@ export const RosterTab: React.FC<RosterTabProps> = ({
         <table className="w-full border-collapse border border-slate-900 text-xs">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="border border-slate-900 p-2 text-center w-10">#</th>
+              <th className="border border-slate-900 p-2 text-center w-8">#</th>
               <th className="border border-slate-900 p-2 text-left">Cognome e Nome</th>
-              <th className="border border-slate-900 p-2 text-center w-16">Maglia</th>
+              <th className="border border-slate-900 p-2 text-center w-24">N° Matricola</th>
+              <th className="border border-slate-900 p-2 text-center w-14">Maglia</th>
               <th className="border border-slate-900 p-2 text-center w-24">Data Nascita</th>
               <th className="border border-slate-900 p-2 text-left">Ruolo</th>
-              <th className="border border-slate-900 p-2 text-center w-28">Certificato</th>
+              <th className="border border-slate-900 p-2 text-center w-24">Certificato</th>
               <th className="border border-slate-900 p-2 text-left">Tel. Famiglia</th>
+              <th className="border border-slate-900 p-2 text-left">Note</th>
             </tr>
           </thead>
           <tbody>
@@ -311,6 +395,9 @@ export const RosterTab: React.FC<RosterTabProps> = ({
                   </td>
                   <td className="border border-slate-300 p-1.5 font-bold text-slate-900">
                     {displayName}
+                  </td>
+                  <td className="border border-slate-300 p-1.5 text-center font-mono font-bold text-slate-800">
+                    {p.matricola || '-'}
                   </td>
                   <td className="border border-slate-300 p-1.5 text-center font-semibold">
                     {p.jersey || '-'}
@@ -326,6 +413,9 @@ export const RosterTab: React.FC<RosterTabProps> = ({
                     {p.parentPhone && <div><span className="font-semibold text-slate-500">P:</span> {p.parentPhone}</div>}
                     {p.parentPhone2 && <div><span className="font-semibold text-slate-500">M:</span> {p.parentPhone2}</div>}
                     {!p.parentPhone && !p.parentPhone2 && '-'}
+                  </td>
+                  <td className="border border-slate-300 p-1.5 text-[10px] text-slate-600">
+                    {p.notes || '-'}
                   </td>
                 </tr>
               );
