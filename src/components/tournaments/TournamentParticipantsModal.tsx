@@ -127,8 +127,8 @@ export const TournamentParticipantsModal: React.FC<TournamentParticipantsModalPr
             <div className="flex items-center gap-3">
               <ClubLogo className="w-12 h-12 shrink-0" />
               <div>
-                <h1 className="text-lg font-black text-slate-900 tracking-tight">
-                  POLISPORTIVA SPES MONTESACRO 1908
+                <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                  SPES MONTESACRO
                 </h1>
                 <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
                   Distinta Ufficiale Calciatori Torneo

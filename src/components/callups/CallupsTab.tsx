@@ -13,6 +13,7 @@ import {
   sendToWhatsApp
 } from '../../utils/exports';
 import { CallupGraphicModal } from './CallupGraphicModal';
+import { ClubLogo } from '../common/ClubLogo';
 import {
   Mail,
   Calendar,
@@ -768,13 +769,16 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
         <div id="callup-print-container" className="hidden print:block font-sans text-black">
           {/* Header Societario */}
           <div className="border-b-2 border-black pb-3 mb-4 flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-black uppercase tracking-tight text-black">
-                POLISPORTIVA SPES MONTESACRO 1908
-              </h1>
-              <p className="text-xs font-bold uppercase text-slate-700 tracking-wider">
-                Foglio Ufficiale di Convocazione Gara • Gruppo: {activeTeamId}
-              </p>
+            <div className="flex items-center gap-3.5">
+              <ClubLogo className="w-12 h-12 shrink-0" color="#000000" />
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-black leading-none">
+                  SPES MONTESACRO
+                </h1>
+                <p className="text-xs font-bold uppercase text-slate-700 tracking-wider mt-1">
+                  Foglio Ufficiale di Convocazione Gara • Gruppo: {activeTeamId}
+                </p>
+              </div>
             </div>
             <div className="text-right">
               <span className="inline-block border-2 border-black px-3 py-1 text-xs font-black uppercase tracking-wider">

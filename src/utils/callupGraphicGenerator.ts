@@ -79,9 +79,9 @@ export function generateCallupGraphicCanvas(
 
   // 2. Header: Club Name & Title
   ctx.fillStyle = '#F59E0B'; // Gold
-  ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.font = '900 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('POLISPORTIVA SPES MONTESACRO 1908', width / 2, curY);
+  ctx.fillText('SPES MONTESACRO', width / 2, curY);
 
   curY += 50;
   ctx.fillStyle = '#FFFFFF';

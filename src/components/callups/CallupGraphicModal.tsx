@@ -276,8 +276,8 @@ export const CallupGraphicModal: React.FC<CallupGraphicModalProps> = ({
             /* Visual HTML Fallback Card if Canvas somehow fails */
             <div className="w-full max-w-md bg-gradient-to-b from-emerald-950 via-slate-900 to-slate-950 text-white rounded-3xl p-5 border-2 border-emerald-500 shadow-xl space-y-4">
               <div className="text-center space-y-1">
-                <p className="text-[11px] font-black text-amber-400 tracking-widest uppercase">
-                  Polisportiva Spes Montesacro 1908
+                <p className="text-[12px] font-black text-amber-400 tracking-widest uppercase">
+                  Spes Montesacro
                 </p>
                 <h2 className="text-lg font-black tracking-tight">CONVOCAZIONE UFFICIALE</h2>
                 <div className="flex justify-center gap-2 pt-1">
