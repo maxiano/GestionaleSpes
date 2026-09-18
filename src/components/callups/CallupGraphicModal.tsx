@@ -159,35 +159,45 @@ export const CallupGraphicModal: React.FC<CallupGraphicModalProps> = ({
     const file = new File([imageBlob], fileName, { type: 'image/png' });
     const textMsg = formatCallupWhatsAppFinal(callup);
 
-    // Try native share on mobile / modern browsers
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    // 1. On Mobile and supported desktop browsers (navigator.canShare with files):
+    // Share ONLY the image file or image + title to ensure WhatsApp treats it as a media message
+    if (typeof navigator !== 'undefined' && navigator.canShare) {
       try {
-        await navigator.share({
+        const shareData = {
           files: [file],
-          title: `Convocazione Spes Montesacro vs ${callup.opponent}`,
-          text: textMsg
-        });
-        return;
+          title: `Convocazione Spes Montesacro vs ${callup.opponent}`
+        };
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          setShareFeedback('✅ Grafica inviata alla condivisione! Seleziona WhatsApp per pubblicare la locandina.');
+          setTimeout(() => setShareFeedback(null), 5000);
+          return;
+        }
       } catch (e: any) {
-        if (e.name === 'AbortError') return; // User closed dialog
-        console.warn('Native share fallito, passo a fallback:', e);
+        if (e.name === 'AbortError') return; // User cancelled share dialog
+        console.warn('Native file share failed, trying clipboard/download workflow:', e);
       }
     }
 
-    // Fallback: Copy to clipboard & Download & open WhatsApp
-    let didCopy = false;
+    // 2. Desktop / WhatsApp Web workflow:
+    // Web APIs (wa.me) DO NOT allow attaching local images directly through an URL parameter.
+    // Therefore, the standard and most reliable method is:
+    // a) Copy image to system clipboard (allowing instant Ctrl+V into WhatsApp Web chat)
+    // b) Download the PNG image file
+    // c) Open WhatsApp Web chat
+    let copiedSuccess = false;
     try {
       if (navigator.clipboard && window.ClipboardItem) {
         await navigator.clipboard.write([
           new ClipboardItem({ 'image/png': imageBlob })
         ]);
-        didCopy = true;
+        copiedSuccess = true;
       }
-    } catch (e) {
-      // Ignora errore clipboard
+    } catch (clipErr) {
+      console.warn('Clipboard write failed:', clipErr);
     }
 
-    // Download image
+    // Download image file for safety
     const a = document.createElement('a');
     a.href = imageUrl || URL.createObjectURL(imageBlob);
     a.download = fileName;
@@ -195,15 +205,15 @@ export const CallupGraphicModal: React.FC<CallupGraphicModalProps> = ({
     a.click();
     document.body.removeChild(a);
 
-    // Open WhatsApp with text
-    sendToWhatsApp(textMsg, `Convocazione vs ${callup.opponent}`);
+    // Open WhatsApp Web
+    window.open('https://web.whatsapp.com', '_blank');
 
     setShareFeedback(
-      didCopy
-        ? 'Immagine copiata negli appunti e scaricata! Incollala su WhatsApp nella chat della squadra con Incolla (Ctrl+V).'
-        : 'Immagine scaricata! Puoi allegarla su WhatsApp insieme al messaggio preparato.'
+      copiedSuccess
+        ? '📸 Locandina COPIATA negli appunti! Nella chat WhatsApp fai semplicemente INCOLLA (Ctrl+V) per inviare la grafica.'
+        : '📥 Immagine scaricata! Trascinala o allegala nella chat WhatsApp.'
     );
-    setTimeout(() => setShareFeedback(null), 6000);
+    setTimeout(() => setShareFeedback(null), 8000);
   };
 
   return (
@@ -245,11 +255,28 @@ export const CallupGraphicModal: React.FC<CallupGraphicModalProps> = ({
 
         {/* Feedback Alert if action occurred */}
         {shareFeedback && (
-          <div className="px-5 py-2.5 bg-emerald-950/80 border-b border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center gap-2">
-            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>{shareFeedback}</span>
+          <div className="px-5 py-3 bg-emerald-950/90 border-b border-emerald-500/50 text-emerald-200 text-xs font-semibold flex items-center gap-2.5 animate-fade-in shadow-inner">
+            <Check className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span className="leading-snug">{shareFeedback}</span>
           </div>
         )}
+
+        {/* Guida Rapida WhatsApp per evitare confusione tra Testo e Immagine */}
+        <div className="px-5 py-2.5 bg-slate-900/90 border-b border-slate-800 text-[11px] text-slate-300 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-amber-300 font-semibold">
+            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>Come inviare la grafica su WhatsApp:</span>
+          </div>
+          <div className="flex items-center gap-3 text-slate-400">
+            <span className="flex items-center gap-1">
+              📱 <strong>Da Telefono:</strong> Clicca <em>"Invia Grafica WhatsApp"</em> per allegare la foto.
+            </span>
+            <span className="hidden sm:inline text-slate-600">•</span>
+            <span className="flex items-center gap-1">
+              💻 <strong>Da Computer:</strong> Clicca <em>"Copia Grafica"</em> e fai <strong>Ctrl+V</strong> nella chat.
+            </span>
+          </div>
+        </div>
 
         {/* Modal Body: Scrollable Preview of the Graphic */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-950/60 flex flex-col items-center">
