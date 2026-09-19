@@ -14,6 +14,7 @@ import {
 } from '../../utils/exports';
 import { CallupGraphicModal } from './CallupGraphicModal';
 import { ClubLogo } from '../common/ClubLogo';
+import { JerseyIcon } from '../common/JerseyIcon';
 import {
   Mail,
   Calendar,
@@ -199,7 +200,8 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
       const formattedPlayers = selectedPlayerIds.map((id) => {
         const p = players.find((pl) => pl.id === id);
         const name = p ? `${p.lastName || ''} ${p.firstName || ''}`.trim() : 'Giocatore';
-        return `${id}|${name}`;
+        const role = p?.role || '';
+        return role ? `${id}|${name}|${role}` : `${id}|${name}`;
       });
 
       await saveCallup(
@@ -523,11 +525,16 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
               {players.map((p) => {
                 const displayName = p.lastName ? `${p.lastName} ${p.firstName}` : p.name || 'Atleta';
                 const isChecked = selectedPlayerIds.includes(p.id);
+                const isGk = (p.role || '').toLowerCase().includes('portiere') || (p.role || '').toLowerCase().includes('por');
                 return (
                   <label
                     key={p.id}
                     className={`flex items-center space-x-2 text-xs p-2 rounded-xl border cursor-pointer transition ${
-                      isChecked ? 'bg-white border-emerald-300 shadow-xs' : 'bg-slate-50 border-slate-200 opacity-60'
+                      isChecked
+                        ? isGk
+                          ? 'bg-amber-50/80 border-amber-300 shadow-xs'
+                          : 'bg-white border-emerald-300 shadow-xs'
+                        : 'bg-slate-50 border-slate-200 opacity-60'
                     }`}
                   >
                     <input
@@ -536,7 +543,13 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
                       onChange={() => handleTogglePlayer(p.id)}
                       className="rounded text-emerald-600 focus:ring-emerald-500"
                     />
-                    <span className="font-semibold text-slate-800 truncate">{displayName}</span>
+                    <JerseyIcon isGoalkeeper={isGk} className="w-5 h-5 shrink-0" />
+                    <span className="font-semibold text-slate-800 truncate flex-1">{displayName}</span>
+                    {isGk && (
+                      <span className="text-[9px] font-black uppercase text-amber-800 bg-amber-100 border border-amber-300 px-1 rounded">
+                        POR
+                      </span>
+                    )}
                   </label>
                 );
               })}
@@ -588,12 +601,36 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
             {callups.map((c) => {
               const responses = c.responses || {};
               const invited = (c.players || []).map((p) => {
+                let id = '';
+                let name = 'Atleta';
+                let role = '';
                 if (typeof p === 'string' && p.includes('|')) {
                   const parts = p.split('|');
-                  return { id: parts[0], name: parts[1] };
+                  id = parts[0];
+                  name = parts[1];
+                  role = parts[2] || '';
+                } else if (typeof p === 'string') {
+                  id = p;
+                  name = p;
+                } else {
+                  id = (p as any).id || (p as any).playerId || '';
+                  name = (p as any).name || 'Atleta';
+                  role = (p as any).role || '';
                 }
-                if (typeof p === 'string') return { id: p, name: p };
-                return { id: (p as any).id || (p as any).playerId, name: (p as any).name || 'Atleta' };
+
+                if (!role && id) {
+                  const found = players.find((pl) => pl.id === id);
+                  if (found?.role) role = found.role;
+                }
+
+                const isGoalkeeper =
+                  role.toLowerCase().includes('portiere') ||
+                  role.toLowerCase().includes('por') ||
+                  name.toLowerCase().includes('(p)') ||
+                  name.toLowerCase().includes('(por)') ||
+                  name.toLowerCase().includes('portiere');
+
+                return { id, name, role, isGoalkeeper };
               });
 
               invited.sort((a, b) => a.name.localeCompare(b.name));
@@ -639,12 +676,21 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
 
                   {/* Player responses */}
                   <div className="bg-white p-3 rounded-2xl border border-slate-200">
-                    <p className="font-bold text-slate-800 mb-2 flex items-center justify-between">
+                    <div className="font-bold text-slate-800 mb-2 flex flex-wrap items-center justify-between gap-2">
                       <span>Stato Risposte ({invited.length} convocati):</span>
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto pr-1">
+                      <div className="flex items-center gap-2.5 text-[10px] text-slate-500 font-medium">
+                        <span className="flex items-center gap-1">
+                          <JerseyIcon isGoalkeeper={false} className="w-4 h-4" /> Maglia Bianca
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <JerseyIcon isGoalkeeper={true} className="w-4 h-4" /> Portiere (Gialla)
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
                       {invited.map((player, idx) => {
                         const status = responses[player.id || ''] || 'pending';
+                        const isGk = player.isGoalkeeper;
                         let badge = (
                           <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 font-semibold inline-flex items-center gap-1">
                             <Clock3 className="w-2.5 h-2.5" /> In attesa
@@ -667,12 +713,34 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
                         return (
                           <div
                             key={idx}
-                            className="flex items-center justify-between p-1.5 bg-slate-50 rounded-xl text-xs"
+                            className={`flex items-center justify-between p-2 rounded-xl text-xs border transition ${
+                              isGk
+                                ? 'bg-amber-50/80 border-amber-300 shadow-xs'
+                                : 'bg-slate-50 border-slate-200/80'
+                            }`}
                           >
-                            <span className="truncate pr-1 text-slate-800 font-medium">
-                              {idx + 1}. {player.name}
-                            </span>
-                            <div className="shrink-0">{badge}</div>
+                            <div className="flex items-center gap-2 min-w-0 pr-2">
+                              <span className="text-slate-400 font-bold text-[11px] w-4 text-right shrink-0">
+                                {idx + 1}.
+                              </span>
+                              <JerseyIcon isGoalkeeper={isGk} className="w-6 h-6 shrink-0" />
+                              <div className="truncate">
+                                <span className="truncate text-slate-900 font-bold block leading-tight">
+                                  {player.name}
+                                </span>
+                                <span className="text-[9.5px] text-slate-500 font-medium leading-none">
+                                  {isGk ? 'Maglia Gialla Portiere • Mizuno/Spes' : 'Maglia Bianca • Mizuno/Spes'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="shrink-0 flex items-center gap-1.5">
+                              {isGk && (
+                                <span className="text-[9px] font-black uppercase text-amber-900 bg-amber-200 border border-amber-400 px-1 py-0.5 rounded">
+                                  POR
+                                </span>
+                              )}
+                              {badge}
+                            </div>
                           </div>
                         );
                       })}
@@ -761,6 +829,7 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
         onClose={() => setGraphicModalCallup(null)}
         callup={graphicModalCallup}
         activeTeamId={activeTeamId}
+        players={players}
         onPrint={graphicModalCallup ? () => handlePrint(graphicModalCallup) : undefined}
       />
 
@@ -814,28 +883,82 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
           </div>
 
           {/* Elenco Convocati */}
-          <h3 className="text-xs font-black uppercase tracking-wider mb-1.5 flex items-center justify-between">
-            <span>👥 Giocatori Convocati ({printingCallup.players.length})</span>
-            <span className="text-[10px] font-normal text-slate-600 italic">Si raccomanda la massima puntualità</span>
-          </h3>
+          <div className="flex items-center justify-between mb-1.5">
+            <h3 className="text-xs font-black uppercase tracking-wider">
+              👥 Giocatori Convocati ({printingCallup.players.length})
+            </h3>
+            <div className="text-[11px] font-bold text-slate-700 flex items-center gap-3">
+              <span>⚪ <strong>Giocatori:</strong> Maglia Bianca (Mizuno/Spes)</span>
+              <span>🟡 <strong>Portieri:</strong> Maglia Gialla (Mizuno/Spes)</span>
+            </div>
+          </div>
 
           <table className="w-full border-collapse border border-black text-left text-xs mb-4">
             <thead>
               <tr className="bg-slate-200 text-black uppercase text-[11px]">
-                <th className="border border-black p-1.5 text-center w-10 font-bold">#</th>
+                <th className="border border-black p-1.5 text-center w-8 font-bold">#</th>
+                <th className="border border-black p-1 text-center w-14 font-bold">Divisa</th>
                 <th className="border border-black p-1.5 font-bold">Cognome e Nome</th>
+                <th className="border border-black p-1.5 font-bold text-center w-36">Maglia Assegnata</th>
                 <th className="border border-black p-1.5 w-1/4 font-bold">Firma per Presenza</th>
-                <th className="border border-black p-1.5 w-1/4 font-bold">Note Tecniche</th>
+                <th className="border border-black p-1.5 w-1/5 font-bold">Note Tecniche</th>
               </tr>
             </thead>
             <tbody>
               {printingCallup.players.map((p, idx) => {
-                const cleanName =
-                  typeof p === 'string' && p.includes('|') ? p.split('|')[1] : String(p);
+                let id = '';
+                let cleanName = '';
+                let role = '';
+                if (typeof p === 'string' && p.includes('|')) {
+                  const parts = p.split('|');
+                  id = parts[0];
+                  cleanName = parts[1];
+                  role = parts[2] || '';
+                } else if (typeof p === 'string') {
+                  cleanName = p;
+                } else {
+                  id = (p as any).id || (p as any).playerId || '';
+                  cleanName = (p as any).name || String(p);
+                  role = (p as any).role || '';
+                }
+
+                if (!role && id) {
+                  const found = players.find((pl) => pl.id === id);
+                  if (found?.role) role = found.role;
+                }
+
+                const isGk =
+                  role.toLowerCase().includes('portiere') ||
+                  role.toLowerCase().includes('por') ||
+                  cleanName.toLowerCase().includes('(p)') ||
+                  cleanName.toLowerCase().includes('(por)') ||
+                  cleanName.toLowerCase().includes('portiere');
+
                 return (
-                  <tr key={idx} className="border-b border-black">
+                  <tr key={idx} className={`border-b border-black ${isGk ? 'bg-amber-100/50' : ''}`}>
                     <td className="border border-black p-1.5 text-center font-bold">{idx + 1}</td>
-                    <td className="border border-black p-1.5 font-bold text-xs">{cleanName}</td>
+                    <td className="border border-black p-1 text-center">
+                      <div className="flex justify-center items-center py-0.5">
+                        <JerseyIcon isGoalkeeper={isGk} className="w-7 h-7" />
+                      </div>
+                    </td>
+                    <td className="border border-black p-1.5 font-bold text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span>{cleanName}</span>
+                        {isGk && (
+                          <span className="text-[9px] font-black uppercase text-amber-950 bg-amber-200 border border-amber-400 px-1 py-0.5 rounded">
+                            PORTIERE
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="border border-black p-1.5 text-center text-[11px] font-bold">
+                      {isGk ? (
+                        <span className="text-amber-950">Maglia Gialla Mizuno/Spes</span>
+                      ) : (
+                        <span className="text-slate-800">Maglia Bianca Mizuno/Spes</span>
+                      )}
+                    </td>
                     <td className="border border-black p-1.5"></td>
                     <td className="border border-black p-1.5"></td>
                   </tr>
@@ -851,8 +974,9 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
               <span>AVVISI E DISPOSIZIONI OBBLIGATORIE PER LA GARA:</span>
             </p>
             <ul className="list-disc list-inside space-y-1 text-slate-900 font-semibold text-[11px]">
+              <li><strong>Divise Ufficiali Spes Montesacro (Mizuno):</strong> Giocatori con Maglia Bianca; Portieri con Maglia Gialla.</li>
               <li>Venire al campo in tuta di rappresentanza e parastinchi obbligatori.</li>
-              <li>Non venire al campo con gli scarpini già indossati.</li>
+              <li>Non venire al campo con gli scarpini già indossati (calzarli solo negli spogliatoi).</li>
               <li>Avvisare sempre prima di eventuali assenze o ritardi.</li>
             </ul>
           </div>

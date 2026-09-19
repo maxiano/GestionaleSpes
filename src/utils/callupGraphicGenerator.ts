@@ -1,4 +1,4 @@
-import { Callup } from '../types';
+import { Callup, Player } from '../types';
 import { formatDateIT } from './formatters';
 
 function roundRect(
@@ -20,26 +20,194 @@ function roundRect(
   ctx.closePath();
 }
 
+/**
+ * Draws the official match kit jersey:
+ * - Outfield players: White jersey with green trim, Spes Montesacro shield on left chest, Mizuno mark on right chest
+ * - Goalkeepers: Yellow jersey with dark trim, Spes Montesacro shield on left chest, Mizuno mark on right chest
+ */
+function drawJerseyCanvas(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  isGoalkeeper: boolean
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  const scale = size / 100;
+  ctx.scale(scale, scale);
+
+  const mainColor = isGoalkeeper ? '#FACC15' : '#FFFFFF';
+  const strokeColor = isGoalkeeper ? '#CA8A04' : '#94A3B8';
+  const trimColor = isGoalkeeper ? '#0F172A' : '#047857';
+  const textColor = isGoalkeeper ? '#0F172A' : '#047857';
+
+  // Jersey subtle shadow
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+  ctx.beginPath();
+  ctx.moveTo(37, 13);
+  ctx.lineTo(87, 25);
+  ctx.lineTo(99, 45);
+  ctx.lineTo(83, 55);
+  ctx.lineTo(77, 45);
+  ctx.lineTo(77, 93);
+  ctx.quadraticCurveTo(51, 96, 25, 93);
+  ctx.lineTo(25, 45);
+  ctx.lineTo(19, 55);
+  ctx.lineTo(3, 45);
+  ctx.lineTo(15, 25);
+  ctx.lineTo(63, 13);
+  ctx.closePath();
+  ctx.fill();
+
+  // Main Jersey Body
+  ctx.beginPath();
+  ctx.moveTo(38, 12);
+  ctx.lineTo(84, 23);
+  ctx.lineTo(96, 42);
+  ctx.lineTo(81, 52);
+  ctx.lineTo(75, 42);
+  ctx.lineTo(75, 90);
+  ctx.quadraticCurveTo(50, 93, 25, 90);
+  ctx.lineTo(25, 42);
+  ctx.lineTo(19, 52);
+  ctx.lineTo(4, 42);
+  ctx.lineTo(16, 23);
+  ctx.lineTo(62, 12);
+  ctx.closePath();
+
+  ctx.fillStyle = mainColor;
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = strokeColor;
+  ctx.stroke();
+
+  // Bottom Hem Trim
+  ctx.fillStyle = trimColor;
+  ctx.beginPath();
+  ctx.moveTo(25, 87);
+  ctx.quadraticCurveTo(50, 90, 75, 87);
+  ctx.lineTo(75, 90);
+  ctx.quadraticCurveTo(50, 93, 25, 90);
+  ctx.closePath();
+  ctx.fill();
+
+  // Sleeve Cuffs Trim
+  ctx.beginPath();
+  ctx.moveTo(4, 42);
+  ctx.lineTo(19, 52);
+  ctx.lineTo(17, 54);
+  ctx.lineTo(2, 44);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(96, 42);
+  ctx.lineTo(81, 52);
+  ctx.lineTo(83, 54);
+  ctx.lineTo(98, 44);
+  ctx.closePath();
+  ctx.fill();
+
+  // Collar V-Neck
+  ctx.beginPath();
+  ctx.moveTo(38, 12);
+  ctx.quadraticCurveTo(50, 25, 62, 12);
+  ctx.lineTo(57, 12);
+  ctx.quadraticCurveTo(50, 20, 43, 12);
+  ctx.closePath();
+  ctx.fill();
+
+  // LEFT CHEST: Spes Montesacro Official Club Shield
+  ctx.fillStyle = isGoalkeeper ? '#064E3B' : '#047857';
+  ctx.beginPath();
+  ctx.moveTo(28, 30);
+  ctx.quadraticCurveTo(36, 29, 44, 30);
+  ctx.quadraticCurveTo(44, 44, 36, 50);
+  ctx.quadraticCurveTo(28, 44, 28, 30);
+  ctx.closePath();
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#F59E0B';
+  ctx.stroke();
+
+  // Monogram letter 'S' for Spes
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '900 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('S', 36, 43);
+
+  // RIGHT CHEST: Mizuno Logo & Brand
+  ctx.fillStyle = isGoalkeeper ? '#0F172A' : '#047857';
+  // Mizuno Runbird
+  ctx.beginPath();
+  ctx.moveTo(56, 36);
+  ctx.quadraticCurveTo(62, 31, 68, 33);
+  ctx.quadraticCurveTo(63, 37, 59, 39);
+  ctx.closePath();
+  ctx.fill();
+
+  // Mizuno Text Brand
+  ctx.font = '900 6.5px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('MIZUNO', 64, 47);
+
+  // Center subtle "SPES" club text
+  ctx.fillStyle = textColor;
+  ctx.font = '900 10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('SPES', 50, 68);
+
+  ctx.restore();
+}
+
 export function generateCallupGraphicCanvas(
   callup: Callup,
-  teamId?: string
+  teamId?: string,
+  rosterPlayers?: Player[]
 ): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Impossibile inizializzare il contesto Canvas');
 
-  // Normalize players
-  const playerNames = (callup.players || []).map((p) => {
-    if (typeof p === 'string' && p.includes('|')) return p.split('|')[1];
-    if (typeof p === 'string') return p;
-    return (p as any)?.name || 'Atleta';
+  // Normalize convocati with roles
+  const playerList = (callup.players || []).map((p) => {
+    let id = '';
+    let name = 'Atleta';
+    let role = '';
+    if (typeof p === 'string' && p.includes('|')) {
+      const parts = p.split('|');
+      id = parts[0];
+      name = parts[1];
+      role = parts[2] || '';
+    } else if (typeof p === 'string') {
+      name = p;
+    } else {
+      id = (p as any)?.id || (p as any)?.playerId || '';
+      name = (p as any)?.name || 'Atleta';
+      role = (p as any)?.role || '';
+    }
+
+    if (!role && id && rosterPlayers) {
+      const found = rosterPlayers.find((pl) => pl.id === id);
+      if (found?.role) role = found.role;
+    }
+
+    const isGoalkeeper =
+      role.toLowerCase().includes('portiere') ||
+      role.toLowerCase().includes('por') ||
+      name.toLowerCase().includes('(p)') ||
+      name.toLowerCase().includes('(por)') ||
+      name.toLowerCase().includes('portiere');
+
+    return { id, name, role, isGoalkeeper };
   });
 
   const width = 1200;
   // Calculate dynamic height based on player count
-  const playersRows = Math.ceil(playerNames.length / 2);
-  const playersSectionHeight = Math.max(160, playersRows * 56 + 60);
-  const height = 980 + playersSectionHeight;
+  const playersRows = Math.ceil(playerList.length / 2);
+  const playersSectionHeight = Math.max(180, playersRows * 60 + 60);
+  const height = 1000 + playersSectionHeight;
 
   canvas.width = width;
   canvas.height = height;
@@ -237,55 +405,81 @@ export function generateCallupGraphicCanvas(
   ctx.fillStyle = '#FFFFFF';
   ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText(`👥 GIOCATORI CONVOCATI (${playerNames.length})`, cardX, curY + 24);
+  ctx.fillText(`👥 GIOCATORI CONVOCATI (${playerList.length})`, cardX, curY + 24);
   ctx.restore();
 
   curY += 40;
 
-  // Draw Players in 2 Columns
-  const playerItemH = 46;
+  // Draw Players in 2 Columns with official jerseys
+  const playerItemH = 52;
   const pColW = (gridW - 16) / 2;
 
-  playerNames.forEach((pName, pIdx) => {
+  playerList.forEach((player, pIdx) => {
     const pCol = pIdx % 2;
     const pRow = Math.floor(pIdx / 2);
     const px = cardX + pCol * (pColW + 16);
     const py = curY + pRow * (playerItemH + 8);
 
     ctx.save();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 1;
+    // Card background: warm yellow tint for goalkeeper, crisp clean for outfield
+    if (player.isGoalkeeper) {
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.16)';
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.45)';
+    } else {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+    }
+    ctx.lineWidth = 1.2;
     roundRect(ctx, px, py, pColW, playerItemH, 12);
     ctx.fill();
     ctx.stroke();
 
-    // Number Badge
-    ctx.fillStyle = '#10B981';
-    roundRect(ctx, px + 8, py + 8, 36, playerItemH - 16, 8);
+    // Number Badge (Left)
+    ctx.fillStyle = player.isGoalkeeper ? '#F59E0B' : '#10B981';
+    roundRect(ctx, px + 8, py + 8, 30, playerItemH - 16, 7);
     ctx.fill();
 
-    ctx.fillStyle = '#064E3B';
-    ctx.font = '900 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = player.isGoalkeeper ? '#78350F' : '#064E3B';
+    ctx.font = '900 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(String(pIdx + 1), px + 26, py + 28);
+    ctx.fillText(String(pIdx + 1), px + 23, py + 32);
+
+    // DRAW JERSEY NEXT TO NUMBER & NAME:
+    // Outfield: White jersey with Spes Montesacro logo and Mizuno brand
+    // Goalkeeper: Yellow jersey with Spes Montesacro logo and Mizuno brand
+    drawJerseyCanvas(ctx, px + 44, py + 8, 36, player.isGoalkeeper);
 
     // Player Name
     ctx.textAlign = 'left';
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = '700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    let displayPlayerName = pName;
-    while (ctx.measureText(displayPlayerName).width > pColW - 65 && displayPlayerName.length > 4) {
+    ctx.font = '800 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    let displayPlayerName = player.name;
+    const maxTextW = pColW - (player.isGoalkeeper ? 190 : 98);
+    while (ctx.measureText(displayPlayerName).width > maxTextW && displayPlayerName.length > 4) {
       displayPlayerName = displayPlayerName.slice(0, -4) + '...';
     }
-    ctx.fillText(displayPlayerName, px + 54, py + 29);
+    ctx.fillText(displayPlayerName, px + 88, py + 33);
+
+    // If Goalkeeper: Add yellow badge "[PORTIERE]"
+    if (player.isGoalkeeper) {
+      const badgeW = 90;
+      const badgeX = px + pColW - badgeW - 10;
+      ctx.fillStyle = '#FACC15';
+      roundRect(ctx, badgeX, py + 12, badgeW, 28, 6);
+      ctx.fill();
+      ctx.fillStyle = '#0F172A';
+      ctx.font = '900 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PORTIERE', badgeX + badgeW / 2, py + 31);
+    }
+
     ctx.restore();
   });
 
   curY += playersRows * (playerItemH + 8) + 24;
 
   // 6. Mandatory Advisory & Rules Box
-  const alertBoxH = 150;
+  const alertBoxH = 160;
   ctx.save();
   ctx.fillStyle = 'rgba(245, 158, 11, 0.12)'; // amber tint
   ctx.strokeStyle = '#F59E0B'; // Gold border
@@ -298,14 +492,15 @@ export function generateCallupGraphicCanvas(
   ctx.textAlign = 'left';
   ctx.fillStyle = '#FBBF24';
   ctx.font = '900 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  ctx.fillText('⚠️  DISPOSIZIONI E REGOLE OBBLIGATORIE PER LA GARA:', cardX + 24, curY + 34);
+  ctx.fillText('⚠️  DIVISE UFFICIALI E DISPOSIZIONI OBBLIGATORIE GARA:', cardX + 24, curY + 34);
 
   // Bullet items
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = '600 17px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  ctx.fillText('• Venire al campo in tuta di rappresentanza e parastinchi obbligatori.', cardX + 24, curY + 66);
-  ctx.fillText('• Non venire al campo con gli scarpini già indossati (calzarli solo nello spogliatoio).', cardX + 24, curY + 96);
-  ctx.fillText('• Avvisare sempre tempestivamente prima di eventuali assenze o ritardi.', cardX + 24, curY + 126);
+  ctx.font = '600 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillText('• Divisa Giocatori: Maglia BIANCA (Mizuno / Spes). Portieri: Maglia GIALLA (Mizuno / Spes).', cardX + 24, curY + 64);
+  ctx.fillText('• Venire al campo in tuta di rappresentanza e parastinchi obbligatori.', cardX + 24, curY + 92);
+  ctx.fillText('• Non venire con gli scarpini già indossati (calzarli nello spogliatoio).', cardX + 24, curY + 120);
+  ctx.fillText('• Avvisare sempre tempestivamente prima di eventuali assenze o ritardi.', cardX + 24, curY + 146);
   ctx.restore();
 
   curY += alertBoxH + 30;
@@ -323,9 +518,10 @@ export function generateCallupGraphicCanvas(
 
 export async function createCallupGraphicBlob(
   callup: Callup,
-  teamId?: string
+  teamId?: string,
+  rosterPlayers?: Player[]
 ): Promise<Blob> {
-  const canvas = generateCallupGraphicCanvas(callup, teamId);
+  const canvas = generateCallupGraphicCanvas(callup, teamId, rosterPlayers);
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);

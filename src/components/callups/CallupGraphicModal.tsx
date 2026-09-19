@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Callup } from '../../types';
+import { Callup, Player } from '../../types';
 import { formatDateIT } from '../../utils/formatters';
 import { formatCallupWhatsAppFinal, sendToWhatsApp } from '../../utils/exports';
 import { createCallupGraphicBlob } from '../../utils/callupGraphicGenerator';
+import { JerseyIcon } from '../common/JerseyIcon';
 import {
   X,
   Share2,
@@ -26,6 +27,7 @@ interface CallupGraphicModalProps {
   onClose: () => void;
   callup: Callup | null;
   activeTeamId: string;
+  players?: Player[];
   onPrint?: () => void;
 }
 
@@ -34,6 +36,7 @@ export const CallupGraphicModal: React.FC<CallupGraphicModalProps> = ({
   onClose,
   callup,
   activeTeamId,
+  players,
   onPrint
 }) => {
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
@@ -57,7 +60,7 @@ export const CallupGraphicModal: React.FC<CallupGraphicModalProps> = ({
     let isMounted = true;
     setGenerating(true);
 
-    createCallupGraphicBlob(callup, activeTeamId)
+    createCallupGraphicBlob(callup, activeTeamId, players)
       .then((blob) => {
         if (!isMounted) return;
         setImageBlob(blob);
@@ -77,15 +80,43 @@ export const CallupGraphicModal: React.FC<CallupGraphicModalProps> = ({
         URL.revokeObjectURL(imageUrl);
       }
     };
-  }, [isOpen, callup, activeTeamId]);
+  }, [isOpen, callup, activeTeamId, players]);
 
   if (!isOpen || !callup) return null;
 
-  const playerNames = (callup.players || []).map((p) => {
-    if (typeof p === 'string' && p.includes('|')) return p.split('|')[1];
-    if (typeof p === 'string') return p;
-    return (p as any)?.name || 'Atleta';
+  const convocati = (callup.players || []).map((p) => {
+    let id = '';
+    let name = 'Atleta';
+    let role = '';
+    if (typeof p === 'string' && p.includes('|')) {
+      const parts = p.split('|');
+      id = parts[0];
+      name = parts[1];
+      role = parts[2] || '';
+    } else if (typeof p === 'string') {
+      name = p;
+    } else {
+      id = (p as any)?.id || (p as any)?.playerId || '';
+      name = (p as any)?.name || 'Atleta';
+      role = (p as any)?.role || '';
+    }
+
+    if (!role && id && players) {
+      const found = players.find((pl) => pl.id === id);
+      if (found?.role) role = found.role;
+    }
+
+    const isGk =
+      role.toLowerCase().includes('portiere') ||
+      role.toLowerCase().includes('por') ||
+      name.toLowerCase().includes('(p)') ||
+      name.toLowerCase().includes('(por)') ||
+      name.toLowerCase().includes('portiere');
+
+    return { id, name, role, isGoalkeeper: isGk };
   });
+
+  const playerNames = convocati.map((c) => c.name);
 
   const getMatchBadge = () => {
     if (callup.matchType === 'Torneo') {
@@ -351,16 +382,44 @@ export const CallupGraphicModal: React.FC<CallupGraphicModalProps> = ({
               )}
 
               <div>
-                <p className="text-xs font-black text-white uppercase tracking-wider mb-2">
-                  👥 Convocati ({playerNames.length})
-                </p>
-                <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1 text-xs">
-                  {playerNames.map((name, i) => (
-                    <div key={i} className="flex items-center gap-1.5 p-1.5 bg-white/5 border border-white/10 rounded-lg">
-                      <span className="w-4 h-4 rounded-md bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-black text-white uppercase tracking-wider">
+                    👥 Convocati ({convocati.length})
+                  </p>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-300 font-medium">
+                    <span className="flex items-center gap-1">
+                      <JerseyIcon isGoalkeeper={false} className="w-3.5 h-3.5" /> Giocatori (Bianca)
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <JerseyIcon isGoalkeeper={true} className="w-3.5 h-3.5" /> Portiere (Gialla)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1 text-xs">
+                  {convocati.map((item, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-center gap-1.5 p-1.5 rounded-lg border ${
+                        item.isGoalkeeper
+                          ? 'bg-amber-500/15 border-amber-500/40 text-amber-100'
+                          : 'bg-white/5 border-white/10 text-white'
+                      }`}
+                    >
+                      <span
+                        className={`w-4 h-4 rounded-md text-[10px] font-black flex items-center justify-center shrink-0 ${
+                          item.isGoalkeeper ? 'bg-amber-500 text-slate-950' : 'bg-emerald-600 text-white'
+                        }`}
+                      >
                         {i + 1}
                       </span>
-                      <span className="font-semibold truncate text-white">{name}</span>
+                      <JerseyIcon isGoalkeeper={item.isGoalkeeper} className="w-4 h-4 shrink-0" />
+                      <span className="font-semibold truncate flex-1">{item.name}</span>
+                      {item.isGoalkeeper && (
+                        <span className="text-[8px] font-black uppercase text-amber-300 bg-black/50 px-1 rounded">
+                          POR
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -368,6 +427,7 @@ export const CallupGraphicModal: React.FC<CallupGraphicModalProps> = ({
 
               <div className="p-3 bg-amber-500/10 border border-amber-500/40 rounded-xl text-[11px] text-amber-200 space-y-1">
                 <p className="font-black text-amber-300 uppercase tracking-wider">⚠️ Disposizioni Obbligatorie:</p>
+                <p>• Divise: Giocatori Maglia BIANCA • Portiere Maglia GIALLA (Mizuno / Spes).</p>
                 <p>• Tuta di rappresentanza e parastinchi obbligatori.</p>
                 <p>• NON venire al campo con gli scarpini già indossati.</p>
                 <p>• Avvisare sempre prima di eventuali assenze o ritardi.</p>
