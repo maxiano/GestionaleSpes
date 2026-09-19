@@ -15,7 +15,7 @@ import {
   submitParentCustomTraining
 } from '../../services/attendancesService';
 import { MONTH_NAMES_IT } from '../../config/constants';
-import { formatDateIT, parseDateObj, arePhonesMatching } from '../../utils/formatters';
+import { formatDateIT, parseDateObj, arePhonesMatching, sanitizeCSVField } from '../../utils/formatters';
 import { exportParentsToExcelFile, downloadCSV } from '../../utils/exports';
 import {
   collection,
@@ -285,7 +285,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ userProfile }) => {
     let csv = 'Data;Stato Presenza;Note\n';
     trainingsHistory.forEach((t) => {
       const statusText = t.status === 'present' ? 'Presente' : 'Assente';
-      csv += `"${formatDateIT(t.date)}";"${statusText}";"${t.notes || ''}"\n`;
+      csv += `${sanitizeCSVField(formatDateIT(t.date))};${sanitizeCSVField(statusText)};${sanitizeCSVField(t.notes || '')}\n`;
     });
     downloadCSV(`Presenze_${childDisplayName.replace(/\s+/g, '_')}.csv`, csv);
   };

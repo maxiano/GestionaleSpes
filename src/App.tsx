@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, Player, ActiveTab, AppNotification } from './types';
-import { subscribeToAuth, logoutUser } from './services/authService';
+import {
+  subscribeToAuth,
+  logoutUser,
+  fetchParentsUsers,
+  createParentAccount,
+  isUserAdmin
+} from './services/authService';
 import { getPlayersByTeam, getAllPlayers, batchImportPlayers } from './services/playersService';
 import { subscribeToNotifications } from './services/notificationService';
 import { NotificationToast } from './components/notifications/NotificationToast';
@@ -16,7 +22,6 @@ import {
   parsePlayerRow
 } from './utils/exports';
 import { getLockerSchedule } from './services/lockerRoomsService';
-import { fetchParentsUsers, createParentAccount } from './services/authService';
 
 // Reusable Components
 import { Header } from './components/common/Header';
@@ -323,10 +328,7 @@ export default function App() {
   }
 
   // Logged in as Coach / Admin: Show Full Technical Dashboard
-  const isAdmin =
-    userProfile.role === 'admin' ||
-    userProfile.email?.toLowerCase() === 'max.nanni@gmail.com' ||
-    userProfile.email?.toLowerCase().includes('admin');
+  const isAdmin = isUserAdmin(userProfile);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-white">

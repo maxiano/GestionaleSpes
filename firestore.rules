@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isCurrentUser(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email in ['max.nanni@gmail.com', 'admin@spesmontesacro.it'] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isCoachOrAdmin() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['coach', 'admin'])
+      );
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Admins have full control; users can read their own profile; coach/staff can view other staff
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isCurrentUser(userId) || isAdmin();
+      allow delete: if isAdmin() && !isCurrentUser(userId);
+    }
+
+    // Players collection
+    match /players/{playerId} {
+      // Authenticated users (coaches, parents of the player, admins) can read
+      allow read: if isAuthenticated();
+      allow write: if isCoachOrAdmin();
+    }
+
+    // Callups collection
+    match /callups/{callupId} {
+      allow read: if isAuthenticated();
+      // Coaches and Admins can create/delete/manage callups
+      // Parents can update response status for their child
+      allow create, delete: if isCoachOrAdmin();
+      allow update: if isAuthenticated();
+    }
+
+    // Attendances collection
+    match /attendances/{attendanceId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isCoachOrAdmin();
+    }
+
+    // Tournaments collection
+    match /tournaments/{tourId} {
+      allow read: if isAuthenticated();
+      allow write: if isCoachOrAdmin();
+    }
+
+    // Tournament Matches collection
+    match /tournament_matches/{matchId} {
+      allow read: if isAuthenticated();
+      allow write: if isCoachOrAdmin();
+    }
+
+    // Match history archive
+    match /match_history/{historyId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Staff attendances & equipment
+    match /staff_attendances/{recordId} {
+      allow read, write: if isCoachOrAdmin();
+    }
+
+    match /staff_equipment/{recordId} {
+      allow read, write: if isCoachOrAdmin();
+    }
+
+    // Locker rooms
+    match /locker_rooms/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isCoachOrAdmin();
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated();
+      allow write: if isCoachOrAdmin();
+    }
+  }
+}

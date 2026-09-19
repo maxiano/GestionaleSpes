@@ -11,7 +11,7 @@ import { getPlayersByTeam } from '../../services/playersService';
 import { TournamentModal } from './TournamentModal';
 import { MatchModal } from './MatchModal';
 import { TournamentParticipantsModal } from './TournamentParticipantsModal';
-import { formatDateIT } from '../../utils/formatters';
+import { formatDateIT, sanitizeCSVField } from '../../utils/formatters';
 import {
   downloadCSV,
   parseCSVFile,
@@ -185,7 +185,7 @@ export const TournamentsTab: React.FC<TournamentsTabProps> = ({
     matches.forEach((m) => {
       const tour = tournaments.find((t) => t.id === m.tournamentId);
       const tourName = tour ? tour.name : 'Torneo';
-      csv += `"${tourName}";"${m.match || ''}";"${m.date || ''}";"${m.time || ''}";"${m.location || ''}";"${m.result || ''}"\n`;
+      csv += `${sanitizeCSVField(tourName)};${sanitizeCSVField(m.match || '')};${sanitizeCSVField(m.date || '')};${sanitizeCSVField(m.time || '')};${sanitizeCSVField(m.location || '')};${sanitizeCSVField(m.result || '')}\n`;
     });
     downloadCSV(`Tornei_${activeTeamId}.csv`, csv);
   };

@@ -1,5 +1,5 @@
 import { Callup, Player } from '../types';
-import { formatDateIT } from './formatters';
+import { formatDateIT, isPlayerGoalkeeper } from './formatters';
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
@@ -193,12 +193,7 @@ export function generateCallupGraphicCanvas(
       if (found?.role) role = found.role;
     }
 
-    const isGoalkeeper =
-      role.toLowerCase().includes('portiere') ||
-      role.toLowerCase().includes('por') ||
-      name.toLowerCase().includes('(p)') ||
-      name.toLowerCase().includes('(por)') ||
-      name.toLowerCase().includes('portiere');
+    const isGoalkeeper = isPlayerGoalkeeper(role, name);
 
     return { id, name, role, isGoalkeeper };
   });

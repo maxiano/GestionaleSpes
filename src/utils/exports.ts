@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Player, Callup, LockerAssignment, TournamentMatch } from '../types';
-import { formatDateIT, normalizeDateToISO } from './formatters';
+import { formatDateIT, normalizeDateToISO, sanitizeCSVField } from './formatters';
 
 export function sendToWhatsApp(text: string, title = "Spes Montesacro Report") {
   if (navigator.share) {
@@ -93,19 +93,19 @@ export function downloadCSV(filename: string, csvContent: string) {
 export function exportRosterCSV(teamId: string, players: Player[]) {
   let csv = `Cognome;Nome;Matricola;Numero Maglia;Data Nascita;Ruolo;Scadenza Certificato;Tel. Padre;Tel. Madre;Squadra;Note\n`;
   players.forEach((p) => {
-    const lastName = (p.lastName || '').replace(/"/g, '""');
-    const firstName = (p.firstName || '').replace(/"/g, '""');
-    const matricola = (p.matricola || '').replace(/"/g, '""');
-    const jersey = (p.jersey || '').replace(/"/g, '""');
-    const dob = (p.dob || '').replace(/"/g, '""');
-    const role = (p.role || '').replace(/"/g, '""');
-    const medicalExp = (p.medicalExp || '').replace(/"/g, '""');
-    const parentPhone = (p.parentPhone || '').replace(/"/g, '""');
-    const parentPhone2 = (p.parentPhone2 || '').replace(/"/g, '""');
-    const squad = (p.teamId || teamId || '').replace(/"/g, '""');
-    const notes = (p.notes || '').replace(/"/g, '""');
+    const lastName = sanitizeCSVField(p.lastName || '');
+    const firstName = sanitizeCSVField(p.firstName || '');
+    const matricola = sanitizeCSVField(p.matricola || '');
+    const jersey = sanitizeCSVField(p.jersey || '');
+    const dob = sanitizeCSVField(p.dob || '');
+    const role = sanitizeCSVField(p.role || '');
+    const medicalExp = sanitizeCSVField(p.medicalExp || '');
+    const parentPhone = sanitizeCSVField(p.parentPhone || '');
+    const parentPhone2 = sanitizeCSVField(p.parentPhone2 || '');
+    const squad = sanitizeCSVField(p.teamId || teamId || '');
+    const notes = sanitizeCSVField(p.notes || '');
 
-    csv += `"${lastName}";"${firstName}";"${matricola}";"${jersey}";"${dob}";"${role}";"${medicalExp}";"${parentPhone}";"${parentPhone2}";"${squad}";"${notes}"\n`;
+    csv += `${lastName};${firstName};${matricola};${jersey};${dob};${role};${medicalExp};${parentPhone};${parentPhone2};${squad};${notes}\n`;
   });
   downloadCSV(`Rosa_${teamId || 'Squadra'}.csv`, csv);
 }

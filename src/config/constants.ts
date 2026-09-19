@@ -1,11 +1,11 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSyBv0g2gejMRNsD4INV80ODkYS2QPyCLj30",
-  authDomain: "gestione-scuola-calcio-43987.firebaseapp.com",
-  projectId: "gestione-scuola-calcio-43987",
-  storageBucket: "gestione-scuola-calcio-43987.firebasestorage.app",
-  messagingSenderId: "625497921694",
-  appId: "1:625497921694:web:0e883838e8108a6ced438f",
-  measurementId: "G-N1FSZNKS7N"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBv0g2gejMRNsD4INV80ODkYS2QPyCLj30",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "gestione-scuola-calcio-43987.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "gestione-scuola-calcio-43987",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "gestione-scuola-calcio-43987.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "625497921694",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:625497921694:web:0e883838e8108a6ced438f",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-N1FSZNKS7N"
 };
 
 export const DAYS_OF_WEEK_IT = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];

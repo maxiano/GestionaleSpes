@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   DrillPitchType,
   DrillItemType,
@@ -28,7 +29,9 @@ import {
   Move,
   Columns,
   Rows,
-  RotateCw
+  RotateCw,
+  Smartphone,
+  X
 } from 'lucide-react';
 
 interface TacticalBoardProps {
@@ -87,11 +90,29 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
   const [showDividerMenu, setShowDividerMenu] = useState(false);
   const [paletteTab, setPaletteTab] = useState<'figurines' | 'markers'>('figurines');
 
+  // Modalità Schermo Intero per smartphone e tablet
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  // Rilevamento orientamento smartphone per suggerimento landscape
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth && window.innerWidth < 850);
+    };
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
+
   // Dimensioni standard SVG board
   const VB_WIDTH = 800;
   const VB_HEIGHT = 520;
 
-  // Scorciatoie da tastiera: Canc / Backspace per eliminare la selezione, Esc per deselezionare
+  // Scorciatoie da tastiera: Canc / Backspace per eliminare la selezione, Esc per deselezionare o uscire da fullscreen
   useEffect(() => {
     if (readOnly) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -102,6 +123,9 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           handleDeleteSelected();
         }
       } else if (e.key === 'Escape') {
+        if (isFullscreen) {
+          setIsFullscreen(false);
+        }
         setSelectedElementIds([]);
         setSelectedLineIds([]);
         setEditingLabelId(null);
@@ -109,7 +133,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedElementIds, selectedLineIds, readOnly, elements, lines]);
+  }, [selectedElementIds, selectedLineIds, readOnly, elements, lines, isFullscreen]);
 
   // Converti coordinate mouse/touch in % (0-100) relative all'SVG
   const getPointerCoords = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
@@ -164,8 +188,30 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     return () => clearTimeout(timer);
   }, [elements, lines, pitchType, generateSnapshot, readOnly]);
 
-  // Aggiungi elemento al centro o tramite click sul campo
-  const handleAddElement = (type: DrillItemType, x = 50, y = 50) => {
+  // Aggiungi elemento al centro o tramite click sul campo con offset intelligente anti-sovrapposizione
+  const handleAddElement = (type: DrillItemType, x?: number, y?: number) => {
+    let targetX = x;
+    let targetY = y;
+
+    // Se le coordinate non sono specificate, calcola una posizione sfalsata attorno al centro
+    if (targetX === undefined || targetY === undefined) {
+      const offsetIndex = elements.length % 9;
+      const offsets = [
+        { dx: 0, dy: 0 },
+        { dx: -7, dy: -6 },
+        { dx: 7, dy: -6 },
+        { dx: -7, dy: 6 },
+        { dx: 7, dy: 6 },
+        { dx: 0, dy: -10 },
+        { dx: 0, dy: 10 },
+        { dx: -11, dy: 0 },
+        { dx: 11, dy: 0 }
+      ];
+      const off = offsets[offsetIndex] || { dx: 0, dy: 0 };
+      targetX = Math.max(8, Math.min(92, 50 + off.dx));
+      targetY = Math.max(8, Math.min(92, 50 + off.dy));
+    }
+
     let defaultLabel = '';
     if (type === 'player_blue' || type === 'mini_player_blue') {
       const count = elements.filter((e) => e.type === 'player_blue' || e.type === 'mini_player_blue').length + 1;
@@ -188,8 +234,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     const newElement: DrillElement = {
       id: `el-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       type,
-      x,
-      y,
+      x: targetX,
+      y: targetY,
       label: defaultLabel,
       rotation: 0,
       scale: 1.0
@@ -468,7 +514,11 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     setLastPointerCoords(coords);
     setDragMode('element');
     try {
-      (e.target as Element).setPointerCapture?.(e.pointerId);
+      if (svgRef.current) {
+        svgRef.current.setPointerCapture(e.pointerId);
+      } else {
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+      }
     } catch (_) {}
   };
 
@@ -498,7 +548,11 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     setActiveLineHandle({ lineId, handle: 'center' });
     setDragMode('line');
     try {
-      (e.target as Element).setPointerCapture?.(e.pointerId);
+      if (svgRef.current) {
+        svgRef.current.setPointerCapture(e.pointerId);
+      } else {
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+      }
     } catch (_) {}
   };
 
@@ -521,7 +575,11 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
       handle === 'start' ? 'line_handle_start' : handle === 'end' ? 'line_handle_end' : 'line'
     );
     try {
-      (e.target as Element).setPointerCapture?.(e.pointerId);
+      if (svgRef.current) {
+        svgRef.current.setPointerCapture(e.pointerId);
+      } else {
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+      }
     } catch (_) {}
   };
 
@@ -1115,6 +1173,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                       className="cursor-move hover:scale-125 transition-transform"
                       onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'center')}
                     >
+                      <circle cx="0" cy="0" r="22" fill="transparent" pointerEvents="all" />
                       <circle cx="0" cy="0" r="11" fill="#0284c7" stroke="#ffffff" strokeWidth="2.5" />
                       <path d="M -4.5 0 L 4.5 0 M 0 -4.5 L 0 4.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
                     </g>
@@ -1125,6 +1184,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                       className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
                       onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'start')}
                     >
+                      <circle cx="0" cy="0" r="22" fill="transparent" pointerEvents="all" />
                       <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
                       <circle cx="0" cy="0" r="3" fill="#ffffff" />
                     </g>
@@ -1135,6 +1195,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                       className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
                       onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'end')}
                     >
+                      <circle cx="0" cy="0" r="22" fill="transparent" pointerEvents="all" />
                       <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
                       <circle cx="0" cy="0" r="3" fill="#ffffff" />
                     </g>
@@ -1206,6 +1267,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                       className="cursor-move hover:scale-125 transition-transform"
                       onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'center')}
                     >
+                      <circle cx="0" cy="0" r="22" fill="transparent" pointerEvents="all" />
                       <circle cx="0" cy="0" r="11" fill="#0284c7" stroke="#ffffff" strokeWidth="2.5" />
                       <path d="M -4.5 0 L 4.5 0 M 0 -4.5 L 0 4.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
                     </g>
@@ -1214,6 +1276,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                       className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
                       onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'start')}
                     >
+                      <circle cx="0" cy="0" r="22" fill="transparent" pointerEvents="all" />
                       <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
                       <circle cx="0" cy="0" r="3" fill="#ffffff" />
                     </g>
@@ -1222,6 +1285,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                       className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
                       onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'end')}
                     >
+                      <circle cx="0" cy="0" r="22" fill="transparent" pointerEvents="all" />
                       <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
                       <circle cx="0" cy="0" r="3" fill="#ffffff" />
                     </g>
@@ -1282,6 +1346,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     className="cursor-move hover:scale-125 transition-transform"
                     onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'center')}
                   >
+                    <circle cx="0" cy="0" r="22" fill="transparent" pointerEvents="all" />
                     <circle cx="0" cy="0" r="11" fill="#0284c7" stroke="#ffffff" strokeWidth="2.5" />
                     <path d="M -4.5 0 L 4.5 0 M 0 -4.5 L 0 4.5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
                   </g>
@@ -1290,6 +1355,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
                     onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'start')}
                   >
+                    <circle cx="0" cy="0" r="22" fill="transparent" pointerEvents="all" />
                     <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
                     <circle cx="0" cy="0" r="3" fill="#ffffff" />
                   </g>
@@ -1298,6 +1364,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                     className="cursor-grab active:cursor-grabbing hover:scale-125 transition-transform"
                     onPointerDown={(e) => handleLineHandlePointerDown(e, l.id, 'end')}
                   >
+                    <circle cx="0" cy="0" r="22" fill="transparent" pointerEvents="all" />
                     <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" strokeWidth="2.5" />
                     <circle cx="0" cy="0" r="3" fill="#ffffff" />
                   </g>
@@ -1389,6 +1456,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             setTempLabel(el.label || '');
           }}
         >
+          {/* Hitbox trasparente maggiorata per tocco touch da smartphone */}
+          <circle cx="0" cy="0" r="28" fill="transparent" pointerEvents="all" />
           {/* Cerchio selezione */}
           {isSelected && (
             <circle cx="0" cy="0" r="22" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeDasharray="3 3" />
@@ -1465,6 +1534,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             setTempLabel(el.label || '');
           }}
         >
+          {/* Hitbox maggiorata per touch smartphone */}
+          <rect x="-18" y="-20" width="36" height="40" rx="8" fill="transparent" pointerEvents="all" />
           {/* Alone di selezione con rettangolo arrotondato */}
           {isSelected && (
             <rect
@@ -1540,6 +1611,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           className={readOnly ? '' : 'cursor-grab active:cursor-grabbing select-none'}
           onPointerDown={(e) => handleElementPointerDown(e, el)}
         >
+          {/* Hitbox maggiorata per touch smartphone */}
+          <circle cx="0" cy="0" r="24" fill="transparent" pointerEvents="all" />
           {isSelected && (
             <circle cx="0" cy="0" r="17" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeDasharray="3 3" />
           )}
@@ -1593,6 +1666,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           className={readOnly ? '' : 'cursor-grab active:cursor-grabbing select-none'}
           onPointerDown={(e) => handleElementPointerDown(e, el)}
         >
+          {/* Hitbox maggiorata per touch smartphone */}
+          <circle cx="0" cy="0" r="24" fill="transparent" pointerEvents="all" />
           {isSelected && (
             <circle cx="0" cy="0" r="16" fill="none" stroke="#38bdf8" strokeWidth="2" strokeDasharray="3 3" />
           )}
@@ -1614,6 +1689,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           className={readOnly ? '' : 'cursor-grab active:cursor-grabbing select-none'}
           onPointerDown={(e) => handleElementPointerDown(e, el)}
         >
+          {/* Hitbox maggiorata per touch smartphone */}
+          <circle cx="0" cy="0" r="22" fill="transparent" pointerEvents="all" />
           {isSelected && (
             <circle cx="0" cy="0" r="15" fill="none" stroke="#ffffff" strokeWidth="2" strokeDasharray="2 2" />
           )}
@@ -1633,6 +1710,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           className={readOnly ? '' : 'cursor-grab active:cursor-grabbing select-none'}
           onPointerDown={(e) => handleElementPointerDown(e, el)}
         >
+          {/* Hitbox maggiorata per touch smartphone */}
+          <rect x="-24" y="-18" width="48" height="36" fill="transparent" pointerEvents="all" />
           {isSelected && (
             <rect x="-20" y="-16" width="40" height="32" fill="none" stroke="#38bdf8" strokeWidth="2" strokeDasharray="3 3" />
           )}
@@ -1711,25 +1790,26 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
     <div className="flex flex-col space-y-3" ref={containerRef}>
       {/* Barra comandi superiore: Tipo Campo & Toolbar Strumenti */}
       {!readOnly && (
-        <div className="bg-slate-900 text-white p-3 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-md">
+        <div className="bg-slate-900 text-white p-2 sm:p-3 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-2 sm:gap-3 shadow-md">
           {/* Scelta Vista Campo */}
-          <div className="flex items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700/60">
-            <span className="text-[11px] font-bold text-slate-400 px-2 uppercase tracking-wider">Campo:</span>
+          <div className="flex items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700/60 overflow-x-auto scrollbar-none max-w-full">
+            <span className="text-[11px] font-bold text-slate-400 px-1 sm:px-2 uppercase tracking-wider shrink-0">Campo:</span>
             <button
               type="button"
               onClick={() => onChangePitchType('half')}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+              className={`px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
                 pitchType === 'half'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-slate-300 hover:bg-slate-700'
               }`}
             >
-              Metà Campo
+              <span className="hidden sm:inline">Metà Campo</span>
+              <span className="sm:hidden">Metà</span>
             </button>
             <button
               type="button"
               onClick={() => onChangePitchType('full')}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+              className={`px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
                 pitchType === 'full'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-slate-300 hover:bg-slate-700'
@@ -1740,43 +1820,46 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             <button
               type="button"
               onClick={() => onChangePitchType('penalty_box')}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+              className={`px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
                 pitchType === 'penalty_box'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-slate-300 hover:bg-slate-700'
               }`}
             >
-              Area Rigore
+              <span className="hidden sm:inline">Area Rigore</span>
+              <span className="sm:hidden">Area</span>
             </button>
             <button
               type="button"
               onClick={() => onChangePitchType('box')}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+              className={`px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
                 pitchType === 'box'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-slate-300 hover:bg-slate-700'
               }`}
             >
-              Rettangolo / Rondo
+              <span className="hidden sm:inline">Rettangolo / Rondo</span>
+              <span className="sm:hidden">Rondo</span>
             </button>
           </div>
 
           {/* Modalità di disegno e selezione */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto max-w-full pb-0.5 scrollbar-none">
             <button
               type="button"
               onClick={() => {
                 setActiveTool('select');
               }}
               title="Modalità Selezione e Spostamento (frecce ed elementi)"
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition border shrink-0 ${
                 activeTool === 'select'
                   ? 'bg-cyan-600 text-white border-cyan-500 shadow'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700'
               }`}
             >
               <MousePointer className="w-3.5 h-3.5" />
-              <span>Sposta / Seleziona</span>
+              <span className="hidden sm:inline">Sposta / Seleziona</span>
+              <span className="sm:hidden">Sposta</span>
             </button>
 
             <button
@@ -1786,7 +1869,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 handleClearSelection();
               }}
               title="Freccia Corsa / Movimento (Continua Bianca)"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border shrink-0 ${
                 activeTool === 'run'
                   ? 'bg-slate-100 text-slate-900 border-white shadow'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700'
@@ -1803,7 +1886,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 handleClearSelection();
               }}
               title="Freccia Passaggio (Tratteggiata Gialla)"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border shrink-0 ${
                 activeTool === 'pass'
                   ? 'bg-amber-400 text-slate-950 border-amber-300 shadow font-black'
                   : 'bg-slate-800 text-amber-300 hover:bg-slate-700 border-slate-700'
@@ -1820,7 +1903,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 handleClearSelection();
               }}
               title="Linea Guida della Palla / Dribbling (Ondulata Azzurra)"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border shrink-0 ${
                 activeTool === 'dribble'
                   ? 'bg-sky-500 text-white border-sky-400 shadow'
                   : 'bg-slate-800 text-sky-300 hover:bg-slate-700 border-slate-700'
@@ -1838,7 +1921,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 setShowDividerMenu(false);
               }}
               title="Freccia Conclusione a Rete (Rossa)"
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border shrink-0 ${
                 activeTool === 'shot'
                   ? 'bg-rose-600 text-white border-rose-500 shadow'
                   : 'bg-slate-800 text-rose-300 hover:bg-slate-700 border-slate-700'
@@ -1849,7 +1932,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             </button>
 
             {/* Linea Divisoria / Delimitazione Campo con Menù Rapido */}
-            <div className="relative inline-flex">
+            <div className="relative inline-flex shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -1865,7 +1948,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 }`}
               >
                 <Split className="w-3.5 h-3.5 text-amber-300" />
-                <span>Linea Divisoria</span>
+                <span>Divisoria</span>
               </button>
               <button
                 type="button"
@@ -1949,8 +2032,20 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             </div>
           </div>
 
-          {/* Azioni rapide: Selezione Multipla, Elimina selezione, Annulla linea, Svuota, Scarica PNG */}
+          {/* Azioni rapide: Selezione Multipla, Elimina selezione, Annulla linea, Svuota, Scarica PNG, Schermo Intero */}
           <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Pulsante Schermo Intero Mobile & Tablet */}
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(true)}
+              title="Apri a Schermo Intero (ideale per smartphone su campo)"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition shadow-sm border border-emerald-400/40 shrink-0"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Schermo Intero</span>
+              <span className="xs:hidden">Intero</span>
+            </button>
+
             {/* Modalità Selezione Multipla (tap multiplo senza dover premere Shift o Ctrl) */}
             <button
               type="button"
@@ -1960,7 +2055,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   ? 'Modalità Selezione Multipla ATTIVA: tocca più elementi/linee per selezionarli insieme'
                   : 'Attiva Selezione Multipla (puoi anche usare Shift o trascinare un rettangolo sul campo)'
               }
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border shrink-0 ${
                 multiSelectMode
                   ? 'bg-cyan-600 text-white border-cyan-400 shadow-sm ring-2 ring-cyan-400/40'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700'
@@ -1981,7 +2076,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   type="button"
                   onClick={handleClearSelection}
                   title="Deseleziona tutto (Esc)"
-                  className="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-medium transition"
+                  className="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-medium transition shrink-0"
                 >
                   Deseleziona
                 </button>
@@ -1990,9 +2085,9 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                   type="button"
                   onClick={handleSelectAll}
                   title="Seleziona tutti gli elementi e linee sul campo"
-                  className="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                  className="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition shrink-0"
                 >
-                  Seleziona Tutti
+                  Tutti
                 </button>
               )
             )}
@@ -2003,7 +2098,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 type="button"
                 onClick={handleDeleteSelected}
                 title="Elimina tutti gli elementi e linee selezionate (Tasto Canc o Backspace)"
-                className="p-1.5 rounded-xl bg-rose-600 text-white hover:bg-rose-500 transition flex items-center gap-1.5 text-xs font-bold px-3 shadow-md animate-pulse"
+                className="p-1.5 rounded-xl bg-rose-600 text-white hover:bg-rose-500 transition flex items-center gap-1.5 text-xs font-bold px-3 shadow-md animate-pulse shrink-0"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Elimina ({totalSelectedCount})</span>
@@ -2015,7 +2110,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
                 type="button"
                 onClick={handleUndoLine}
                 title="Annulla ultima freccia tracciata"
-                className="p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition"
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition shrink-0"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
@@ -2025,7 +2120,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               type="button"
               onClick={handleClearAll}
               title="Svuota completamente il campo"
-              className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition"
+              className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition shrink-0"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -2034,7 +2129,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
               type="button"
               onClick={handleDownloadPng}
               title="Scarica immagine del campo (.PNG)"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition border border-slate-700"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition border border-slate-700 shrink-0"
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">PNG</span>
@@ -2257,8 +2352,8 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
             </button>
           </div>
 
-          {/* Tasto Modifica Numero/Sigla se è un giocatore */}
-          {selectedElement && selectedElement.type.startsWith('player') && (
+          {/* Tasto Modifica Numero/Sigla se è un giocatore o giocatorino */}
+          {selectedElement && (selectedElement.type.startsWith('player') || selectedElement.type.startsWith('mini_player')) && (
             <button
               type="button"
               onClick={() => {
@@ -2327,32 +2422,34 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         <div className="bg-slate-100/95 p-2.5 rounded-2xl border border-slate-200 flex flex-col gap-2 text-xs font-bold text-slate-700 shadow-2xs">
           {/* Selettore tipologia giocatori e attrezzi */}
           <div className="flex items-center justify-between gap-2 flex-wrap pb-1 border-b border-slate-200/80">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5">Stile Giocatori:</span>
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 pl-0.5 shrink-0">Stile:</span>
               <button
                 type="button"
                 onClick={() => setPaletteTab('figurines')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black transition ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black transition shrink-0 ${
                   paletteTab === 'figurines'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
                 }`}
               >
                 <Shirt className="w-3.5 h-3.5" />
-                <span>Piccoli Giocatorini</span>
+                <span className="hidden sm:inline">Piccoli Giocatorini</span>
+                <span className="sm:hidden">Giocatorini</span>
                 <span className="bg-amber-400 text-slate-950 text-[9px] px-1.5 py-0.2 rounded-full font-black ml-0.5">TOP</span>
               </button>
               <button
                 type="button"
                 onClick={() => setPaletteTab('markers')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition shrink-0 ${
                   paletteTab === 'markers'
                     ? 'bg-slate-800 text-white shadow-sm'
                     : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
                 }`}
               >
                 <Circle className="w-3.5 h-3.5" />
-                <span>Dischi Classici</span>
+                <span className="hidden sm:inline">Dischi Classici</span>
+                <span className="sm:hidden">Dischi</span>
               </button>
             </div>
 
@@ -2362,7 +2459,7 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
           </div>
 
           {/* Riga Pulsanti Elementi */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 touch-pan-x">
             {/* FIGURINE GIOCATORINI */}
             {paletteTab === 'figurines' ? (
               <>
@@ -2589,12 +2686,12 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
       {/* Area del Canvas SVG Interattivo */}
       <div className="relative w-full overflow-hidden rounded-2xl shadow-xl border-4 border-slate-900 bg-slate-900 select-none">
         <svg
-          ref={svgRef}
+          ref={!isFullscreen ? svgRef : undefined}
           viewBox={`0 0 ${VB_WIDTH} ${VB_HEIGHT}`}
           className="w-full h-auto block touch-none"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
+          onPointerDown={!isFullscreen ? handlePointerDown : undefined}
+          onPointerMove={!isFullscreen ? handlePointerMove : undefined}
+          onPointerUp={!isFullscreen ? handlePointerUp : undefined}
         >
           {/* Sfondo del campo */}
           {renderFieldBackground()}
@@ -2628,10 +2725,505 @@ export const TacticalBoard: React.FC<TacticalBoardProps> = ({
         {!readOnly && (
           <div className="absolute bottom-2 left-3 bg-slate-950/70 backdrop-blur-xs text-white/80 text-[10px] px-2.5 py-1 rounded-full pointer-events-none flex items-center gap-1.5 font-medium">
             <HelpCircle className="w-3 h-3 text-cyan-400" />
-            <span>Clicca su linee o elementi per selezionarli ed eliminarli | Usa + / - per ridimensionare | Doppio click per numero</span>
+            <span className="hidden sm:inline">Clicca su linee o elementi per selezionarli ed eliminarli | Usa + / - per ridimensionare | Doppio click per numero</span>
+            <span className="sm:hidden">Tocca elementi o frecce per gestirli | Tasto "Schermo Intero" per lavorare a pieno schermo</span>
           </div>
         )}
       </div>
+
+      {/* PORTAL MODALITÀ SCHERMO INTERO (OTTIMIZZATO PER SMARTPHONE SU CAMPO) */}
+      {isFullscreen &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col justify-between overflow-hidden select-none touch-none overscroll-none p-1 sm:p-2 text-white h-screen w-screen">
+            {/* Header Barra Rapida Fullscreen */}
+            <div className="flex items-center justify-between gap-1.5 bg-slate-900/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-800 shadow-md shrink-0">
+              {/* Sinistra: Chiudi Fullscreen + Campi */}
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(false)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Chiudi</span>
+                </button>
+
+                <div className="h-5 w-px bg-slate-700 mx-0.5 shrink-0" />
+
+                {/* Pitch type pills */}
+                <button
+                  type="button"
+                  onClick={() => onChangePitchType('half')}
+                  className={`px-2 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
+                    pitchType === 'half' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  Metà
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChangePitchType('full')}
+                  className={`px-2 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
+                    pitchType === 'full' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  Intero
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChangePitchType('penalty_box')}
+                  className={`px-2 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
+                    pitchType === 'penalty_box' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  Area
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChangePitchType('box')}
+                  className={`px-2 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
+                    pitchType === 'box' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  Rondo
+                </button>
+              </div>
+
+              {/* Centro / Destra: Tool veloci + Undo/Clear/Download */}
+              <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setActiveTool('select')}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition shrink-0 flex items-center gap-1 ${
+                    activeTool === 'select' ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  <MousePointer className="w-3.5 h-3.5" />
+                  <span>Sposta</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTool('run');
+                    handleClearSelection();
+                  }}
+                  className={`px-2 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
+                    activeTool === 'run' ? 'bg-slate-100 text-slate-900 font-black' : 'bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  Corsa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTool('pass');
+                    handleClearSelection();
+                  }}
+                  className={`px-2 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
+                    activeTool === 'pass' ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 text-amber-300'
+                  }`}
+                >
+                  Pass
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTool('dribble');
+                    handleClearSelection();
+                  }}
+                  className={`px-2 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
+                    activeTool === 'dribble' ? 'bg-sky-500 text-white font-bold' : 'bg-slate-800 text-sky-300'
+                  }`}
+                >
+                  ~ Drib
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTool('shot');
+                    handleClearSelection();
+                  }}
+                  className={`px-2 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
+                    activeTool === 'shot' ? 'bg-rose-600 text-white font-bold' : 'bg-slate-800 text-rose-300'
+                  }`}
+                >
+                  Tiro
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTool('divider');
+                    handleClearSelection();
+                  }}
+                  className={`px-2 py-1 text-xs font-bold rounded-lg transition shrink-0 ${
+                    activeTool === 'divider' ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 text-amber-300'
+                  }`}
+                >
+                  Divisoria
+                </button>
+
+                <div className="h-5 w-px bg-slate-700 mx-0.5 shrink-0" />
+
+                {totalSelectedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelected}
+                    className="px-2 py-1 text-xs font-bold rounded-lg bg-rose-600 text-white shrink-0 flex items-center gap-1 animate-pulse"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>({totalSelectedCount})</span>
+                  </button>
+                )}
+
+                {lines.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleUndoLine}
+                    title="Annulla ultima freccia"
+                    className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white shrink-0"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleDownloadPng}
+                  title="Salva PNG"
+                  className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white shrink-0"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Banner orientamento se in verticale su smartphone */}
+            {isPortrait && (
+              <div className="bg-amber-500/90 text-slate-950 text-[11px] font-black px-2.5 py-1 rounded-lg mx-auto flex items-center gap-1.5 my-0.5 shadow shrink-0">
+                <Smartphone className="w-3.5 h-3.5 rotate-90 shrink-0" />
+                <span>Consiglio: Ruota il telefono in orizzontale (Landscape) per avere il campo a tutto schermo!</span>
+              </div>
+            )}
+
+            {/* Canvas SVG Ingrandito al massimo in Fullscreen */}
+            <div className="relative flex-1 flex items-center justify-center p-0.5 sm:p-1 overflow-hidden min-h-0 w-full">
+              <div className="relative w-full h-full flex items-center justify-center">
+                <svg
+                  ref={svgRef}
+                  viewBox={`0 0 ${VB_WIDTH} ${VB_HEIGHT}`}
+                  className="max-h-full max-w-full aspect-[800/520] object-contain block touch-none shadow-2xl rounded-xl border-2 border-slate-800 bg-slate-900"
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                >
+                  {/* Sfondo del campo */}
+                  {renderFieldBackground()}
+
+                  {/* Linee e frecce tattiche */}
+                  {renderLines()}
+
+                  {/* Giocatori e attrezzi posizionati */}
+                  <g id="tactical-elements-layer">
+                    {elements.map((el) => renderElement(el))}
+                  </g>
+
+                  {/* Riquadro di selezione trascinabile (Marquee box) */}
+                  {selectionBox && (
+                    <rect
+                      x={(Math.min(selectionBox.start.x, selectionBox.current.x) / 100) * VB_WIDTH}
+                      y={(Math.min(selectionBox.start.y, selectionBox.current.y) / 100) * VB_HEIGHT}
+                      width={(Math.abs(selectionBox.current.x - selectionBox.start.x) / 100) * VB_WIDTH}
+                      height={(Math.abs(selectionBox.current.y - selectionBox.start.y) / 100) * VB_HEIGHT}
+                      fill="rgba(56, 189, 248, 0.18)"
+                      stroke="#38bdf8"
+                      strokeWidth="2"
+                      strokeDasharray="4 3"
+                      rx="3"
+                      pointerEvents="none"
+                    />
+                  )}
+                </svg>
+              </div>
+            </div>
+
+            {/* Editor etichetta in Fullscreen */}
+            {editingLabelId && (
+              <div className="bg-amber-500 text-slate-950 p-2 rounded-xl flex items-center justify-between gap-2 text-xs font-bold shadow-lg shrink-0 my-0.5">
+                <div className="flex items-center gap-2">
+                  <span>Numero / Sigla:</span>
+                  <input
+                    type="text"
+                    maxLength={4}
+                    value={tempLabel}
+                    onChange={(e) => setTempLabel(e.target.value)}
+                    className="w-16 px-2 py-1 bg-white border border-amber-600 rounded-lg text-center font-black text-slate-900"
+                    autoFocus
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveLabel()}
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={handleSaveLabel}
+                    className="px-3 py-1 bg-slate-950 text-white font-bold rounded-lg hover:bg-slate-800"
+                  >
+                    OK
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingLabelId(null)}
+                    className="px-2 py-1 text-slate-900 font-semibold"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Floating Contextual Bar for Selected Element in Fullscreen */}
+            {selectedElement && !editingLabelId && (
+              <div className="bg-slate-900/95 border border-emerald-500/60 px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2 text-xs text-white shadow-xl shrink-0 my-0.5">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+                  <span className="font-bold text-emerald-300 text-[11px] shrink-0">
+                    {selectedElement.label || selectedElement.type}
+                  </span>
+                  <div className="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleChangeElementScale(-0.2)}
+                      className="p-0.5 text-slate-300 hover:text-white"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-[10px] font-mono text-emerald-400 font-bold px-1">
+                      {Math.round((selectedElement.scale || 1.0) * 100)}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleChangeElementScale(0.2)}
+                      className="p-0.5 text-slate-300 hover:text-white"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  {(selectedElement.type.startsWith('player') || selectedElement.type.startsWith('mini_player')) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingLabelId(selectedElement.id);
+                        setTempLabel(selectedElement.label || '');
+                      }}
+                      className="px-2 py-0.5 rounded-lg bg-amber-400 text-slate-950 font-bold text-[11px] shrink-0"
+                    >
+                      N° ({selectedElement.label || '#'})
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelected}
+                    className="p-1 rounded-lg bg-rose-600 text-white hover:bg-rose-500"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearSelection}
+                    className="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 text-[11px]"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Floating Contextual Bar for Selected Line in Fullscreen */}
+            {selectedLine && (
+              <div className="bg-slate-900/95 border border-cyan-500/60 px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2 text-xs text-white shadow-xl shrink-0 my-0.5">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+                  <span className="font-bold text-cyan-300 text-[11px] shrink-0">
+                    Linea {selectedLine.style}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleToggleLineOrientation}
+                    title="Ruota 90°"
+                    className="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-200 text-[11px] font-bold shrink-0 flex items-center gap-1 border border-slate-700"
+                  >
+                    <RotateCw className="w-3 h-3 text-cyan-400" />
+                    <span>90°</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChangeLineLength(0.85)}
+                    className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white shrink-0 border border-slate-700"
+                    title="Accorcia"
+                  >
+                    <Minimize2 className="w-3 h-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChangeLineLength(1.15)}
+                    className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white shrink-0 border border-slate-700"
+                    title="Allunga"
+                  >
+                    <Maximize2 className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelected}
+                    className="p-1 rounded-lg bg-rose-600 text-white hover:bg-rose-500"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearSelection}
+                    className="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 text-[11px]"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Dock inferiore per inserire Giocatori e Materiale */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none bg-slate-900/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-800 shadow-md shrink-0">
+              {/* Toggle tipo figurine/dischi */}
+              <button
+                type="button"
+                onClick={() => setPaletteTab(paletteTab === 'figurines' ? 'markers' : 'figurines')}
+                className="px-2 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 border border-slate-700 shrink-0"
+              >
+                {paletteTab === 'figurines' ? '👕 Figurine' : '⚪ Dischi'}
+              </button>
+
+              <div className="h-5 w-px bg-slate-700 mx-0.5 shrink-0" />
+
+              {paletteTab === 'figurines' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleAddElement('mini_player_blue')}
+                    className="px-2 py-1 rounded-lg bg-blue-600 text-white font-bold text-xs shrink-0 flex items-center gap-1"
+                  >
+                    <Shirt className="w-3.5 h-3.5 fill-blue-300" />
+                    <span>Blu</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddElement('mini_player_red')}
+                    className="px-2 py-1 rounded-lg bg-red-600 text-white font-bold text-xs shrink-0 flex items-center gap-1"
+                  >
+                    <Shirt className="w-3.5 h-3.5 fill-red-300" />
+                    <span>Rosso</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddElement('mini_player_yellow')}
+                    className="px-2 py-1 rounded-lg bg-amber-400 text-slate-950 font-bold text-xs shrink-0 flex items-center gap-1"
+                  >
+                    <Shirt className="w-3.5 h-3.5 fill-amber-200" />
+                    <span>Jolly</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddElement('mini_player_green')}
+                    className="px-2 py-1 rounded-lg bg-emerald-600 text-white font-bold text-xs shrink-0 flex items-center gap-1"
+                  >
+                    <Shirt className="w-3.5 h-3.5 fill-emerald-300" />
+                    <span>Verde</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddElement('mini_player_gk')}
+                    className="px-2 py-1 rounded-lg bg-orange-600 text-white font-bold text-xs shrink-0 flex items-center gap-1"
+                  >
+                    <Shirt className="w-3.5 h-3.5 fill-orange-300" />
+                    <span>GK</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleAddElement('player_blue')}
+                    className="px-2 py-1 rounded-lg bg-blue-600 text-white font-bold text-xs shrink-0 flex items-center gap-1"
+                  >
+                    <Circle className="w-3.5 h-3.5 fill-white" />
+                    <span>Blu</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddElement('player_red')}
+                    className="px-2 py-1 rounded-lg bg-red-600 text-white font-bold text-xs shrink-0 flex items-center gap-1"
+                  >
+                    <Circle className="w-3.5 h-3.5 fill-white" />
+                    <span>Rosso</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddElement('player_yellow')}
+                    className="px-2 py-1 rounded-lg bg-amber-400 text-slate-950 font-bold text-xs shrink-0 flex items-center gap-1"
+                  >
+                    <Circle className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>Jolly</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddElement('player_gk')}
+                    className="px-2 py-1 rounded-lg bg-orange-600 text-white font-bold text-xs shrink-0 flex items-center gap-1"
+                  >
+                    <Circle className="w-3.5 h-3.5 fill-white" />
+                    <span>GK</span>
+                  </button>
+                </>
+              )}
+
+              <div className="h-5 w-px bg-slate-700 mx-0.5 shrink-0" />
+
+              <button
+                type="button"
+                onClick={() => handleAddElement('ball')}
+                className="px-2 py-1 rounded-lg bg-white text-slate-900 font-bold text-xs shrink-0 flex items-center gap-1"
+              >
+                <span>⚽ Palla</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddElement('cone')}
+                className="px-2 py-1 rounded-lg bg-orange-500 text-white font-bold text-xs shrink-0 flex items-center gap-1"
+              >
+                <span>▲ Cono</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddElement('disc_yellow')}
+                className="px-2 py-1 rounded-lg bg-yellow-400 text-slate-950 font-bold text-xs shrink-0 flex items-center gap-1"
+              >
+                <span>● Cinesino G</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddElement('disc_red')}
+                className="px-2 py-1 rounded-lg bg-red-500 text-white font-bold text-xs shrink-0 flex items-center gap-1"
+              >
+                <span>● Cinesino R</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddElement('mini_goal')}
+                className="px-2 py-1 rounded-lg bg-slate-700 text-white font-bold text-xs shrink-0 flex items-center gap-1"
+              >
+                <span>🥅 Porta</span>
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

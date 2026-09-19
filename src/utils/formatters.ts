@@ -119,3 +119,69 @@ export function normalizeDateToISO(raw: unknown): string | null {
 
   return null;
 }
+
+/**
+ * Determina in modo affidabile se un atleta è un portiere
+ * in base al suo ruolo o alla dicitura nel nome.
+ */
+export function isPlayerGoalkeeper(role?: string | null, name?: string | null): boolean {
+  const r = (role || '').toLowerCase().trim();
+  const n = (name || '').toLowerCase().trim();
+  return (
+    r.includes('port') ||
+    r === 'por' ||
+    r === 'pt' ||
+    r === 'gk' ||
+    n.includes('(por)') ||
+    n.includes('(pt)') ||
+    n.includes('(p)') ||
+    n.includes('- por') ||
+    n.includes('- pt')
+  );
+}
+
+/**
+ * Neutralizza possibili caratteri di Formula Injection (=, +, -, @, tab, ritorno a capo)
+ * per l'esportazione sicura in CSV per Excel, LibreOffice e Google Sheets.
+ */
+export function sanitizeCSVField(val: unknown): string {
+  if (val === null || val === undefined) return '';
+  let str = String(val).trim();
+  if (/^[=\+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  return str.replace(/"/g, '""');
+}
+
+/**
+ * Converte i codici errore di Firebase Auth in messaggi amichevoli e chiari in italiano,
+ * senza esporre informazioni sensibili o gerghi interni.
+ */
+export function getFirebaseErrorMessage(error: any): string {
+  const code = error?.code || error?.message || '';
+  if (typeof code !== 'string') return 'Si è verificato un errore imprevisto. Riprova più tardi.';
+
+  if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found')) {
+    return 'Email o password non corretti. Verifica le tue credenziali.';
+  }
+  if (code.includes('email-already-in-use') || code.includes('EMAIL_EXISTS')) {
+    return 'Questo indirizzo email risulta già registrato.';
+  }
+  if (code.includes('invalid-email')) {
+    return 'Il formato dell\'indirizzo email non è valido.';
+  }
+  if (code.includes('weak-password')) {
+    return 'La password deve contenere almeno 6 caratteri.';
+  }
+  if (code.includes('too-many-requests')) {
+    return 'Troppi tentativi falliti. Attendi qualche minuto prima di riprovare.';
+  }
+  if (code.includes('network-request-failed')) {
+    return 'Errore di connessione. Verifica la tua rete internet.';
+  }
+  if (code.includes('requires-recent-login')) {
+    return 'Questa operazione richiede di effettuare nuovamente il login.';
+  }
+
+  return error?.message || 'Si è verificato un errore durante l\'operazione.';
+}

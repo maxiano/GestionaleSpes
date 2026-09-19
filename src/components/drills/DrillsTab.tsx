@@ -672,7 +672,7 @@ export const DrillsTab: React.FC<DrillsTabProps> = ({ userProfile }) => {
           {/* LAYOUT A 2 COLONNE: LAVAGNA GRAFICA + SCHEDA TECNICA */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* COLONNA SINISTRA: LAVAGNA TATTICA (7 Colonne su Desktop) */}
-            <div className="lg:col-span-7 bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div className="lg:col-span-7 bg-white p-2 sm:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xs">

@@ -6,7 +6,7 @@ import {
   archiveAndDeleteCallup
 } from '../../services/callupsService';
 import { getTournaments } from '../../services/tournamentsService';
-import { formatDateIT } from '../../utils/formatters';
+import { formatDateIT, isPlayerGoalkeeper } from '../../utils/formatters';
 import {
   formatCallupWhatsAppInvite,
   formatCallupWhatsAppFinal,
@@ -525,7 +525,7 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
               {players.map((p) => {
                 const displayName = p.lastName ? `${p.lastName} ${p.firstName}` : p.name || 'Atleta';
                 const isChecked = selectedPlayerIds.includes(p.id);
-                const isGk = (p.role || '').toLowerCase().includes('portiere') || (p.role || '').toLowerCase().includes('por');
+                const isGk = isPlayerGoalkeeper(p.role, displayName);
                 return (
                   <label
                     key={p.id}
@@ -623,12 +623,7 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
                   if (found?.role) role = found.role;
                 }
 
-                const isGoalkeeper =
-                  role.toLowerCase().includes('portiere') ||
-                  role.toLowerCase().includes('por') ||
-                  name.toLowerCase().includes('(p)') ||
-                  name.toLowerCase().includes('(por)') ||
-                  name.toLowerCase().includes('portiere');
+                const isGoalkeeper = isPlayerGoalkeeper(role, name);
 
                 return { id, name, role, isGoalkeeper };
               });
@@ -927,12 +922,7 @@ export const CallupsTab: React.FC<CallupsTabProps> = ({
                   if (found?.role) role = found.role;
                 }
 
-                const isGk =
-                  role.toLowerCase().includes('portiere') ||
-                  role.toLowerCase().includes('por') ||
-                  cleanName.toLowerCase().includes('(p)') ||
-                  cleanName.toLowerCase().includes('(por)') ||
-                  cleanName.toLowerCase().includes('portiere');
+                const isGk = isPlayerGoalkeeper(role, cleanName);
 
                 return (
                   <tr key={idx} className={`border-b border-black ${isGk ? 'bg-amber-100/50' : ''}`}>

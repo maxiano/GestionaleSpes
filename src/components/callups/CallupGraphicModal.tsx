@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Callup, Player } from '../../types';
-import { formatDateIT } from '../../utils/formatters';
+import { formatDateIT, isPlayerGoalkeeper } from '../../utils/formatters';
 import { formatCallupWhatsAppFinal, sendToWhatsApp } from '../../utils/exports';
 import { createCallupGraphicBlob } from '../../utils/callupGraphicGenerator';
 import { JerseyIcon } from '../common/JerseyIcon';
@@ -106,12 +106,7 @@ export const CallupGraphicModal: React.FC<CallupGraphicModalProps> = ({
       if (found?.role) role = found.role;
     }
 
-    const isGk =
-      role.toLowerCase().includes('portiere') ||
-      role.toLowerCase().includes('por') ||
-      name.toLowerCase().includes('(p)') ||
-      name.toLowerCase().includes('(por)') ||
-      name.toLowerCase().includes('portiere');
+    const isGk = isPlayerGoalkeeper(role, name);
 
     return { id, name, role, isGoalkeeper: isGk };
   });

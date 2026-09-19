@@ -127,22 +127,22 @@ export async function respondToCallup(
 }
 
 export async function getPermanentMatchHistory(playerId: string): Promise<any[]> {
-  const snap = await getDocs(collection(db, 'match_history'));
+  if (!playerId) return [];
+  const q = query(collection(db, 'match_history'), where('playerId', '==', String(playerId)));
+  const snap = await getDocs(q);
   const results: any[] = [];
   snap.forEach((docSnap) => {
     const data = docSnap.data();
-    if (String(data.playerId) === String(playerId)) {
-      results.push({
-        id: docSnap.id,
-        matchId: data.matchId,
-        title: data.title || `Partita vs ${data.opponent || 'Avversario'}`,
-        date: data.date || 'Da definire',
-        time: data.time || data.matchTime || '',
-        location: data.location || 'Da definire',
-        status: data.status,
-        responses: { [playerId]: data.status }
-      });
-    }
+    results.push({
+      id: docSnap.id,
+      matchId: data.matchId,
+      title: data.title || `Partita vs ${data.opponent || 'Avversario'}`,
+      date: data.date || 'Da definire',
+      time: data.time || data.matchTime || '',
+      location: data.location || 'Da definire',
+      status: data.status,
+      responses: { [playerId]: data.status }
+    });
   });
   return results;
 }

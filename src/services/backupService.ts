@@ -1,7 +1,13 @@
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, auth } from './firebase';
+import { isUserAdmin } from './authService';
 
 export async function downloadDatabaseBackup(): Promise<void> {
+  const current = auth.currentUser;
+  if (!current || !isUserAdmin(current.email)) {
+    throw new Error('Accesso negato: il backup del database è riservato esclusivamente agli amministratori.');
+  }
+
   const backupData: Record<string, any[]> = {};
   const collectionsToBackup = [
     'tournaments',
@@ -33,6 +39,11 @@ export async function downloadDatabaseBackup(): Promise<void> {
 }
 
 export async function wipeAllDataExceptCoachesAndAdmins(): Promise<void> {
+  const current = auth.currentUser;
+  if (!current || !isUserAdmin(current.email)) {
+    throw new Error('Accesso negato: l\'azzeramento del database è riservato esclusivamente agli amministratori.');
+  }
+
   const collectionsToClear = [
     'players',
     'callups',

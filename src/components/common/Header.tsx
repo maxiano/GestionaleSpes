@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile, AppNotification } from '../../types';
+import { isUserAdmin } from '../../services/authService';
 import { ClubLogo } from './ClubLogo';
 import { PWAInstallButton } from '../pwa/PWAInstallButton';
 import { NotificationBell } from '../notifications/NotificationBell';
@@ -54,10 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const isAdmin =
-    userProfile?.role === 'admin' ||
-    userProfile?.email?.toLowerCase() === 'max.nanni@gmail.com' ||
-    userProfile?.email?.toLowerCase().includes('admin');
+  const isAdmin = isUserAdmin(userProfile);
 
   const handleForceUpdate = async () => {
     if (isUpdating) return;

@@ -108,7 +108,12 @@ export async function submitParentCustomTraining(
   const dateIt = `${day}/${month}/${year}`;
   const dateItAlt = `${parseInt(day, 10)}/${parseInt(month, 10)}/${year}`;
 
-  const snap = await getDocs(collection(db, 'attendances'));
+  const cleanTeam = (teamName || '').trim();
+  const attendancesCol = collection(db, 'attendances');
+  const q = cleanTeam
+    ? query(attendancesCol, where('teamId', '==', cleanTeam))
+    : attendancesCol;
+  const snap = await getDocs(q);
   let targetDoc: any = null;
 
   snap.forEach((docSnap) => {

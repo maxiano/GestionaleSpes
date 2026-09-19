@@ -26,6 +26,26 @@ import { UserProfile, UserRole } from '../types';
 import { linkParentToPlayersByPhone, getAllPlayers } from './playersService';
 import { normalizePhoneNumber, arePhonesMatching } from '../utils/formatters';
 
+export const ADMIN_EMAILS: readonly string[] = [
+  'max.nanni@gmail.com',
+  'admin@spesmontesacro.it'
+];
+
+/**
+ * Verifica centralizzata dei permessi di amministrazione Spes Montesacro.
+ * Rifiuta rigorosamente corrispondenze parziali non autorizzate.
+ */
+export function isUserAdmin(profileOrEmail?: UserProfile | string | null): boolean {
+  if (!profileOrEmail) return false;
+  if (typeof profileOrEmail === 'string') {
+    const email = profileOrEmail.toLowerCase().trim();
+    return ADMIN_EMAILS.includes(email);
+  }
+  if (profileOrEmail.role === 'admin') return true;
+  const email = (profileOrEmail.email || '').toLowerCase().trim();
+  return ADMIN_EMAILS.includes(email);
+}
+
 export function normalizeUserProfile(rawData: Record<string, any> | undefined | null): UserProfile {
   if (!rawData) {
     return { uid: '', role: 'coach', teams: [], name: 'Utente', email: '' };
@@ -59,10 +79,7 @@ export function normalizeUserProfile(rawData: Record<string, any> | undefined | 
   }
 
   const userEmail = (rawData.email || '').toLowerCase().trim();
-  const isAdminEmail =
-    userEmail === 'max.nanni@gmail.com' ||
-    userEmail.includes('admin') ||
-    userEmail === 'admin@spesmontesacro.it';
+  const isAdminEmail = isUserAdmin(userEmail);
 
   const assignedRole: UserRole =
     rawData.role === 'admin' || isAdminEmail
@@ -82,7 +99,7 @@ export function normalizeUserProfile(rawData: Record<string, any> | undefined | 
 }
 
 export async function loginUser(email: string, pass: string): Promise<User> {
-  const cred = await signInWithEmailAndPassword(auth, email, pass);
+  const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
   return cred.user;
 }
 
@@ -115,7 +132,7 @@ export function subscribeToAuth(callback: (user: User | null, profile: UserProfi
         console.warn('Profilo utente non trovato nel database, inizializzazione automatica...');
         const email = firebaseUser.email || '';
         const emailLower = email.toLowerCase().trim();
-        const isAdminEmail = emailLower === 'max.nanni@gmail.com' || emailLower.includes('admin');
+        const isAdminEmail = isUserAdmin(emailLower);
         const defaultProfile: UserProfile = {
           uid: firebaseUser.uid,
           name: firebaseUser.displayName || email || 'Amministratore Spes',
@@ -140,7 +157,7 @@ export function subscribeToAuth(callback: (user: User | null, profile: UserProfi
       console.error('Errore caricamento profilo:', err);
       const email = firebaseUser.email || '';
       const emailLower = email.toLowerCase().trim();
-      const isAdminEmail = emailLower === 'max.nanni@gmail.com' || emailLower.includes('admin');
+      const isAdminEmail = isUserAdmin(emailLower);
       callback(firebaseUser, {
         uid: firebaseUser.uid,
         name: firebaseUser.displayName || email || 'Amministratore Spes',
@@ -168,12 +185,32 @@ export async function createStaffAccount(data: {
   role: 'admin' | 'coach';
   teams: string[];
 }): Promise<string> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('Operazione non autorizzata: devi essere autenticato.');
+  }
+
+  const cleanName = (data.name || '').trim();
+  if (cleanName.length < 2) {
+    throw new Error('Inserisci un nominativo valido per lo staff (almeno 2 caratteri).');
+  }
+
+  const cleanEmail = (data.email || '').toLowerCase().trim();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+    throw new Error('Inserisci un indirizzo email valido.');
+  }
+
+  if (!data.password || data.password.length < 6) {
+    throw new Error('La password deve contenere almeno 6 caratteri.');
+  }
+
   const signUpUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`;
   const response = await fetch(signUpUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email: data.email,
+      email: cleanEmail,
       password: data.password,
       returnSecureToken: true
     })
@@ -181,14 +218,18 @@ export async function createStaffAccount(data: {
 
   const resData = await response.json();
   if (!response.ok) {
-    throw new Error(resData.error?.message || "Errore durante la creazione dell'account");
+    const errorMsg = resData.error?.message;
+    if (errorMsg === 'EMAIL_EXISTS') {
+      throw new Error('Questo indirizzo email risulta già registrato.');
+    }
+    throw new Error(errorMsg || "Errore durante la creazione dell'account staff");
   }
 
   const newUid = resData.localId;
   await setDoc(doc(db, 'users', newUid), {
     uid: newUid,
-    name: data.name,
-    email: data.email,
+    name: cleanName,
+    email: cleanEmail,
     role: data.role,
     teamId: data.teams.length > 0 ? data.teams[0] : '',
     teams: data.teams,
@@ -204,12 +245,38 @@ export async function createParentAccount(data: {
   phone: string;
   password: string;
 }): Promise<string> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('Operazione non autorizzata: devi essere autenticato.');
+  }
+
+  const cleanName = (data.name || '').trim();
+  if (cleanName.length < 2) {
+    throw new Error('Inserisci un nome e cognome genitore valido.');
+  }
+
+  const cleanEmail = (data.email || '').toLowerCase().trim();
+  if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    throw new Error('Il formato dell\'email non è valido.');
+  }
+
+  const cleanPhone = normalizePhoneNumber(data.phone);
+  if (!cleanPhone || cleanPhone.length < 7) {
+    throw new Error('Inserisci un recapito telefonico valido per il genitore (minimo 7 cifre).');
+  }
+
+  if (!data.password || data.password.length < 6) {
+    throw new Error('La password deve contenere almeno 6 caratteri.');
+  }
+
+  const effectiveEmail = cleanEmail || `genitore_${cleanPhone}@spes.local`;
+
   const signUpUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`;
   const response = await fetch(signUpUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email: data.email,
+      email: effectiveEmail,
       password: data.password,
       returnSecureToken: true
     })
@@ -217,7 +284,11 @@ export async function createParentAccount(data: {
 
   const resData = await response.json();
   if (!response.ok) {
-    throw new Error(resData.error?.message || 'Errore creazione account genitore');
+    const errorMsg = resData.error?.message;
+    if (errorMsg === 'EMAIL_EXISTS') {
+      throw new Error(`Un account con l'email ${effectiveEmail} è già registrato.`);
+    }
+    throw new Error(errorMsg || 'Errore durante la creazione dell\'account genitore');
   }
 
   const newUid = resData.localId;
@@ -225,21 +296,19 @@ export async function createParentAccount(data: {
   // Crea il documento utente genitore
   await setDoc(doc(db, 'users', newUid), {
     uid: newUid,
-    name: data.name,
-    email: data.email,
-    phone: data.phone,
+    name: cleanName,
+    email: effectiveEmail,
+    phone: cleanPhone,
     role: 'parent',
     childIds: [],
     createdAt: serverTimestamp()
   });
 
   // Collega automaticamente tutti i figli che hanno questo numero di telefono (come Padre o come Madre)
-  if (data.phone) {
-    try {
-      await linkParentToPlayersByPhone(newUid, data.phone);
-    } catch (err) {
-      console.warn('Errore auto-collegamento figli a nuovo genitore:', err);
-    }
+  try {
+    await linkParentToPlayersByPhone(newUid, cleanPhone);
+  } catch (err) {
+    console.warn('Errore auto-collegamento figli a nuovo genitore:', err);
   }
 
   return newUid;
@@ -303,6 +372,10 @@ export async function fetchStaffUsers(): Promise<UserProfile[]> {
 }
 
 export async function deleteStaffUser(userId: string): Promise<void> {
+  const current = auth.currentUser;
+  if (current && current.uid === userId) {
+    throw new Error('Operazione non consentita: non puoi eliminare il tuo stesso account mentre sei autenticato.');
+  }
   await deleteDoc(doc(db, 'users', userId));
 }
 
